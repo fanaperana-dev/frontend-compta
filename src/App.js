@@ -1,24 +1,109 @@
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Navigation from './components/Navigation';
+import Clients from './pages/Clients';
+import Factures from './pages/Factures';
+import ClientsPage from './pages/ClientsPage';
+import FournisseursPage from './pages/FournisseursPage';
+import TiersPage from './pages/TiersPage';
+import RHPage from './pages/RHPage';
+import JournalPage from './pages/JournalPage';
+import DashboardPage from './pages/DashboardPage';
+import ModuleProtege from './components/ModuleProtege';
+
+// Route protégée entreprise
+function RouteProtegee({ children }) {
+  const { token, isAdmin } = useAuth();
+  if (!token) return <Navigate to="/login" />;
+  if (isAdmin) return <Navigate to="/admin" />;
+  return <Navigation>{children}</Navigation>;
+}
+
+// Route protégée admin
+function RouteAdmin({ children }) {
+  const { token, isAdmin } = useAuth();
+  if (!token) return <Navigate to="/login" />;
+  if (!isAdmin) return <Navigate to="/dashboard" />;
+  return children;
+}
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+        />
+        <Routes>
+          {/* Page login */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Redirection par défaut */}
+          <Route path="/" element={<Navigate to="/login" />} />
+
+          {/* Pages entreprise */}
+          <Route path="/dashboard" element={
+           <RouteProtegee>
+             <ModuleProtege module="dashboard">
+              <DashboardPage />
+             </ModuleProtege>
+           </RouteProtegee>
+          } />
+          <Route path="/clients" element={
+           <RouteProtegee>
+             <ModuleProtege module="clients">
+              <ClientsPage />
+             </ModuleProtege>
+          </RouteProtegee>
+          } />
+          <Route path="/paiements" element={
+            <RouteProtegee>
+              <ModuleProtege module="paiements">
+                <TiersPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/fournisseurs" element={
+            <RouteProtegee>
+              <ModuleProtege module="fournisseurs">
+                <FournisseursPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/rh" element={
+            <RouteProtegee>
+              <ModuleProtege module="rh">
+                <RHPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          
+          <Route path="/journal" element={
+            <RouteProtegee>
+              <ModuleProtege module="journal">
+                <JournalPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+
+          {/* Pages admin */}
+          <Route path="/admin" element={
+            <RouteAdmin>
+              <div style={{padding: '20px'}}>
+                <h1>Admin — En construction 🚧</h1>
+              </div>
+            </RouteAdmin>
+          } />
+
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
