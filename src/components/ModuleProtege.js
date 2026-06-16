@@ -23,7 +23,6 @@ export default function ModuleProtege({ module, children }) {
           </h2>
           <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
             Vous n'avez pas souscrit à cette fonctionnalité.
-            Veuillez contacter votre administrateur pour l'activer.
           </p>
           <div style={{
             background: '#e3f2fd', borderRadius: '8px',

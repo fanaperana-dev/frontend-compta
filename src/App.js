@@ -14,6 +14,7 @@ import RHPage from './pages/RHPage';
 import JournalPage from './pages/JournalPage';
 import DashboardPage from './pages/DashboardPage';
 import ModuleProtege from './components/ModuleProtege';
+import SuperAdminEntreprises from './pages/superadmin/SuperAdminEntreprises';
 
 // Route protégée entreprise
 function RouteProtegee({ children }) {
@@ -93,14 +94,12 @@ function App() {
           } />
 
           {/* Pages admin */}
-          <Route path="/admin" element={
+          <Route path="/admin/entreprises" element={
             <RouteAdmin>
-              <div style={{padding: '20px'}}>
-                <h1>Admin — En construction 🚧</h1>
-              </div>
+              <SuperAdminEntreprises />
             </RouteAdmin>
           } />
-
+          <Route path="/admin" element={<Navigate to="/admin/entreprises" />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

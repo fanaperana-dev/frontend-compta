@@ -373,7 +373,7 @@ export default function DashboardPage() {
                   <CarteChiffre titre="💰 Chiffre d'affaires" valeur={totalRecettes} couleur="#2e7d32" />
                   <CarteChiffre titre="💸 Total dépenses" valeur={totalDepenses} couleur="#c62828" />
                   <CarteChiffre titre="📊 Solde global" valeur={soldeGlobal}
-                    couleur={soldeGlobal >= 0 ? '#004d5a' : '#c62828'} />
+                    couleur={soldeGlobal >= 0 ? '#2149fa' : '#c62828'} />
                   <CarteChiffre titre="👥 Masse salariale nette" valeur={masseNet}
                     couleur="#1565c0" sousTitre="Salaires nets versés" />
                   <CarteChiffre titre="🏛️ Charges patronales" valeur={massePatronale}

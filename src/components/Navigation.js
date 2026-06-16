@@ -10,9 +10,12 @@ const menuItems = [
   { path: '/rh', icon: '👤', label: 'Ressources Humaines', module: 'rh' },
   { path: '/journal', icon: '📒', label: 'Journal', module: 'journal' },
 ];
+const menuItemsAdmin = [
+  { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },
+];
 
 export default function Navigation({ children }) {
-  const { entreprise, deconnexion, moduleActif } = useAuth();
+  const { entreprise, deconnexion, moduleActif, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOuvert, setMenuOuvert] = useState(true);
@@ -124,7 +127,43 @@ export default function Navigation({ children }) {
               </div>
             );
           })}
+          {isAdmin && (
+            <>
+              <div style={{
+                padding: '15px 15px 5px 15px',
+                fontSize: '11px',
+                opacity: 0.6,
+                textTransform: 'uppercase',
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                marginTop: '10px'
+           }}>
+                {menuOuvert && 'Administration'}
+              </div>
+              {menuItemsAdmin.map(item => {
+                const actif = location.pathname === item.path;
+                return (
+                 <div
+                   key={item.path}
+                   onClick={() => navigate(item.path)}
+                   style={{
+                     display: 'flex', alignItems: 'center', gap: '12px',
+                     padding: '12px 15px', cursor: 'pointer',
+                     background: actif ? 'rgba(255,255,255,0.2)' : 'transparent',
+                     borderLeft: actif ? '4px solid white' : '4px solid transparent',
+                     transition: 'all 0.2s', whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={e => { if (!actif) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                onMouseLeave={e => { if (!actif) e.currentTarget.style.background = 'transparent'; }}
+             >
+                <span style={{ fontSize: '18px', flexShrink: 0 }}>{item.icon}</span>
+                {menuOuvert && <span style={{ fontSize: '14px' }}>{item.label}</span>}
+               </div>
+            );
+          })}
+          </>
+         )}
         </nav>
+        
 
         {/* Déconnexion */}
         <div

@@ -199,6 +199,18 @@ export const rhService = {
     api.get(`/rh/charges/${entreprise_id}`, { params })
 };
 
+export const entrepriseService = {
+  getAll: () => api.get('/entreprises'),
+  getDetail: (id) => api.get(`/entreprises/detail/${id}`),
+  creer: (data) => api.post('/entreprises', data),
+  modifier: (id, data) => api.put(`/entreprises/${id}`, data),
+  changerStatut: (id, statut, motif) => api.patch(`/entreprises/${id}/statut`, { statut, motif_suspension: motif }),
+  resetMdp: (id) => api.post(`/entreprises/${id}/reset-mdp`),
+  getForfaits: () => api.get('/entreprises/forfaits/liste'),
+  creerForfait: (data) => api.post('/entreprises/forfaits', data),
+  modifierForfait: (id, data) => api.put(`/entreprises/forfaits/${id}`, data)
+};
+
 // MAILS
 export const mailService = {
   envoyerFacture: (data) =>
