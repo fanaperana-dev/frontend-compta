@@ -9,9 +9,11 @@ const menuItems = [
   { path: '/fournisseurs', icon: '🏭', label: 'Fournisseurs', module: 'fournisseurs' },
   { path: '/rh', icon: '👤', label: 'Ressources Humaines', module: 'rh' },
   { path: '/journal', icon: '📒', label: 'Journal', module: 'journal' },
+  { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
 ];
 const menuItemsAdmin = [
   { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },
+  { path: '/admin/forfaits', icon: '📦', label: 'Forfaits' },
 ];
 
 export default function Navigation({ children }) {
@@ -86,7 +88,7 @@ export default function Navigation({ children }) {
         {/* Items du menu */}
         <nav style={{ flex: 1, padding: '10px 0' }}>
           {menuItems.map(item => {
-            if (!moduleActif(item.module)) return null;
+            if (item.module && !moduleActif(item.module)) return null;
 
             const actif = location.pathname === item.path;
 

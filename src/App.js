@@ -15,21 +15,22 @@ import JournalPage from './pages/JournalPage';
 import DashboardPage from './pages/DashboardPage';
 import ModuleProtege from './components/ModuleProtege';
 import SuperAdminEntreprises from './pages/superadmin/SuperAdminEntreprises';
+import ProfilPage from './pages/ProfilPage';
+import SuperAdminForfaits from './pages/superadmin/SuperAdminForfaits';
+import NavigationAdmin from './components/NavigationAdmin';
 
+function RouteAdmin({ children }) {
+  const { token, isAdmin } = useAuth();
+  if (!token) return <Navigate to="/login" />;
+  if (!isAdmin) return <Navigate to="/dashboard" />;
+  return <NavigationAdmin>{children}</NavigationAdmin>;
+}
 // Route protégée entreprise
 function RouteProtegee({ children }) {
   const { token, isAdmin } = useAuth();
   if (!token) return <Navigate to="/login" />;
   if (isAdmin) return <Navigate to="/admin" />;
   return <Navigation>{children}</Navigation>;
-}
-
-// Route protégée admin
-function RouteAdmin({ children }) {
-  const { token, isAdmin } = useAuth();
-  if (!token) return <Navigate to="/login" />;
-  if (!isAdmin) return <Navigate to="/dashboard" />;
-  return children;
 }
 
 function App() {
@@ -92,11 +93,21 @@ function App() {
               </ModuleProtege>
             </RouteProtegee>
           } />
+          <Route path="/profil" element={
+            <RouteProtegee>
+              <ProfilPage />
+            </RouteProtegee>
+          } />
 
           {/* Pages admin */}
           <Route path="/admin/entreprises" element={
             <RouteAdmin>
               <SuperAdminEntreprises />
+            </RouteAdmin>
+          } />
+          <Route path="/admin/forfaits" element={
+            <RouteAdmin>
+              <SuperAdminForfaits />
             </RouteAdmin>
           } />
           <Route path="/admin" element={<Navigate to="/admin/entreprises" />} />

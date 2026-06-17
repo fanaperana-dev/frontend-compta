@@ -228,14 +228,10 @@ export const mailService = {
 
 // TICKETS
 export const ticketService = {
-  getAll: (entreprise_id) =>
-    api.get(`/tickets/${entreprise_id}`),
-
-  creer: (data) =>
-    api.post('/tickets', data),
-
-  traiter: (id, data) =>
-    api.patch(`/tickets/${id}/traiter`, data)
+  getAll: (entreprise_id) => api.get(`/tickets/${entreprise_id}`),
+  getTous: () => api.get('/tickets/admin/tous'),
+  creer: (data) => api.post('/tickets', data),
+  traiter: (id, data) => api.patch(`/tickets/${id}/traiter`, data)
 };
 
 // AUTOMATISATIONS
@@ -244,4 +240,9 @@ export const automatisationService = {
     api.post(`/automatisations/global/${entreprise_id}`)
 };
 
+export const profilService = {
+  getMonProfil: (id) => api.get(`/entreprises/mon-profil/${id}`),
+  modifierMonProfil: (id, data) => api.put(`/entreprises/mon-profil/${id}`, data),
+  changerMotDePasse: (id, data) => api.patch(`/entreprises/mon-profil/${id}/mot-de-passe`, data)
+};
 export default api;
