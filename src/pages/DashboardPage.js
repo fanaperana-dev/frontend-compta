@@ -237,7 +237,7 @@ export default function DashboardPage() {
               <div>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Statut :</span>
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  {['TOUS', 'EN_ATTENTE', 'PAYEE', 'EN_RETARD', 'ANNULEE'].map(s => (
+                  {['TOUS', 'CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE', 'ARCHIVEE'].map(s => (
                     <button key={s} onClick={() => setFiltreStatutTresorerie(s)}
                       style={{
                         padding: '4px 10px', borderRadius: '15px', border: 'none',
@@ -245,8 +245,7 @@ export default function DashboardPage() {
                         background: filtreStatutTresorerie === s ? '#004d5a' : '#e0e0e0',
                         color: filtreStatutTresorerie === s ? 'white' : '#333'
                       }}>
-                      {s === 'TOUS' ? 'Tous' : s === 'EN_ATTENTE' ? '⏳ En attente' :
-                       s === 'PAYEE' ? '✅ Payée' : s === 'EN_RETARD' ? '⚠️ En retard' : '❌ Annulée'}
+                      {s === 'TOUS' ? 'Tous' : s === 'CREE' ? '📝 Créée' : s === 'ENVOYEE' ? ' 📧 Envoyée' : s === 'PAIEMENT_PARTIEL' ? ' 💰 Paiement partiel' : s === 'PAYEE' ? '✅ Payée' : s === 'EN_RETARD' ? '⚠️ En retard' : s === 'ANNULEE' ? '❌ Annulée' : '📦 Archivée'}
                     </button>
                   ))}
                 </div>
@@ -270,8 +269,13 @@ export default function DashboardPage() {
 
             const total = facturesFiltrees.reduce((s, f) => s + Number(f.montant_total || 0), 0);
             const couleur = filtreStatutTresorerie === 'PAYEE' ? '#2e7d32'
-              : filtreStatutTresorerie === 'EN_RETARD' ? '#c62828'
-              : filtreStatutTresorerie === 'EN_ATTENTE' ? '#e65100' : '#004d5a';
+               : filtreStatutTresorerie === 'EN_RETARD' ? '#c62828'
+               : filtreStatutTresorerie === 'ANNULEE' ? '#9e9e9e'
+               : filtreStatutTresorerie === 'CREE' ? '#616161'
+               : filtreStatutTresorerie === 'ENVOYEE' ? '#1565c0'
+               : filtreStatutTresorerie === 'PAIEMENT_PARTIEL' ? '#e65100'
+               : filtreStatutTresorerie === 'ARCHIVEE' ? '#6a1b9a'
+               : '#004d5a';
 
             return (
               <>
@@ -300,8 +304,11 @@ export default function DashboardPage() {
                         {facturesFiltrees.map((f, i) => {
                           const cs = f.statut === 'PAYEE' ? { bg: '#e8f5e9', color: '#2e7d32', label: '✅ Payée' }
                             : f.statut === 'EN_RETARD' ? { bg: '#ffebee', color: '#c62828', label: '⚠️ En retard' }
-                            : f.statut === 'EN_ATTENTE' ? { bg: '#fff3e0', color: '#e65100', label: '⏳ En attente' }
-                            : { bg: '#f5f5f5', color: '#666', label: '❌ Annulée' };
+                            : f.statut === 'CREE' ? { bg: '#f5f5f5', color: '#616161', label: '📝 Créée' }
+                            : f.statut === 'ENVOYEE' ? { bg: '#e3f2fd', color: '#1565c0', label: '📧 Envoyée' }
+                            : f.statut === 'PAIEMENT_PARTIEL' ? { bg: '#fff3e0', color: '#e65100', label: '💰 Partiel' }
+                            : f.statut === 'ANNULEE' ? { bg: '#fafafa', color: '#9e9e9e', label: '❌ Annulée' }
+                            : { bg: '#f3e5f5', color: '#6a1b9a', label: '📦 Archivée' };
                           return (
                             <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
                               <td style={{ padding: '10px', fontWeight: 'bold', color: '#004d5a' }}>{f.numero_facture}</td>
