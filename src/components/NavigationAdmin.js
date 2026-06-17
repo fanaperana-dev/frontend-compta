@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const menuItemsAdmin = [
   { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },
   { path: '/admin/forfaits', icon: '📦', label: 'Forfaits' },
+  { path: '/admin/templates', icon: '🎨', label: 'Templates' },
 ];
 
 export default function NavigationAdmin({ children }) {

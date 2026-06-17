@@ -14,6 +14,7 @@ const menuItems = [
 const menuItemsAdmin = [
   { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },
   { path: '/admin/forfaits', icon: '📦', label: 'Forfaits' },
+  
 ];
 
 export default function Navigation({ children }) {

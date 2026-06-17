@@ -208,7 +208,8 @@ export const entrepriseService = {
   resetMdp: (id) => api.post(`/entreprises/${id}/reset-mdp`),
   getForfaits: () => api.get('/entreprises/forfaits/liste'),
   creerForfait: (data) => api.post('/entreprises/forfaits', data),
-  modifierForfait: (id, data) => api.put(`/entreprises/forfaits/${id}`, data)
+  modifierForfait: (id, data) => api.put(`/entreprises/forfaits/${id}`, data),
+  uploadImage: (id, data) => api.post(`/entreprises/${id}/upload-image`, data)
 };
 
 // MAILS
