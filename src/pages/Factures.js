@@ -927,10 +927,12 @@ export default function Factures() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       }).then(r => r.json())
     ]);
+    console.log('[FACTURES] entrepriseRes:', entrepriseRes);
     setFactures(facturesRes.data.data || []);
     setClients(clientsRes.data.data || []);
     setNoteDefaut(entrepriseRes.data?.note_facture_defaut || '');
   } catch (err) {
+    console.error('[FACTURES] Erreur lors du chargement:', err);
     toast.error('Erreur lors du chargement.');
   } finally {
     setLoading(false);
