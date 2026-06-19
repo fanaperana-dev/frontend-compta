@@ -19,6 +19,8 @@ import ProfilPage from './pages/ProfilPage';
 import SuperAdminForfaits from './pages/superadmin/SuperAdminForfaits';
 import NavigationAdmin from './components/NavigationAdmin';
 import SuperAdminTemplates from './pages/superadmin/SuperAdminTemplates';
+import SuperAdminTickets from './pages/superadmin/SuperAdminTickets';
+import SuperAdminCorrections from './pages/superadmin/SuperAdminCorrections';
 
 function RouteAdmin({ children }) {
   const { token, isAdmin } = useAuth();
@@ -114,6 +116,16 @@ function App() {
           <Route path="/admin/templates" element={
             <RouteAdmin>
               <SuperAdminTemplates />
+            </RouteAdmin>
+          } />
+          <Route path="/admin/tickets" element={
+            <RouteAdmin>
+              <SuperAdminTickets />
+            </RouteAdmin>
+          } />
+          <Route path="/admin/corrections" element={
+            <RouteAdmin>
+              <SuperAdminCorrections />
             </RouteAdmin>
           } />
           <Route path="/admin" element={<Navigate to="/admin/entreprises" />} />

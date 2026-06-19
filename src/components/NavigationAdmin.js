@@ -6,6 +6,8 @@ const menuItemsAdmin = [
   { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },
   { path: '/admin/forfaits', icon: '📦', label: 'Forfaits' },
   { path: '/admin/templates', icon: '🎨', label: 'Templates' },
+  { path: '/admin/tickets', icon: '🎫', label: 'Tickets' },
+  { path: '/admin/corrections', icon: '🔧', label: 'Corrections' },
 ];
 
 export default function NavigationAdmin({ children }) {

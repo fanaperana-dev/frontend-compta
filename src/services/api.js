@@ -234,6 +234,27 @@ export const ticketService = {
   creer: (data) => api.post('/tickets', data),
   traiter: (id, data) => api.patch(`/tickets/${id}/traiter`, data)
 };
+export const correctionService = {
+  // Factures clients
+  getFacturesClients: (entreprise_id) => api.get(`/factures/${entreprise_id}`),
+  modifierFactureClient: (id, data) => api.put(`/factures/admin/${id}`, data),
+
+  // Encaissements clients
+  getEncaissements: (entreprise_id) => api.get(`/paiements/${entreprise_id}`),
+  modifierEncaissement: (id, data) => api.put(`/paiements/admin/${id}`, data),
+
+  // Factures fournisseurs
+  getFacturesFournisseurs: (entreprise_id) => api.get(`/fournisseurs/${entreprise_id}`),
+  modifierFactureFournisseur: (id, data) => api.put(`/fournisseurs/admin/${id}`, data),
+
+  // Factures tiers
+  getFacturesTiers: (entreprise_id) => api.get(`/tiers/${entreprise_id}`),
+  modifierFactureTiers: (id, data) => api.put(`/tiers/admin/${id}`, data),
+
+  // Fiches de paie
+  getFichesPaie: (entreprise_id) => api.get(`/rh/fiches-paie/${entreprise_id}`),
+  modifierFichePaie: (id, data) => api.put(`/rh/fiches-paie/admin/${id}`, data)
+};
 
 // AUTOMATISATIONS
 export const automatisationService = {
