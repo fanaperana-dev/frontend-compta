@@ -8,6 +8,7 @@ const menuItemsAdmin = [
   { path: '/admin/templates', icon: '🎨', label: 'Templates' },
   { path: '/admin/tickets', icon: '🎫', label: 'Tickets' },
   { path: '/admin/corrections', icon: '🔧', label: 'Corrections' },
+  { path: '/admin/import', icon: '📥', label: 'Import Excel' },
 ];
 
 export default function NavigationAdmin({ children }) {

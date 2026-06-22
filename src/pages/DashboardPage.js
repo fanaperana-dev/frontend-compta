@@ -405,7 +405,7 @@ export default function DashboardPage() {
                       <Legend formatter={name => name === 'recettes' ? 'Recettes' : name === 'depenses' ? 'Dépenses' : 'Solde'} />
                       <Bar dataKey="recettes" fill="#2e7d32" radius={[4,4,0,0]} />
                       <Bar dataKey="depenses" fill="#c62828" radius={[4,4,0,0]} />
-                      <Bar dataKey="solde" fill="#004d5a" radius={[4,4,0,0]} />
+                      <Bar dataKey="solde" fill="#2149fa" radius={[4,4,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

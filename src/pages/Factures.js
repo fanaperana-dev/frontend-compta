@@ -93,6 +93,7 @@ function couleurStatut(statut) {
 function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefaut }) {
   const [tropPercu, setTropPercu] = useState(0);
   const [sousCategories, setSousCategories] = useState([]);
+  const [enCours, setEnCours] = useState(false);
   const [form, setForm] = useState({
     client_id: '',
     type_facture: 'UNIQUE',
@@ -432,10 +433,15 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
           )}
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
           <button
-            style={styles.boutonPrimaire}
-            onClick={() => onSave({ ...form, entreprise_id })}
-          >
-            Créer la facture
+           style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+           disabled={enCours}
+           onClick={async () => {
+             setEnCours(true);
+             await onSave({ ...form, entreprise_id });
+             setEnCours(false);
+     }}
+        >
+           {enCours ? '⏳ Création en cours...' : 'Créer la facture'}
           </button>
         </div>
       </div>
@@ -669,14 +675,14 @@ function FormulaireFactureMasse({ onSave, onCancel, noteDefaut }) {
 
   const moisActuel = new Date().toLocaleDateString('fr-FR', { month: 'long' });
   const moisCapitalize = moisActuel.charAt(0).toUpperCase() + moisActuel.slice(1);
-
+  
   const [form, setForm] = useState({
     mois: moisCapitalize,
     date_facture: new Date().toISOString().split('T')[0],
     description: '',
     note: noteDefaut || ''
   });
-
+  const [enCours, setEnCours] = useState(false);
   return (
     <div style={styles.modal}>
       <div style={{ ...styles.modalContent, width: '450px' }}>
@@ -744,10 +750,15 @@ function FormulaireFactureMasse({ onSave, onCancel, noteDefaut }) {
             Annuler
           </button>
           <button
-            style={styles.boutonPrimaire}
-            onClick={() => onSave(form)}
+            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+            disabled={enCours}
+            onClick={async () => {
+             setEnCours(true);
+             await onSave(form);
+             setEnCours(false);
+       }}
           >
-            Créer les factures
+            {enCours ? '⏳ Création en cours...' : 'Créer les factures'}
           </button>
          
         </div>

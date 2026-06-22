@@ -41,6 +41,7 @@ function OngletJournal({ typeJournal }) {
   const [loading, setLoading] = useState(true);
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
+  const [syncEnCours, setSyncEnCours] = useState(false);
 
   useEffect(() => { chargerOperations(); }, [typeJournal]);
 
@@ -66,8 +67,10 @@ function OngletJournal({ typeJournal }) {
   }
 
   async function synchroniser() {
+    setSyncEnCours(true);
     try {
       toast.info('Synchronisation en cours...');
+      
       const res = await fetch(
         `http://localhost:5000/api/journal/synchroniser/${entreprise.id}`,
         {
@@ -75,6 +78,7 @@ function OngletJournal({ typeJournal }) {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         }
       );
+     
       const data = await res.json();
       if (data.success) {
         toast.success(`${data.nombre} opération(s) synchronisée(s) !`);
@@ -82,6 +86,8 @@ function OngletJournal({ typeJournal }) {
       }
     } catch (err) {
       toast.error('Erreur synchronisation.');
+    }finally {
+    setSyncEnCours(false);
     }
   }
 
@@ -194,9 +200,12 @@ function OngletJournal({ typeJournal }) {
           <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
             Aucune opération trouvée.
             <br />
-            <button style={{ ...styles.boutonSecondaire, marginTop: '10px' }}
-              onClick={synchroniser}>
-              🔄 Synchroniser maintenant
+            <button 
+               style={{ ...styles.boutonSecondaire, marginTop: '10px', opacity: syncEnCours ? 0.6 : 1 }}
+               disabled={syncEnCours}
+               onClick={synchroniser}
+            >
+              {syncEnCours ? '⏳ Synchronisation...' : '🔄 Synchroniser maintenant'}
             </button>
           </div>
         ) : (

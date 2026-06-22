@@ -354,6 +354,7 @@ function ModalAjouterPJ({ facture, onClose, onUpload }) {
 }
 
 function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCancel }) {
+  const [enCours, setEnCours] = useState(false);
   const [form, setForm] = useState({
     tiers_id: facture?.tiers_id || '',
     tiers: facture?.tiers || '',
@@ -590,9 +591,16 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire}
-            onClick={() => onSave(form, fichierScan, fichiersJustificatifs)}>
-            {facture ? 'Modifier' : 'Créer'}
+          <button 
+            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+            disabled={enCours}
+            onClick={async () => {
+              setEnCours(true);
+              await onSave(form, fichierScan, fichiersJustificatifs);
+              setEnCours(false);
+           }}
+        >
+           {enCours ? '⏳ Enregistrement...' : (facture ? 'Modifier' : 'Créer')}
           </button>
         </div>
         </div>

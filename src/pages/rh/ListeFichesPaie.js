@@ -49,7 +49,7 @@ const modesPaiement = ['Virement bancaire','Espèces','Chèque','Mobile money'];
 function FormulaireMasse({ salaries, onSave, onCancel }) {
   const anneeActuelle = new Date().getFullYear();
   const moisActuel = moisListe[new Date().getMonth()];
-
+  const [enCours, setEnCours] = useState(false);
   const [config, setConfig] = useState({
     mois: moisActuel,
     annee: anneeActuelle,
@@ -236,8 +236,15 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
           <button style={styles.boutonPrimaire}
-            onClick={() => onSave(config, lignes)}>
-            🚀 Générer les fiches de paie
+            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+            disabled={enCours}
+            onClick={async () => {
+              setEnCours(true);
+              await onSave(config, lignes);
+              setEnCours(false);
+            }}>
+            
+            {enCours ? '⏳ Génération en cours...' : '🚀 Générer les fiches de paie'}
           </button>
         </div>
       </div>
@@ -248,6 +255,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
 // Composant création fiche unique
 function FormulaireUnique({ salaries, onSave, onCancel }) {
   const anneeActuelle = new Date().getFullYear();
+  const [enCours, setEnCours] = useState(false);
   const [form, setForm] = useState({
     salarie_id: '',
     mois: moisListe[new Date().getMonth()],
@@ -466,8 +474,16 @@ function FormulaireUnique({ salaries, onSave, onCancel }) {
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            Créer la fiche de paie
+          <button 
+            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+            disabled={enCours}
+            onClick={async () => {
+             setEnCours(true);
+             await onSave(form);
+             setEnCours(false);
+            }}
+          >
+            {enCours ? '⏳ Création en cours...' : 'Créer la fiche de paie'}
           </button>
         </div>
       </div>

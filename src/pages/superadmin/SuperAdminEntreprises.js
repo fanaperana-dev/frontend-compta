@@ -64,7 +64,8 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
     prefixe_facture: entreprise?.prefixe_facture || 'FAC-',
     delai_paiement_defaut: entreprise?.delai_paiement_defaut || 30,
     info_paiement: entreprise?.info_paiement || '',
-    forfait_id: entreprise?.forfait_id || ''
+    forfait_id: entreprise?.forfait_id || '',
+    taux_majoration_ferie: entreprise?.taux_majoration_ferie || 1.50,
   });
 
   return (
@@ -172,12 +173,24 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
             <input style={styles.input} type="number" value={form.delai_paiement_defaut}
               onChange={e => setForm({ ...form, delai_paiement_defaut: Number(e.target.value) })} />
           </div>
+          <div>
+            <label style={styles.label}>Taux majoration jours fériés</label>
+            <select style={styles.input} value={form.taux_majoration_ferie}
+              onChange={e => setForm({ ...form, taux_majoration_ferie: Number(e.target.value) })}>
+              <option value={1.50}>150% (défaut)</option>
+              <option value={2.00}>200%</option>
+              <option value={1.00}>100% (pas de majoration)</option>
+              <option value={1.25}>125%</option>
+              <option value={1.75}>175%</option>
+            </select>
+          </div>
           <div style={{ gridColumn: 'span 2' }}>
             <label style={styles.label}>Info paiement (coordonnées bancaires, Mvola... affiché sur factures)</label>
             <textarea style={{ ...styles.input, height: '70px', resize: 'vertical' }}
               value={form.info_paiement}
               onChange={e => setForm({ ...form, info_paiement: e.target.value })} />
           </div>
+          
         </div>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
