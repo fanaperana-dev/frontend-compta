@@ -802,6 +802,11 @@ export default function ListeFichesPaie() {
   }
 
   async function visualiserFiche(fiche) {
+      // Fiche importée — pas de PDF disponible
+      if (!fiche.pdf_url && fiche.statut === 'PAYEE') {
+       toast.info('📄 PDF non disponible — cette fiche de paie a été importée et n\'est pas stockée sur la plateforme.');
+       return;
+    }
     try {
       const res = await fetch(
         `http://localhost:5000/api/rh/fiches-paie/${fiche.id}/pdf`,

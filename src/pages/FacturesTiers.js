@@ -269,6 +269,7 @@ const modesPaiement = [
 function couleurStatut(statut) {
   const couleurs = {
     EN_ATTENTE: { bg: '#fff3e0', color: '#e65100', label: '⏳ En attente' },
+    PAIEMENT_PARTIEL: { bg: '#e3f2fd', color: '#1565c0', label: '💰 Partiel' },
     PAYEE: { bg: '#e8f5e9', color: '#2e7d32', label: '✅ Payée' },
     ANNULEE: { bg: '#fafafa', color: '#9e9e9e', label: '❌ Annulée' },
     EN_RETARD: { bg: '#ffebee', color: '#c62828', label: '⚠️ En retard' }
@@ -623,8 +624,10 @@ export default function FacturesTiers() {
   const parPage = 20;
   const [modalOuvert, setModalOuvert] = useState(null);
   const [factureSelectionnee, setFactureSelectionnee] = useState(null);
+  const [modalPaiement, setModalPaiement] = useState(null);
+  const [montantPaiement, setMontantPaiement] = useState('');
 
-  const statuts = ['TOUS', 'EN_ATTENTE', 'PAYEE', 'EN_RETARD', 'ANNULEE'];
+  const statuts = ['TOUS', 'EN_ATTENTE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE'];
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { chargerDonnees(); }, []);
@@ -669,7 +672,9 @@ export default function FacturesTiers() {
         date_facture: form.date_facture,
         date_echeance: form.date_echeance || null,
         commentaire: form.commentaire,
-        statut: Number(form.montant_paye) >= Number(form.montant) ? 'PAYEE' : 'EN_ATTENTE'
+        statut: Number(form.montant_paye) >= Number(form.montant) ? 'PAYEE' 
+         : Number(form.montant_paye) > 0 ? 'PAIEMENT_PARTIEL' 
+         : 'EN_ATTENTE'
       };
 
       let factureId;
@@ -761,6 +766,52 @@ export default function FacturesTiers() {
           facture={factureSelectionnee}
           onClose={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
         />
+      )}
+      {modalPaiement && (
+        <div style={styles.modal}>
+          <div style={{ ...styles.modalContent, width: '400px' }}>
+            <h3 style={{ color: '#004d5a', marginTop: 0 }}>💰 Enregistrer un paiement</h3>
+            <div style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>
+              <div><strong>Facture :</strong> {modalPaiement.numero}</div>
+              <div><strong>Montant total :</strong> {Number(modalPaiement.montant).toLocaleString('fr-FR')} Ar</div>
+              <div><strong>Déjà payé :</strong> {Number(modalPaiement.montant_paye).toLocaleString('fr-FR')} Ar</div>
+              <div><strong>Reste à payer :</strong> {Number(modalPaiement.montant - modalPaiement.montant_paye).toLocaleString('fr-FR')} Ar</div>
+            </div>
+            <div>
+              <label style={styles.label}>Montant du paiement (Ar) *</label>
+              <input style={styles.input} type="number"
+                value={montantPaiement}
+                onChange={e => setMontantPaiement(e.target.value)}
+                placeholder="Montant payé ce jour..." />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button style={styles.boutonSecondaire}
+                onClick={() => { setModalPaiement(null); setMontantPaiement(''); }}>
+                Annuler
+              </button>
+              <button style={styles.boutonPrimaire}
+                onClick={async () => {
+                  if (!montantPaiement || Number(montantPaiement) <= 0) {
+                    toast.error('Montant invalide.');
+                    return;
+                  }
+                  try {
+                    await tiersService.enregistrerPaiement(modalPaiement.id, {
+                      montant_paye: Number(montantPaiement)
+                    });
+                    toast.success('Paiement enregistré !');
+                    setModalPaiement(null);
+                    setMontantPaiement('');
+                    chargerDonnees();
+                  } catch (err) {
+                    toast.error('Erreur enregistrement paiement.');
+                  }
+                }}>
+                💾 Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       {modalOuvert === 'ajouterPJ' && factureSelectionnee && (
   <ModalAjouterPJ
@@ -909,11 +960,18 @@ export default function FacturesTiers() {
                         <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
                           onClick={() => { setFactureSelectionnee(f); setModalOuvert('creer'); }}
                           title="Modifier">✏️</button>
-                        {f.pj_url && (
+                        {f.pj_url ?(
                           <a href={f.pj_url} target="_blank" rel="noreferrer"
                             style={{ ...styles.boutonSecondaire, padding: '4px 8px', textDecoration: 'none' }}
                             title="Voir scan">📄</a>
-                        )}
+                        ) : (
+                          <span
+                            style={{ ...styles.boutonSecondaire, padding: '4px 8px',
+                              cursor: 'default', opacity: 0.5, fontSize: '12px' }}
+                            title="Document non disponible — non stocké sur la plateforme">
+                            📄
+                          </span>
+                  )}
                         {Array.isArray(f.justificatifs_url) && f.justificatifs_url.length > 0 && (
                           <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
                             onClick={() => { setFactureSelectionnee(f); setModalOuvert('justificatifs'); }}
@@ -927,11 +985,19 @@ export default function FacturesTiers() {
              >
                          ➕📎
                         </button>
-                        {f.statut === 'EN_ATTENTE' && (
-                          <button style={{ ...styles.boutonSecondaire, padding: '4px 8px', color: '#2e7d32', borderColor: '#2e7d32' }}
-                            onClick={() => changerStatut(f.id, 'PAYEE')} title="Marquer payée">✅</button>
+                        {(f.statut === 'EN_ATTENTE' || f.statut === 'PAIEMENT_PARTIEL') && (
+                          <button
+                            style={{ ...styles.boutonSecondaire, padding: '4px 8px',
+                             color: '#1565c0', borderColor: '#1565c0' }}
+                            onClick={() => { setModalPaiement(f); setMontantPaiement(''); }}
+                            title="Enregistrer paiement partiel">💰
+                          </button>
                         )}
-                        {f.statut === 'EN_ATTENTE' && (
+                        {(f.statut === 'EN_ATTENTE' || f.statut === 'PAIEMENT_PARTIEL') && (
+                          <button style={{ ...styles.boutonSecondaire, padding: '4px 8px', color: '#2e7d32', borderColor: '#2e7d32' }}
+                            onClick={() => changerStatut(f.id, 'PAYEE')} title="Marquer payée totalement">✅</button>
+                        )}
+                        {(f.statut === 'EN_ATTENTE' || f.statut === 'PAIEMENT_PARTIEL') && (
                           <button style={{ ...styles.boutonDanger, padding: '4px 8px' }}
                             onClick={() => changerStatut(f.id, 'ANNULEE')} title="Annuler">❌</button>
                         )}

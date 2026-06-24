@@ -1087,32 +1087,38 @@ export default function Factures() {
     }
   }
   async function visualiserFacture(facture) {
-    try {
-      toast.info('Chargement du PDF...');
-      const response = await fetch(
-        `http://localhost:5000/api/mails/pdf/${facture.id}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-         },
-         body: JSON.stringify({ entreprise_id: entreprise.id })
-        }
-     );
-
-      if (!response.ok) {
-        toast.error('Erreur chargement PDF.');
-        return;
-     }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
-    } catch (err) {
-      toast.error('Erreur visualisation.');
-    }
+  // Facture importée — pas de PDF disponible
+  if (!facture.pdf_url) {
+    toast.info('📄 PDF non disponible, car cette facture n\'a pas été créée via la plateforme.');
+    return;
   }
+
+  try {
+    toast.info('Chargement du PDF...');
+    const response = await fetch(
+      `http://localhost:5000/api/mails/pdf/${facture.id}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ entreprise_id: entreprise.id })
+      }
+    );
+
+    if (!response.ok) {
+      toast.error('Erreur chargement PDF.');
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  } catch (err) {
+    toast.error('Erreur visualisation.');
+  }
+}
 
   async function ouvrirModificationFacture(facture) {
     try {

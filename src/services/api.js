@@ -114,9 +114,10 @@ export const fournisseurService = {
     api.put(`/fournisseurs/${id}`, data),
 
   changerStatut: (id, statut) =>
-    api.patch(`/fournisseurs/${id}/statut`, { statut })
+    api.patch(`/fournisseurs/${id}/statut`, { statut }),
+  enregistrerPaiement: (id, data) =>
+    api.patch(`/fournisseurs/${id}/paiement`, data)
 };
-
 // FOURNISSEURS LISTE
 export const fournisseurListeService = {
   getAll: (entreprise_id) =>
@@ -151,7 +152,9 @@ export const tiersService = {
   getAll: (entreprise_id, params) => api.get(`/tiers/${entreprise_id}`, { params }),
   creer: (data) => api.post('/tiers', data),
   modifier: (id, data) => api.put(`/tiers/${id}`, data),
-  changerStatut: (id, statut) => api.patch(`/tiers/${id}/statut`, { statut })
+  changerStatut: (id, statut) => api.patch(`/tiers/${id}/statut`, { statut }),
+  enregistrerPaiement: (id, data) =>
+  api.patch(`/tiers/${id}/paiement`, data)
 };
 
 // JOURNAL
@@ -246,11 +249,9 @@ export const correctionService = {
   // Factures fournisseurs
   getFacturesFournisseurs: (entreprise_id) => api.get(`/fournisseurs/${entreprise_id}`),
   modifierFactureFournisseur: (id, data) => api.put(`/fournisseurs/admin/${id}`, data),
-
   // Factures tiers
   getFacturesTiers: (entreprise_id) => api.get(`/tiers/${entreprise_id}`),
   modifierFactureTiers: (id, data) => api.put(`/tiers/admin/${id}`, data),
-
   // Fiches de paie
   getFichesPaie: (entreprise_id) => api.get(`/rh/fiches-paie/${entreprise_id}`),
   modifierFichePaie: (id, data) => api.put(`/rh/fiches-paie/admin/${id}`, data)
