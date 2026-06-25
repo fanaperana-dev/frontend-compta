@@ -65,7 +65,8 @@ export default function SuperAdminTemplates() {
     note_facture_defaut: '',
     mentions_legales: '',
     couleur_primaire: '#004d5a',
-    couleur_secondaire: '#2e7d32'
+    couleur_secondaire: '#2e7d32',
+    police_ecriture: 'Arial'
   });
 
   useEffect(() => { chargerEntreprises(); }, []);
@@ -92,7 +93,8 @@ export default function SuperAdminTemplates() {
         note_facture_defaut: data.note_facture_defaut || '',
         mentions_legales: data.mentions_legales || '',
         couleur_primaire: data.couleur_primaire || '#004d5a',
-        couleur_secondaire: data.couleur_secondaire || '#2e7d32'
+        couleur_secondaire: data.couleur_secondaire || '#2e7d32',
+        police_ecriture: data.police_ecriture || 'Arial'
       });
     } catch (err) {
       toast.error('Erreur chargement détail entreprise.');
@@ -195,7 +197,31 @@ export default function SuperAdminTemplates() {
               </div>
             </div>
           </div>
-
+          <div style={styles.card}>
+            <h3 style={{ color: '#004d5a', marginTop: 0 }}>🔤 Police d'écriture</h3>
+            <p style={{ fontSize: '12px', color: '#666', marginTop: 0 }}>
+              Appliquée sur les factures et fiches de paie.
+            </p>
+            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+              {[
+                'Arial', 'Times New Roman', 'Georgia', 'Verdana',
+                'Helvetica', 'Garamond', 'Trebuchet MS', 'Calibri'
+              ].map(police => (
+                <label key={police} style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '8px 12px', borderRadius: '8px', cursor: 'pointer',
+                  border: form.police_ecriture === police
+                   ? '2px solid #004d5a' : '2px solid #e0e0e0',
+                  background: form.police_ecriture === police ? '#e3f2fd' : 'white'
+                }}>
+                  <input type="radio" value={police}
+                   checked={form.police_ecriture === police}
+                   onChange={() => setForm({ ...form, police_ecriture: police })} />
+                  <span style={{ fontFamily: police, fontSize: '14px' }}>{police}</span>
+                </label>
+              ))}
+            </div>
+          </div>
           <div style={styles.card}>
             <h3 style={{ color: '#004d5a', marginTop: 0 }}>📝 Note par défaut (factures)</h3>
             <p style={{ fontSize: '12px', color: '#666', marginTop: 0 }}>

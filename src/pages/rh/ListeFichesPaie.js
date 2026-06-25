@@ -284,7 +284,8 @@ function FormulaireUnique({ salaries, onSave, onCancel }) {
     indemnite_autre: 0,
     avantage_nature_logement: 0,
     avantage_nature_vehicule: 0,
-    avantage_nature_autre: 0
+    avantage_nature_autre: 0,
+    solde_conge_precedent: 0
   });
 
   const salarieSelectionne = salaries.find(s => s.id === form.salarie_id);
@@ -382,6 +383,14 @@ function FormulaireUnique({ salaries, onSave, onCancel }) {
           {/* Variables non-stage */}
           {!estStage && (
             <>
+              <div>
+                <label style={styles.label}>Solde congé précédent (jours)</label>
+                <input style={styles.input} type="number" step="0.5" value={form.solde_conge_precedent}
+                  onChange={e => setForm({ ...form, solde_conge_precedent: Number(e.target.value) })} />
+                <span style={{ fontSize: '11px', color: '#666' }}>
+                  Laisser à 0 si l'historique existe déjà sur la plateforme
+                </span>
+              </div>
               <div>
                 <label style={styles.label}>Congés payés (nb jours)</label>
                 <input style={styles.input} type="number" step="0.5" value={form.nb_jours_conge}
