@@ -266,6 +266,9 @@ export const automatisationService = {
 export const profilService = {
   getMonProfil: (id) => api.get(`/entreprises/mon-profil/${id}`),
   modifierMonProfil: (id, data) => api.put(`/entreprises/mon-profil/${id}`, data),
-  changerMotDePasse: (id, data) => api.patch(`/entreprises/mon-profil/${id}/mot-de-passe`, data)
+  changerMotDePasse: (id, data) => api.patch(`/entreprises/mon-profil/${id}/mot-de-passe`, data),
+  getConfigMail: (id) => api.get(`/entreprises/mon-profil/${id}/config-mail`),
+  sauvegarderConfigMail: (id, data) => api.post(`/entreprises/mon-profil/${id}/config-mail`, data),
+  testerConfigMail: (id, data) => api.post(`/entreprises/mon-profil/${id}/config-mail/tester`, data)
 };
 export default api;

@@ -9,6 +9,10 @@ const styles = {
     padding: '10px 20px', borderRadius: '8px', cursor: 'pointer',
     fontSize: '14px', fontWeight: 'bold'
   },
+  boutonSecondaire: {
+    background: 'white', color: '#004d5a', border: '2px solid #004d5a',
+    padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'
+  },
   input: {
     width: '100%', padding: '10px', border: '2px solid #e0e0e0',
     borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none'
@@ -38,27 +42,51 @@ export default function ProfilPage() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [envoiTicketEnCours, setEnvoiTicketEnCours] = useState(false);
+  const [testEnCours, setTestEnCours] = useState(false);
+  const [saveMailEnCours, setSaveMailEnCours] = useState(false);
+
   const [form, setForm] = useState({
     ancien_mot_de_passe: '',
     nouveau_mot_de_passe: '',
     confirmation_mot_de_passe: ''
   });
+
   const [formTicket, setFormTicket] = useState({
     sujet: '',
     description: '',
     categorie: 'AUTRE'
   });
 
+  const [configMail, setConfigMail] = useState({
+    nom_expediteur: '',
+    email_reponse: '',
+    smtp_host: '',
+    smtp_port: '587',
+    smtp_user: '',
+    smtp_password: ''
+  });
+
   useEffect(() => { chargerDonnees(); }, []);
 
   async function chargerDonnees() {
     try {
-      const [profilRes, ticketsRes] = await Promise.all([
+      const [profilRes, ticketsRes, configMailRes] = await Promise.all([
         profilService.getMonProfil(entreprise.id),
-        ticketService.getAll(entreprise.id)
+        ticketService.getAll(entreprise.id),
+        profilService.getConfigMail(entreprise.id)
       ]);
       setProfil(profilRes.data.data);
       setTickets(ticketsRes.data.data || []);
+      if (configMailRes.data.data) {
+        setConfigMail({
+          nom_expediteur: configMailRes.data.data.nom_expediteur || '',
+          email_reponse: configMailRes.data.data.email_reponse || '',
+          smtp_host: configMailRes.data.data.smtp_host || '',
+          smtp_port: configMailRes.data.data.smtp_port || '587',
+          smtp_user: configMailRes.data.data.smtp_user || '',
+          smtp_password: configMailRes.data.data.smtp_password || ''
+        });
+      }
     } catch (err) {
       toast.error('Erreur chargement profil.');
     } finally {
@@ -79,7 +107,6 @@ export default function ProfilPage() {
       toast.error('Le mot de passe doit contenir au moins 6 caractères.');
       return;
     }
-
     try {
       await profilService.changerMotDePasse(entreprise.id, {
         ancien_mot_de_passe: form.ancien_mot_de_passe,
@@ -93,25 +120,46 @@ export default function ProfilPage() {
   }
 
   async function envoyerTicket() {
-  if (!formTicket.sujet || !formTicket.description) {
-    toast.error('Veuillez remplir le sujet et la description.');
-    return;
+    if (!formTicket.sujet || !formTicket.description) {
+      toast.error('Veuillez remplir le sujet et la description.');
+      return;
+    }
+    setEnvoiTicketEnCours(true);
+    try {
+      await ticketService.creer({ entreprise_id: entreprise.id, ...formTicket });
+      toast.success('Ticket envoyé ! Nous vous répondrons rapidement.');
+      setFormTicket({ sujet: '', description: '', categorie: 'AUTRE' });
+      chargerDonnees();
+    } catch (err) {
+      toast.error('Erreur envoi ticket.');
+    } finally {
+      setEnvoiTicketEnCours(false);
+    }
   }
-  setEnvoiTicketEnCours(true);
-  try {
-    await ticketService.creer({
-      entreprise_id: entreprise.id,
-      ...formTicket
-    });
-    toast.success('Ticket envoyé ! Nous vous répondrons rapidement.');
-    setFormTicket({ sujet: '', description: '', categorie: 'AUTRE' });
-    chargerDonnees();
-  } catch (err) {
-    toast.error('Erreur envoi ticket.');
-  } finally {
-    setEnvoiTicketEnCours(false);
+
+  async function sauvegarderConfigMail() {
+    setSaveMailEnCours(true);
+    try {
+      await profilService.sauvegarderConfigMail(entreprise.id, configMail);
+      toast.success('Configuration mail sauvegardée !');
+    } catch (err) {
+      toast.error('Erreur sauvegarde configuration mail.');
+    } finally {
+      setSaveMailEnCours(false);
+    }
   }
-}
+
+  async function testerConfigMail() {
+    setTestEnCours(true);
+    try {
+      const res = await profilService.testerConfigMail(entreprise.id, configMail);
+      toast.success(res.data.message);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur test configuration mail.');
+    } finally {
+      setTestEnCours(false);
+    }
+  }
 
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>;
 
@@ -119,6 +167,7 @@ export default function ProfilPage() {
     <div>
       <h2 style={{ color: '#004d5a', marginBottom: '20px' }}>👤 Mon profil</h2>
 
+      {/* Informations */}
       <div style={styles.card}>
         <h3 style={{ color: '#004d5a', marginTop: 0 }}>Informations</h3>
         <div style={{ fontSize: '13px', color: '#333', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -131,34 +180,7 @@ export default function ProfilPage() {
           </div>
         </div>
       </div>
-
-      <div style={styles.card}>
-        <h3 style={{ color: '#004d5a', marginTop: 0 }}>🔑 Changer mon mot de passe</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div>
-            <label style={styles.label}>Mot de passe actuel</label>
-            <input style={styles.input} type="password"
-              value={form.ancien_mot_de_passe}
-              onChange={e => setForm({ ...form, ancien_mot_de_passe: e.target.value })} />
-          </div>
-          <div>
-            <label style={styles.label}>Nouveau mot de passe</label>
-            <input style={styles.input} type="password"
-              value={form.nouveau_mot_de_passe}
-              onChange={e => setForm({ ...form, nouveau_mot_de_passe: e.target.value })} />
-          </div>
-          <div>
-            <label style={styles.label}>Confirmer le nouveau mot de passe</label>
-            <input style={styles.input} type="password"
-              value={form.confirmation_mot_de_passe}
-              onChange={e => setForm({ ...form, confirmation_mot_de_passe: e.target.value })} />
-          </div>
-          <button style={styles.boutonPrimaire} onClick={changerMotDePasse}>
-            Modifier le mot de passe
-          </button>
-        </div>
-      </div>
-
+      {/* Créer un ticket */}
       <div style={styles.card}>
         <h3 style={{ color: '#004d5a', marginTop: 0 }}>🎫 Créer un ticket</h3>
         <p style={{ fontSize: '12px', color: '#666', marginTop: 0 }}>
@@ -188,17 +210,16 @@ export default function ProfilPage() {
               onChange={e => setFormTicket({ ...formTicket, description: e.target.value })}
               placeholder="Décrivez votre demande en détail..." />
           </div>
-          <button 
+          <button
             style={{ ...styles.boutonPrimaire, opacity: envoiTicketEnCours ? 0.6 : 1 }}
             onClick={envoyerTicket}
-            disabled={envoiTicketEnCours}
-          >
+            disabled={envoiTicketEnCours}>
             {envoiTicketEnCours ? '⏳ Envoi en cours...' : 'Envoyer le ticket'}
           </button>
-          
         </div>
       </div>
 
+      {/* Liste tickets */}
       {tickets.length > 0 && (
         <div style={styles.card}>
           <h3 style={{ color: '#004d5a', marginTop: 0 }}>📋 Mes tickets ({tickets.length})</h3>
@@ -206,9 +227,7 @@ export default function ProfilPage() {
             {tickets.map(t => {
               const statut = couleurStatutTicket(t.statut);
               return (
-                <div key={t.id} style={{
-                  border: '1px solid #e0e0e0', borderRadius: '8px', padding: '12px'
-                }}>
+                <div key={t.id} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <strong style={{ fontSize: '13px', color: '#004d5a' }}>{t.sujet}</strong>
                     <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px',
@@ -218,7 +237,8 @@ export default function ProfilPage() {
                   </div>
                   <p style={{ fontSize: '12px', color: '#666', margin: '8px 0' }}>{t.description}</p>
                   {t.reponse_admin && (
-                    <div style={{ background: '#e8f5e9', padding: '10px', borderRadius: '6px', fontSize: '12px', marginTop: '8px' }}>
+                    <div style={{ background: '#e8f5e9', padding: '10px', borderRadius: '6px',
+                      fontSize: '12px', marginTop: '8px' }}>
                       <strong>Réponse :</strong> {t.reponse_admin}
                     </div>
                   )}
@@ -231,6 +251,106 @@ export default function ProfilPage() {
           </div>
         </div>
       )}
+      
+      {/* Changer mot de passe */}
+      <div style={styles.card}>
+        <h3 style={{ color: '#004d5a', marginTop: 0 }}>🔑 Changer mon mot de passe</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div>
+            <label style={styles.label}>Mot de passe actuel</label>
+            <input style={styles.input} type="password"
+              value={form.ancien_mot_de_passe}
+              onChange={e => setForm({ ...form, ancien_mot_de_passe: e.target.value })} />
+          </div>
+          <div>
+            <label style={styles.label}>Nouveau mot de passe</label>
+            <input style={styles.input} type="password"
+              value={form.nouveau_mot_de_passe}
+              onChange={e => setForm({ ...form, nouveau_mot_de_passe: e.target.value })} />
+          </div>
+          <div>
+            <label style={styles.label}>Confirmer le nouveau mot de passe</label>
+            <input style={styles.input} type="password"
+              value={form.confirmation_mot_de_passe}
+              onChange={e => setForm({ ...form, confirmation_mot_de_passe: e.target.value })} />
+          </div>
+          <button style={styles.boutonPrimaire} onClick={changerMotDePasse}>
+            Modifier le mot de passe
+          </button>
+        </div>
+      </div>
+
+      {/* Configuration mail */}
+      <div style={styles.card}>
+        <h3 style={{ color: '#004d5a', marginTop: 0 }}>📧 Configuration mail</h3>
+        <p style={{ fontSize: '12px', color: '#666', marginTop: 0 }}>
+          Configurez votre SMTP pour que vos factures et relances soient envoyées
+          depuis votre propre adresse mail.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div>
+              <label style={styles.label}>Nom expéditeur</label>
+              <input style={styles.input} value={configMail.nom_expediteur}
+                onChange={e => setConfigMail({ ...configMail, nom_expediteur: e.target.value })}
+                placeholder="Ex: Société A" />
+            </div>
+            <div>
+              <label style={styles.label}>Email de réponse</label>
+              <input style={styles.input} type="email" value={configMail.email_reponse}
+                onChange={e => setConfigMail({ ...configMail, email_reponse: e.target.value })}
+                placeholder="contact@societeA.com" />
+            </div>
+            <div>
+              <label style={styles.label}>SMTP Host</label>
+              <input style={styles.input} value={configMail.smtp_host}
+                onChange={e => setConfigMail({ ...configMail, smtp_host: e.target.value })}
+                placeholder="smtp.gmail.com" />
+            </div>
+            <div>
+              <label style={styles.label}>SMTP Port</label>
+              <input style={styles.input} value={configMail.smtp_port}
+                onChange={e => setConfigMail({ ...configMail, smtp_port: e.target.value })}
+                placeholder="587" />
+            </div>
+            <div>
+              <label style={styles.label}>SMTP User (email)</label>
+              <input style={styles.input} value={configMail.smtp_user}
+                onChange={e => setConfigMail({ ...configMail, smtp_user: e.target.value })}
+                placeholder="contact@societeA.com" />
+            </div>
+            <div>
+              <label style={styles.label}>SMTP Password</label>
+              <input style={styles.input} type="password" value={configMail.smtp_password}
+                onChange={e => setConfigMail({ ...configMail, smtp_password: e.target.value })}
+                placeholder="Mot de passe ou clé d'application" />
+            </div>
+          </div>
+          <div style={{ background: '#e3f2fd', borderRadius: '8px', padding: '12px',
+            fontSize: '12px', color: '#1565c0' }}>
+            ℹ️ Pour Gmail, utilisez un <strong>mot de passe d'application</strong>
+            (Paramètres Google → Sécurité → Mots de passe des applications).
+            Pour d'autres fournisseurs, utilisez les paramètres SMTP fournis.
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              style={{ ...styles.boutonPrimaire, opacity: saveMailEnCours ? 0.6 : 1 }}
+              disabled={saveMailEnCours}
+              onClick={sauvegarderConfigMail}>
+              {saveMailEnCours ? '⏳ Sauvegarde...' : '💾 Sauvegarder'}
+            </button>
+            <button
+              style={{ ...styles.boutonPrimaire, background: '#1565c0',
+                opacity: testEnCours ? 0.6 : 1 }}
+              disabled={testEnCours}
+              onClick={testerConfigMail}>
+              {testEnCours ? '⏳ Test en cours...' : '📧 Tester la configuration'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      
     </div>
   );
 }
