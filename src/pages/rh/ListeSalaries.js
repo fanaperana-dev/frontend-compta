@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -303,7 +303,7 @@ export default function ListeSalaries() {
   async function chargerSalaries() {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/rh/salaries/${entreprise.id}`,
+        `${API_URL}/api/rh/salaries/${entreprise.id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       const data = await res.json();
@@ -318,8 +318,8 @@ export default function ListeSalaries() {
   async function sauvegarderSalarie(form) {
     try {
       const url = salarieSelectionne
-        ? `http://localhost:5000/api/rh/salaries/${salarieSelectionne.id}`
-        : 'http://localhost:5000/api/rh/salaries';
+        ? `${API_URL}/api/rh/salaries/${salarieSelectionne.id}`
+        : '${API_URL}/api/rh/salaries';
       const method = salarieSelectionne ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -345,7 +345,7 @@ export default function ListeSalaries() {
   async function changerStatut(form) {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/rh/salaries/${salarieSelectionne.id}/statut`,
+        `${API_URL}/api/rh/salaries/${salarieSelectionne.id}/statut`,
         {
           method: 'PATCH',
           headers: {
@@ -369,7 +369,7 @@ export default function ListeSalaries() {
   async function toggleActif(salarie) {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/rh/salaries/${salarie.id}/actif`,
+        `${API_URL}/api/rh/salaries/${salarie.id}/actif`,
         {
           method: 'PATCH',
           headers: {

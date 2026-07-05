@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, PieChart, Pie, Cell, ResponsiveContainer
 } from 'recharts';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   card: {
     background: 'white', borderRadius: '10px', padding: '20px',
@@ -127,7 +127,7 @@ export default function DashboardPage() {
         ...(moisSelectionnes.length > 0 && { mois: moisSelectionnes.join(',') })
       });
       const res = await fetch(
-        `http://localhost:5000/api/dashboard/${entreprise.id}?${params}`,
+        `${API_URL}/api/dashboard/${entreprise.id}?${params}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       const data = await res.json();
@@ -147,7 +147,7 @@ export default function DashboardPage() {
   async function chargerAlertesFermees() {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/dashboard/${entreprise.id}/alertes-fermees`,
+        `${API_URL}/api/dashboard/${entreprise.id}/alertes-fermees`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       const data = await res.json();
@@ -160,7 +160,7 @@ export default function DashboardPage() {
   async function fermerAlerte(code_alerte) {
     try {
       await fetch(
-        `http://localhost:5000/api/dashboard/${entreprise.id}/alertes-fermees`,
+        `${API_URL}/api/dashboard/${entreprise.id}/alertes-fermees`,
         {
           method: 'POST',
           headers: {

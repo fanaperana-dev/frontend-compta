@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -647,9 +647,9 @@ export default function ListeFichesPaie() {
   async function chargerDonnees() {
     try {
       const [fichesRes, salariesRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/rh/fiches-paie/${entreprise.id}`,
+        fetch(`${API_URL}/api/rh/fiches-paie/${entreprise.id}`,
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
-        fetch(`http://localhost:5000/api/rh/salaries/${entreprise.id}`,
+        fetch(`${API_URL}/api/rh/salaries/${entreprise.id}`,
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
       ]);
       const fichesData = await fichesRes.json();
@@ -665,7 +665,7 @@ export default function ListeFichesPaie() {
 
   async function creerFicheUnique(form) {
     try {
-      const res = await fetch('http://localhost:5000/api/rh/fiches-paie', {
+      const res = await fetch('${API_URL}/api/rh/fiches-paie', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -685,7 +685,7 @@ export default function ListeFichesPaie() {
 
   async function creerFichesMasse(config, lignes) {
     try {
-      const res = await fetch('http://localhost:5000/api/rh/fiches-paie/masse', {
+      const res = await fetch('${API_URL}/api/rh/fiches-paie/masse', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -725,7 +725,7 @@ export default function ListeFichesPaie() {
     for (const fiche of fichesAPayer) {
       try {
         const res = await fetch(
-          `http://localhost:5000/api/rh/fiches-paie/${fiche.id}/statut`,
+          `${API_URL}/api/rh/fiches-paie/${fiche.id}/statut`,
           {
             method: 'PATCH',
             headers: {
@@ -752,7 +752,7 @@ export default function ListeFichesPaie() {
           });
 
           await fetch(
-            `http://localhost:5000/api/rh/fiches-paie/${fiche.id}/upload-justificatif`,
+            `${API_URL}/api/rh/fiches-paie/${fiche.id}/upload-justificatif`,
             {
               method: 'POST',
               headers: {
@@ -793,7 +793,7 @@ export default function ListeFichesPaie() {
   }
   // Si ANNULEE, pas de questionnaire
     try {
-      const res = await fetch(`http://localhost:5000/api/rh/fiches-paie/${fiche.id}/statut`, {
+      const res = await fetch(`${API_URL}/api/rh/fiches-paie/${fiche.id}/statut`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -818,7 +818,7 @@ export default function ListeFichesPaie() {
     }
     try {
       const res = await fetch(
-        `http://localhost:5000/api/rh/fiches-paie/${fiche.id}/pdf`,
+        `${API_URL}/api/rh/fiches-paie/${fiche.id}/pdf`,
         {
           method: 'POST',
           headers: {
@@ -841,7 +841,7 @@ export default function ListeFichesPaie() {
     for (const id of selection) {
       const fiche = fiches.find(f => f.id === id);
       if (!fiche) continue;
-      const res = await fetch(`http://localhost:5000/api/rh/fiches-paie/${id}/pdf`, {
+      const res = await fetch(`${API_URL}/api/rh/fiches-paie/${id}/pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -866,7 +866,7 @@ export default function ListeFichesPaie() {
 
   async function imprimerSelection() {
     for (const id of selection) {
-      const res = await fetch(`http://localhost:5000/api/rh/fiches-paie/${id}/pdf`, {
+      const res = await fetch(`${API_URL}/api/rh/fiches-paie/${id}/pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -982,7 +982,7 @@ export default function ListeFichesPaie() {
         reader.readAsDataURL(fichier);
       });
       await fetch(
-        `http://localhost:5000/api/rh/fiches-paie/${ficheSelectionnee.id}/upload-justificatif`,
+        `${API_URL}/api/rh/fiches-paie/${ficheSelectionnee.id}/upload-justificatif`,
         {
           method: 'POST',
           headers: {

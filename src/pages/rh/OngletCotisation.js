@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonSecondaire: {
     background: 'white', color: '#004d5a', border: '2px solid #004d5a',
@@ -57,7 +57,7 @@ export default function OngletCotisation({ type }) {
         ...(moisSelectionnes.length > 0 && { mois: moisSelectionnes.join(',') })
       });
       const res = await fetch(
-        `http://localhost:5000/api/rh/cotisations/${entreprise.id}?${params}`,
+        `${API_URL}/api/rh/cotisations/${entreprise.id}?${params}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       const data = await res.json();

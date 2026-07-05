@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { fournisseurService, fournisseurListeService } from '../services/api';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
     background: '#004d5a',
@@ -639,7 +639,7 @@ export default function FacturesFournisseurs() {
       if (fichierScan) {
   
         const base64 = await convertirFichierBase64(fichierScan);
-        await fetch(`http://localhost:5000/api/fournisseurs/${factureId}/upload-scan`, {
+        await fetch(`${API_URL}/api/fournisseurs/${factureId}/upload-scan`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -657,7 +657,7 @@ export default function FacturesFournisseurs() {
       for (let i = 0; i < fichiersJustificatifs.length; i++) {
         const fichier = fichiersJustificatifs[i];
         const base64 = await convertirFichierBase64(fichier);
-        await fetch(`http://localhost:5000/api/fournisseurs/${factureId}/upload-justificatif`, {
+        await fetch(`${API_URL}/api/fournisseurs/${factureId}/upload-justificatif`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -780,7 +780,7 @@ export default function FacturesFournisseurs() {
             reader.readAsDataURL(fichier);
          });
            await fetch(
-            `http://localhost:5000/api/fournisseurs/${factureSelectionnee.id}/upload-justificatif`,
+            `${API_URL}/api/fournisseurs/${factureSelectionnee.id}/upload-justificatif`,
            {
                method: 'POST',
                headers: {

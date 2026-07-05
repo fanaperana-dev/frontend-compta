@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -54,7 +54,7 @@ function OngletJournal({ typeJournal }) {
         ...(dateFin && { date_fin: dateFin })
       });
       const res = await fetch(
-        `http://localhost:5000/api/journal/${entreprise.id}?${params}`,
+        `${API_URL}/api/journal/${entreprise.id}?${params}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       const data = await res.json();
@@ -72,7 +72,7 @@ function OngletJournal({ typeJournal }) {
       toast.info('Synchronisation en cours...');
       
       const res = await fetch(
-        `http://localhost:5000/api/journal/synchroniser/${entreprise.id}`,
+        `${API_URL}/api/journal/synchroniser/${entreprise.id}`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }

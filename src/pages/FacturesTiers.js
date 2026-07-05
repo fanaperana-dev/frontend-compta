@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { tiersService, tiersListeService } from '../services/api';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -690,7 +690,7 @@ export default function FacturesTiers() {
 
       if (fichierScan) {
         const base64 = await convertirBase64(fichierScan);
-        await fetch(`http://localhost:5000/api/tiers/${factureId}/upload-scan`, {
+        await fetch(`${API_URL}/api/tiers/${factureId}/upload-scan`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -705,7 +705,7 @@ export default function FacturesTiers() {
       for (let i = 0; i < fichiersJustificatifs.length; i++) {
         const fichier = fichiersJustificatifs[i];
         const base64 = await convertirBase64(fichier);
-        await fetch(`http://localhost:5000/api/tiers/${factureId}/upload-justificatif`, {
+        await fetch(`${API_URL}/api/tiers/${factureId}/upload-justificatif`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -825,7 +825,7 @@ export default function FacturesTiers() {
         reader.readAsDataURL(fichier);
       });
       await fetch(
-        `http://localhost:5000/api/tiers/${factureSelectionnee.id}/upload-justificatif`,
+        `${API_URL}/api/tiers/${factureSelectionnee.id}/upload-justificatif`,
         { method: 'POST',
           headers: {
             'Content-Type': 'application/json',

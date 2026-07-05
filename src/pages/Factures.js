@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { factureService, clientService, mailService, paiementService } from '../services/api';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
     background: '#004d5a',
@@ -210,7 +210,7 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
   if (clientId) {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/paiements/credit/${entreprise_id}/${clientId}`,
+        `${API_URL}/api/paiements/credit/${entreprise_id}/${clientId}`,
         {
           headers: { 
             Authorization: `Bearer ${localStorage.getItem('token')}` 
@@ -934,7 +934,7 @@ export default function Factures() {
     const [facturesRes, clientsRes, entrepriseRes] = await Promise.all([
       factureService.getAll(entreprise.id),
       clientService.getAll(entreprise.id),
-      fetch(`http://localhost:5000/api/entreprises/detail/${entreprise.id}`, {
+      fetch(`${API_URL}/api/entreprises/detail/${entreprise.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       }).then(r => r.json())
     ]);
@@ -1039,7 +1039,7 @@ export default function Factures() {
 
       // Envoyer au backend
       const uploadRes = await fetch(
-        'http://localhost:5000/api/paiements/upload-justificatif',
+        `${API_URL}/api/paiements/upload-justificatif`,
         {
           method: 'POST',
           headers: {
@@ -1096,7 +1096,7 @@ export default function Factures() {
   try {
     toast.info('Chargement du PDF...');
     const response = await fetch(
-      `http://localhost:5000/api/mails/pdf/${facture.id}`,
+      `${API_URL}/api/mails/pdf/${facture.id}`,
       {
         method: 'POST',
         headers: {
@@ -1153,7 +1153,7 @@ export default function Factures() {
       if (!facture) continue;
 
       const response = await fetch(
-        `http://localhost:5000/api/mails/pdf/${id}`,
+        `${API_URL}/api/mails/pdf/${id}`,
         {
           method: 'POST',
           headers: {
@@ -1190,7 +1190,7 @@ async function imprimerSelection() {
   try {
     for (const id of selection) {
       const response = await fetch(
-        `http://localhost:5000/api/mails/pdf/${id}`,
+        `${API_URL}/api/mails/pdf/${id}`,
         {
           method: 'POST',
           headers: {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-
+const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -48,7 +48,7 @@ export default function SoldeToutCompte() {
   async function chargerSalaries() {
     try {
       const res = await fetch(
-        `http://localhost:5000/api/rh/salaries/${entreprise.id}`,
+        `${API_URL}/api/rh/salaries/${entreprise.id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       const data = await res.json();
@@ -68,7 +68,7 @@ export default function SoldeToutCompte() {
     }
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:5000/api/rh/stc/calculer', {
+      const res = await fetch('${API_URL}/api/rh/stc/calculer', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
