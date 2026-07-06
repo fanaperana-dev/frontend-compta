@@ -938,7 +938,7 @@ export default function Factures() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       }).then(r => r.json())
     ]);
-    console.log('[FACTURES] entrepriseRes:', entrepriseRes);
+    
     setFactures(facturesRes.data.data || []);
     setClients(clientsRes.data.data || []);
     setNoteDefaut(entrepriseRes.data?.note_facture_defaut || '');
