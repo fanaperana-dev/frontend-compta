@@ -665,7 +665,7 @@ export default function ListeFichesPaie() {
 
   async function creerFicheUnique(form) {
     try {
-      const res = await fetch('${API_URL}/api/rh/fiches-paie', {
+      const res = await fetch(`${API_URL}/api/rh/fiches-paie`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -685,7 +685,7 @@ export default function ListeFichesPaie() {
 
   async function creerFichesMasse(config, lignes) {
     try {
-      const res = await fetch('${API_URL}/api/rh/fiches-paie/masse', {
+      const res = await fetch(`${API_URL}/api/rh/fiches-paie/masse`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
