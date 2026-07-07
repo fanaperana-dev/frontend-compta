@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const [confirmEnCours, setConfirmEnCours] = useState(false);
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -582,8 +583,17 @@ function ModalPaiementFiche({ fiches, onSave, onCancel }) {
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form, estUnique ? fichierJustificatif : null)}>
-            ✅ Confirmer le paiement
+          <button
+            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+            disabled={enCours}
+            onClick={async () => {
+              setEnCours(true);
+              await onSave(form, estUnique ? fichierJustificatif : null);
+              setEnCours(false);
+            }}
+            >
+            {enCours ? '⏳ Traitement en cours...' : '✅ Confirmer le paiement'}
+  
           </button>
         </div>
       </div>
