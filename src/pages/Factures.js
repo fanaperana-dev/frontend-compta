@@ -1607,6 +1607,64 @@ function exporterCSV() {
                            </button>
                 )}
   
+                         {/* Justificatif */}
+                         {facture.justificatif_url ? (
+                           <a
+                             href={facture.justificatif_url}
+                             target="_blank"
+                             rel="noreferrer"
+                             style={{ ...styles.boutonSecondaire, padding: '4px 8px', textDecoration: 'none' }}
+                             title="Voir justificatif"
+                          >
+                             📎
+                           </a>
+                         ) : (
+                           <label
+                             style={{ ...styles.boutonSecondaire, padding: '4px 8px', cursor: 'pointer' }}
+                             title="Ajouter justificatif"
+                           >
+                             📎+
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              style={{ display: 'none' }}
+                              onChange={async (e) => {
+                                const fichier = e.target.files[0];
+                                if (!fichier) return;
+                                const base64 = await new Promise((resolve, reject) => {
+                                 const reader = new FileReader();
+                                 reader.onload = () => resolve(reader.result.split(',')[1]);
+                                 reader.onerror = reject;
+                                 reader.readAsDataURL(fichier);
+                                });
+                                try {
+                                 const res = await fetch(
+                                    `${API_URL}/api/factures/${facture.id}/upload-justificatif`,
+                                    {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                                    },
+                                    body: JSON.stringify({
+                                        fichier_base64: base64,
+                                        nom_fichier: fichier.name,
+                                        type_mime: fichier.type
+                                   })
+                                   }
+                                );
+                                 const data = await res.json();
+                                 if (data.success) {
+                                   toast.success('Justificatif ajouté !');
+                                   chargerDonnees();
+                               }
+                             } catch (err) {
+                               toast.error('Erreur upload justificatif.');
+                             }
+                        }}
+                        />
+                         </label>
+                        )}
                         {/* Paiement */}
                         {!['PAYEE', 'ANNULEE', 'ARCHIVEE'].includes(facture.statut) && (
                           <button
