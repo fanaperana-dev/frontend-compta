@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
-const [confirmEnCours, setConfirmEnCours] = useState(false);
+const [enCours, setEnCours] = useState(false);
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
