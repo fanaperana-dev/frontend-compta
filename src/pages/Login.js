@@ -8,6 +8,7 @@ export default function Login() {
   const [modeAdmin, setModeAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erreur, setErreur] = useState('');
+  const [voirMdp, setVoirMdp] = useState(false);
 
   const { connexion, connexionAdmin } = useAuth();
   const navigate = useNavigate();
@@ -117,28 +118,48 @@ export default function Login() {
               fontWeight: 'bold',
               color: '#333',
               fontSize: '14px'
-            }}>
+          }}>
               Mot de passe
             </label>
-            <input
-              type="password"
-              value={motDePasse}
-              onChange={e => setMotDePasse(e.target.value)}
-              placeholder="••••••••"
-              required
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '14px',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={e => e.target.style.borderColor = '#004d5a'}
-              onBlur={e => e.target.style.borderColor = '#e0e0e0'}
-            />
-          </div>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={voirMdp ? 'text' : 'password'}
+                value={motDePasse}
+                onChange={e => setMotDePasse(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  paddingRight: '40px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={e => e.target.style.borderColor = '#004d5a'}
+                onBlur={e => e.target.style.borderColor = '#e0e0e0'}
+              />
+              <button
+                type="button"
+                onClick={() => setVoirMdp(!voirMdp)}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  color: '#666'
+                }}
+              >
+                {voirMdp ? '🙈' : '👁️'}
+              </button>
+            </div>
+           </div>
 
           {/* Erreur */}
           {erreur && (

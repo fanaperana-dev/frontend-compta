@@ -3,6 +3,9 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { profilService, ticketService } from '../services/api';
 
+const [voirAncienMdp, setVoirAncienMdp] = useState(false);
+const [voirNouveauMdp, setVoirNouveauMdp] = useState(false);
+const [voirConfirmMdp, setVoirConfirmMdp] = useState(false);
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -258,27 +261,69 @@ export default function ProfilPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={styles.label}>Mot de passe actuel</label>
-            <input style={styles.input} type="password"
-              value={form.ancien_mot_de_passe}
-              onChange={e => setForm({ ...form, ancien_mot_de_passe: e.target.value })} />
+            <div style={{ position: 'relative' }}>
+              <input style={{ ...styles.input, paddingRight: '40px' }}
+                type={voirAncienMdp ? 'text' : 'password'}
+                value={form.ancien_mot_de_passe}
+                onChange={e => setForm({ ...form, ancien_mot_de_passe: e.target.value })} />
+              <button type="button" onClick={() => setVoirAncienMdp(!voirAncienMdp)}
+                style={{ position: 'absolute', right: '10px', top: '50%',
+                  transform: 'translateY(-50%)', background: 'none', border: 'none',
+                  cursor: 'pointer', fontSize: '16px', color: '#666' }}>
+                {voirAncienMdp ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
-          <div>
+        <div>
             <label style={styles.label}>Nouveau mot de passe</label>
-            <input style={styles.input} type="password"
-              value={form.nouveau_mot_de_passe}
-              onChange={e => setForm({ ...form, nouveau_mot_de_passe: e.target.value })} />
+            <div style={{ position: 'relative' }}>
+              <input style={{ ...styles.input, paddingRight: '40px' }}
+                type={voirNouveauMdp ? 'text' : 'password'}
+                value={form.nouveau_mot_de_passe}
+                onChange={e => setForm({ ...form, nouveau_mot_de_passe: e.target.value })} />
+              <button type="button" onClick={() => setVoirNouveauMdp(!voirNouveauMdp)}
+                style={{ position: 'absolute', right: '10px', top: '50%',
+                  transform: 'translateY(-50%)', background: 'none', border: 'none',
+                  cursor: 'pointer', fontSize: '16px', color: '#666' }}>
+                {voirNouveauMdp ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
-          <div>
-            <label style={styles.label}>Confirmer le nouveau mot de passe</label>
-            <input style={styles.input} type="password"
-              value={form.confirmation_mot_de_passe}
-              onChange={e => setForm({ ...form, confirmation_mot_de_passe: e.target.value })} />
+        <div>
+            <label style={styles.label}>Nouveau mot de passe</label>
+            <div style={{ position: 'relative' }}>
+              <input style={{ ...styles.input, paddingRight: '40px' }}
+                type={voirNouveauMdp ? 'text' : 'password'}
+                value={form.nouveau_mot_de_passe}
+                onChange={e => setForm({ ...form, nouveau_mot_de_passe: e.target.value })} />
+              <button type="button" onClick={() => setVoirNouveauMdp(!voirNouveauMdp)}
+                style={{ position: 'absolute', right: '10px', top: '50%',
+                  transform: 'translateY(-50%)', background: 'none', border: 'none',
+                  cursor: 'pointer', fontSize: '16px', color: '#666' }}>
+                {voirNouveauMdp ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
-          <button style={styles.boutonPrimaire} onClick={changerMotDePasse}>
-            Modifier le mot de passe
-          </button>
-        </div>
+        <div>
+      <label style={styles.label}>Confirmer le nouveau mot de passe</label>
+      <div style={{ position: 'relative' }}>
+        <input style={{ ...styles.input, paddingRight: '40px' }}
+          type={voirConfirmMdp ? 'text' : 'password'}
+          value={form.confirmation_mot_de_passe}
+          onChange={e => setForm({ ...form, confirmation_mot_de_passe: e.target.value })} />
+        <button type="button" onClick={() => setVoirConfirmMdp(!voirConfirmMdp)}
+          style={{ position: 'absolute', right: '10px', top: '50%',
+            transform: 'translateY(-50%)', background: 'none', border: 'none',
+            cursor: 'pointer', fontSize: '16px', color: '#666' }}>
+          {voirConfirmMdp ? '🙈' : '👁️'}
+        </button>
       </div>
+    </div>
+    <button style={styles.boutonPrimaire} onClick={changerMotDePasse}>
+      Modifier le mot de passe
+    </button>
+  </div>
+</div>
 
       {/* Configuration mail */}
       <div style={styles.card}>
