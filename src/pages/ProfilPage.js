@@ -3,9 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { profilService, ticketService } from '../services/api';
 
-const [voirAncienMdp, setVoirAncienMdp] = useState(false);
-const [voirNouveauMdp, setVoirNouveauMdp] = useState(false);
-const [voirConfirmMdp, setVoirConfirmMdp] = useState(false);
+
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -47,7 +45,9 @@ export default function ProfilPage() {
   const [envoiTicketEnCours, setEnvoiTicketEnCours] = useState(false);
   const [testEnCours, setTestEnCours] = useState(false);
   const [saveMailEnCours, setSaveMailEnCours] = useState(false);
-
+  const [voirAncienMdp, setVoirAncienMdp] = useState(false);
+  const [voirNouveauMdp, setVoirNouveauMdp] = useState(false);
+  const [voirConfirmMdp, setVoirConfirmMdp] = useState(false);
   const [form, setForm] = useState({
     ancien_mot_de_passe: '',
     nouveau_mot_de_passe: '',

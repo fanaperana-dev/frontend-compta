@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
-const [enCours, setEnCours] = useState(false);
+
 const styles = {
   boutonPrimaire: {
     background: '#004d5a', color: 'white', border: 'none',
@@ -501,6 +501,7 @@ function FormulaireUnique({ salaries, onSave, onCancel }) {
   );
 }
 function ModalPaiementFiche({ fiches, onSave, onCancel }) {
+  const [enCours, setEnCours] = useState(false);
   const [form, setForm] = useState({
     type_paiement: '421 - Personnel - rémunérations dues',
     date_paiement: new Date().toISOString().split('T')[0]
