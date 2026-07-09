@@ -23,7 +23,33 @@ export function AuthProvider({ children }) {
 
     setLoading(false);
   }, []);
+  // Déconnexion automatique après 15 minutes d'inactivité
+useEffect(() => {
+  if (!token) return;
 
+  let timer;
+
+  function resetTimer() {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      deconnexion();
+      alert('Vous avez été déconnecté automatiquement après 15 minutes d\'inactivité.');
+    }, 15 * 60 * 1000); // 15 minutes
+  }
+
+  // Écouter les événements d'activité
+  const evenements = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+  evenements.forEach(evt => window.addEventListener(evt, resetTimer));
+
+  // Démarrer le timer
+  resetTimer();
+
+  // Nettoyer
+  return () => {
+    clearTimeout(timer);
+    evenements.forEach(evt => window.removeEventListener(evt, resetTimer));
+  };
+}, [token]);
   // Connexion entreprise
   async function connexion(email, mot_de_passe) {
   try {
