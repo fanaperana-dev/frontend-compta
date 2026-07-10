@@ -32,7 +32,12 @@ useEffect(() => {
   function resetTimer() {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      deconnexion();
+      localStorage.removeItem('token');
+      localStorage.removeItem('entreprise');
+      localStorage.removeItem('isAdmin');
+      setToken(null);
+      setEntreprise(null);
+      setIsAdmin(false);
       alert('Vous avez été déconnecté automatiquement après 15 minutes d\'inactivité.');
     }, 15 * 60 * 1000); // 15 minutes
   }
