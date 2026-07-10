@@ -7,6 +7,7 @@ const menuItems = [
   { path: '/clients', icon: '👥', label: 'Clients', module: 'factures' },
   { path: '/paiements', icon: '💰', label: 'Paiements', module: 'factures' },
   { path: '/fournisseurs', icon: '🏭', label: 'Fournisseurs', module: 'fournisseurs' },
+  { path: '/stocks', icon: '📦', label: 'Stocks', module: 'stocks' },
   { path: '/rh', icon: '👤', label: 'Ressources Humaines', module: 'rh' },
   { path: '/journal', icon: '📒', label: 'Journal', module: 'journal' },
   { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },

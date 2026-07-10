@@ -22,6 +22,7 @@ import SuperAdminTemplates from './pages/superadmin/SuperAdminTemplates';
 import SuperAdminTickets from './pages/superadmin/SuperAdminTickets';
 import SuperAdminCorrections from './pages/superadmin/SuperAdminCorrections';
 import SuperAdminImport from './pages/superadmin/SuperAdminImport';
+import StocksPage from './pages/StocksPage';
 
 function RouteAdmin({ children }) {
   const { token, isAdmin } = useAuth();
@@ -79,6 +80,13 @@ function App() {
             <RouteProtegee>
               <ModuleProtege module="fournisseurs">
                 <FournisseursPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/stocks" element={
+            <RouteProtegee>
+              <ModuleProtege module="stocks">
+                <StocksPage />
               </ModuleProtege>
             </RouteProtegee>
           } />

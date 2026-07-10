@@ -156,7 +156,16 @@ export const tiersService = {
   enregistrerPaiement: (id, data) =>
   api.patch(`/tiers/${id}/paiement`, data)
 };
-
+//stocks
+export const stockService = {
+  getArticles: (entreprise_id) => api.get(`/stocks/articles/${entreprise_id}`),
+  creerArticle: (data) => api.post('/stocks/articles', data),
+  modifierArticle: (id, data) => api.put(`/stocks/articles/${id}`, data),
+  getMouvements: (entreprise_id, params) => api.get(`/stocks/mouvements/${entreprise_id}`, { params }),
+  enregistrerMouvement: (data) => api.post('/stocks/mouvements', data),
+  getEtat: (entreprise_id) => api.get(`/stocks/etat/${entreprise_id}`),
+  getValorisation: (article_id) => api.get(`/stocks/valorisation-fifo/${article_id}`)
+};
 // JOURNAL
 export const journalService = {
   get: (entreprise_id, params) =>

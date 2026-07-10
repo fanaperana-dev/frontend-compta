@@ -41,6 +41,7 @@ const tousLesModules = [
   { key: 'factures', label: '🧾 Factures clients' },
   { key: 'fournisseurs', label: '🏭 Fournisseurs' },
   { key: 'paiements', label: '💰 Paiements (Tiers)' },
+  { key: 'stocks', label: '📦 Stocks' },
   { key: 'rh', label: '👤 Ressources Humaines' },
   { key: 'journal', label: '📒 Journal' }
 ];
