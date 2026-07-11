@@ -70,8 +70,6 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
     date_debut_amortissement: immo?.date_debut_amortissement || '',
     date_fin_amortissement: immo?.date_fin_amortissement || '',
     valeur_acquisition: immo?.valeur_acquisition || 0,
-    acquisitions_exercice: immo?.acquisitions_exercice || 0,
-    cessions_exercice: immo?.cessions_exercice || 0,
     mode_amortissement: immo?.mode_amortissement || 'LINEAIRE',
     fournisseur: immo?.fournisseur || '',
     numero_facture: immo?.numero_facture || '',
@@ -617,6 +615,25 @@ export default function ImmobilisationsPage() {
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: '#2e7d32' }}>
                             {Number(d.valeur_nette_comptable).toLocaleString('fr-FR')}
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right' }}>
+                            <button style={{ ...styles.boutonSecondaire, fontSize: '11px', padding: '2px 6px' }}
+                              onClick={() => {
+                                const acq = prompt(`Acquisitions ${d.annee} (Ar) :`, d.acquisitions_exercice || 0);
+                                const ces = prompt(`Cessions ${d.annee} (Ar) :`, d.cessions_exercice || 0);
+                                if (acq !== null && ces !== null) {
+                                  immobilisationService.modifierDotation(d.immobilisation_id, d.annee, {
+                                    acquisitions_exercice: Number(acq),
+                                    cessions_exercice: Number(ces)
+                                  }).then(() => {
+                                    toast.success('Dotation mise à jour !');
+                                    chargerTableau();
+                                  }).catch(() => toast.error('Erreur mise à jour.'));
+                                }
+                             }}>
+                              ✏️
+                            </button>
+
                           </td>
                         </tr>
                       ))}

@@ -170,6 +170,8 @@ export const immobilisationService = {
   getAll: (entreprise_id) => api.get(`/immobilisations/${entreprise_id}`),
   creer: (data) => api.post('/immobilisations', data),
   modifier: (id, data) => api.put(`/immobilisations/${id}`, data),
+  modifierDotation: (immobilisation_id, annee, data) => 
+    api.patch(`/immobilisations/${immobilisation_id}/dotation/${annee}`, data),
   getTableau: (entreprise_id, annee) => api.get(`/immobilisations/${entreprise_id}/tableau/${annee}`),
   sortie: (id, data) => api.patch(`/immobilisations/${id}/sortie`, data)
 };
