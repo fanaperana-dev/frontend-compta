@@ -171,16 +171,7 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
             </div>
           )}
 
-          <div>
-            <label style={styles.label}>Acquisitions exercice (Ar)</label>
-            <input style={styles.input} type="number" value={form.acquisitions_exercice}
-              onChange={e => setForm({ ...form, acquisitions_exercice: e.target.value })} />
-          </div>
-          <div>
-            <label style={styles.label}>Cessions exercice (Ar)</label>
-            <input style={styles.input} type="number" value={form.cessions_exercice}
-              onChange={e => setForm({ ...form, cessions_exercice: e.target.value })} />
-          </div>
+          
           <div>
             <label style={styles.label}>Mode amortissement</label>
             <select style={styles.input} value={form.mode_amortissement}
