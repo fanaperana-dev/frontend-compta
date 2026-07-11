@@ -166,6 +166,13 @@ export const stockService = {
   getEtat: (entreprise_id) => api.get(`/stocks/etat/${entreprise_id}`),
   getValorisation: (article_id) => api.get(`/stocks/valorisation-fifo/${article_id}`)
 };
+export const immobilisationService = {
+  getAll: (entreprise_id) => api.get(`/immobilisations/${entreprise_id}`),
+  creer: (data) => api.post('/immobilisations', data),
+  modifier: (id, data) => api.put(`/immobilisations/${id}`, data),
+  getTableau: (entreprise_id, annee) => api.get(`/immobilisations/${entreprise_id}/tableau/${annee}`),
+  sortie: (id, data) => api.patch(`/immobilisations/${id}/sortie`, data)
+};
 // JOURNAL
 export const journalService = {
   get: (entreprise_id, params) =>

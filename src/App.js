@@ -11,6 +11,8 @@ import ClientsPage from './pages/ClientsPage';
 import FournisseursPage from './pages/FournisseursPage';
 import TiersPage from './pages/TiersPage';
 import RHPage from './pages/RHPage';
+import StocksPage from './pages/StocksPage';
+import ImmobilisationsPage from './pages/ImmobilisationsPage';
 import JournalPage from './pages/JournalPage';
 import DashboardPage from './pages/DashboardPage';
 import ModuleProtege from './components/ModuleProtege';
@@ -22,7 +24,7 @@ import SuperAdminTemplates from './pages/superadmin/SuperAdminTemplates';
 import SuperAdminTickets from './pages/superadmin/SuperAdminTickets';
 import SuperAdminCorrections from './pages/superadmin/SuperAdminCorrections';
 import SuperAdminImport from './pages/superadmin/SuperAdminImport';
-import StocksPage from './pages/StocksPage';
+
 
 function RouteAdmin({ children }) {
   const { token, isAdmin } = useAuth();
@@ -87,6 +89,13 @@ function App() {
             <RouteProtegee>
               <ModuleProtege module="stocks">
                 <StocksPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/immobilisations" element={
+            <RouteProtegee>
+              <ModuleProtege module="immobilisations">
+                <ImmobilisationsPage />
               </ModuleProtege>
             </RouteProtegee>
           } />

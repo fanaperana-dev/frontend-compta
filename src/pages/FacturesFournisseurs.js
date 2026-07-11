@@ -76,6 +76,107 @@ const styles = {
 };
 
 const categoriesDepenses = {
+  '20 - Immobilisations incorporelles': [
+    '203 - Frais de développement immobilisés',
+    '204 - Logiciels informatiques et assimilés',
+    '205 - Concessions et droits similaires, brevets, licences, marques',
+    '207 - Fonds commercial',
+    '208 - Autres immobilisations incorporelles'
+  ],
+
+  '21 - Immobilisations corporelles': [
+    '211 - Terrains',
+    '212 - Agencements et aménagements de terrain',
+    '213 - Constructions',
+    '215 - Installations techniques',
+    '218 - Autres immobilisations corporelles'
+  ],
+
+  '22 - Immobilisations mises en concession': [
+    '221 - Terrains en concession',
+    '222 - Agencements et aménagements de terrain en concession',
+    '223 - Constructions en concession',
+    '225 - Installations techniques en concession',
+    '228 - Autres immobilisations corporelles en concession',
+    '229 - Droits du concédant'
+  ],
+
+  '23 - Immobilisations en cours': [
+    '232 - Immobilisations corporelles en cours',
+    '237 - Immobilisations incorporelles en cours',
+    '238 - Avances et acomptes versés sur commandes d’immobilisations'
+  ],
+
+  '24 - Disponible': [],
+
+  '25 - Disponible': [],
+
+  '26 - Participations et créances rattachées à des participations': [
+    '261 - Titres de participation',
+    '262 - Autres formes de participations',
+    '265 - Titres de participation évalués par équivalence',
+    '266 - Créances rattachées à des participations groupe',
+    '267 - Créances rattachées à des participations hors groupe',
+    '268 - Créances rattachées à des sociétés en participation',
+    '269 - Versements restant à effectuer sur titres de participation non libérés'
+  ],
+
+  '27 - Autres immobilisations financières': [
+    '271 - Titres immobilisés autres que les titres immobilisés de l’activité de portefeuille',
+    '272 - Titres représentatifs de droit de créance (obligations, bons)',
+    '273 - Titres immobilisés de l’activité de portefeuille',
+    '274 - Prêts',
+    '275 - Dépôts et cautionnements versés',
+    '276 - Autres créances immobilisées',
+    '277 - Actions propres (ou parts propres)',
+    '279 - Versements restant à effectuer sur titres immobilisés non libérés'
+  ],
+
+  '28 - Amortissement des immobilisations': [
+    '280 - Amortissement des immobilisations incorporelles',
+    '281 - Amortissement des immobilisations corporelles',
+    '282 - Amortissement des immobilisations mises en concession'
+  ],
+
+  '29 - Pertes de valeur sur immobilisations': [
+    '290 - Pertes de valeur sur immobilisations incorporelles',
+    '291 - Pertes de valeur sur immobilisations corporelles',
+    '292 - Dépréciation sur immobilisations mises en concession',
+    '293 - Pertes de valeur sur immobilisations en cours',
+    '296 - Pertes de valeur sur participations et créances rattachées à participations',
+    '297 - Pertes de valeur sur autres immobilisations financières'
+  ],
+  
+  '31 - Matières premières et fournitures': [],
+  '32 - Autres approvisionnements': [
+    '321 - Matières consommables',
+    '322 - Fournitures consommables',
+    '326 - Emballages'
+  ],
+  '33 - En cours de production de biens': [
+    '331 - Produits en cours',
+    '335 - Travaux en cours'
+  ],
+  '34 - En cours de production de services': [
+    '341 - Études en cours',
+    '345 - Prestations de service en cours'
+  ],
+  '35 - Stocks de produits': [
+    '351 - Produits intermédiaires',
+    '355 - Produits finis',
+    '358 - Produits résiduels ou matières de récupération'
+  ],
+  '37 - Stocks de marchandises': [],
+  '38 - Stocks à l\'extérieur': [],
+  '39 - Pertes de valeur sur stocks': [
+    '391 - Pertes de valeur Matières premières',
+    '392 - Pertes de valeur Autres approvisionnements',
+    '393 - Pertes de valeur En cours de production de biens',
+    '394 - Pertes de valeur En cours de production de services',
+    '395 - Pertes de valeur Stocks de produits',
+    '397 - Pertes de valeur Stocks de marchandises',
+    '398 - Pertes de valeur Stocks à l\'extérieur'
+  ],
   '60 - Achats consommés': [
     '601 - Matières premières',
     '602 - Autres approvisionnements',

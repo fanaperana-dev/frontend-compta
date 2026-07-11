@@ -8,6 +8,7 @@ const menuItems = [
   { path: '/paiements', icon: '💰', label: 'Paiements', module: 'factures' },
   { path: '/fournisseurs', icon: '🏭', label: 'Fournisseurs', module: 'fournisseurs' },
   { path: '/stocks', icon: '📦', label: 'Stocks', module: 'stocks' },
+  { path: '/immobilisations', icon: '🏗️', label: 'Immobilisations', module: 'immobilisations' },
   { path: '/rh', icon: '👤', label: 'Ressources Humaines', module: 'rh' },
   { path: '/journal', icon: '📒', label: 'Journal', module: 'journal' },
   { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
