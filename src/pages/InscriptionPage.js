@@ -247,10 +247,9 @@ export default function InscriptionPage() {
                     onChange={e => setForm({ ...form, statut_juridique: e.target.value })}>
                     <option value="">Sélectionner</option>
                     <option value="SARL">SARL</option>
-                    <option value="SA">SA</option>
+                    <option value="SA">SARLU</option>
                     <option value="EI">Entreprise Individuelle</option>
-                    <option value="SNC">SNC</option>
-                    <option value="EURL">EURL</option>
+                    <option value="SNC">SA</option>
                     <option value="Autre">Autre</option>
                   </select>
                 </div>

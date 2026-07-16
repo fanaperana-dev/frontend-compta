@@ -25,6 +25,7 @@ import SuperAdminTemplates from './pages/superadmin/SuperAdminTemplates';
 import SuperAdminTickets from './pages/superadmin/SuperAdminTickets';
 import SuperAdminCorrections from './pages/superadmin/SuperAdminCorrections';
 import SuperAdminImport from './pages/superadmin/SuperAdminImport';
+import SuperAdminDemandes from './pages/superadmin/SuperAdminDemandes';
 
 
 function RouteAdmin({ children }) {
@@ -126,6 +127,9 @@ function App() {
           } />
 
           {/* Pages admin */}
+          <Route path="/superadmin/demandes" element={
+            <RouteAdmin><SuperAdminDemandes /></RouteAdmin>
+          } />
           <Route path="/admin/entreprises" element={
             <RouteAdmin>
               <SuperAdminEntreprises />
