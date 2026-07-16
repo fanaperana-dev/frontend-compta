@@ -184,6 +184,13 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
               <option value={1.75}>175%</option>
             </select>
           </div>
+          <div>
+            <label style={styles.label}>Nom organisme santé (défaut: OSTIE)</label>
+            <input style={styles.input} 
+              value={form.nom_organisme_sante || 'OSTIE'}
+              onChange={e => setForm({ ...form, nom_organisme_sante: e.target.value })}
+              placeholder="OSTIE, SMMC, autre..." />
+          </div>
           <div style={{ gridColumn: 'span 2' }}>
             <label style={styles.label}>Info paiement (coordonnées bancaires, Mvola... affiché sur factures)</label>
             <textarea style={{ ...styles.input, height: '70px', resize: 'vertical' }}
