@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import InscriptionPage from './pages/InscriptionPage';
+//import InscriptionPage from './pages/InscriptionPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Navigation from './components/Navigation';
@@ -52,7 +52,7 @@ function App() {
         />
         <Routes>
           {/* Page publique inscription */}
-          <Route path="/inscription" element={<InscriptionPage />} />
+          {/* <Route path="/inscription" element={<InscriptionPage />} /> */}
         
         
           {/* Page login */}
