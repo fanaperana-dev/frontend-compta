@@ -41,31 +41,63 @@ const styles = {
   }
 };
 
-const comptesIncorporels = [
-  { key: '211', label: '211 - Frais de développement' },
-  { key: '212', label: '212 - Brevets, licences' },
-  { key: '213', label: '213 - Logiciels' },
-  { key: '214', label: '214 - Fonds commercial' },
-  { key: '218', label: '218 - Autres immob. incorporelles' }
-];
-
-const comptesCorporels = [
-  { key: '221', label: '221 - Terrains' },
-  { key: '222', label: '222 - Constructions' },
-  { key: '223', label: '223 - Matériels et outillages' },
-  { key: '224', label: '224 - Matériels de transport' },
-  { key: '225', label: '225 - Mobilier et agencements' },
-  { key: '226', label: '226 - Matériels informatiques' },
-  { key: '228', label: '228 - Autres immob. corporelles' }
-];
+const comptesImmobilisations = {
+  '20 - Immobilisations incorporelles': [
+    '203 - Frais de développement immobilisés',
+    '204 - Logiciels informatiques et assimilés',
+    '205 - Concessions et droits similaires, brevets, licences, marques',
+    '207 - Fonds commercial',
+    '208 - Autres immobilisations incorporelles'
+  ],
+  '21 - Immobilisations corporelles': [
+    '211 - Terrains',
+    '212 - Agencements et aménagements de terrain',
+    '213 - Constructions',
+    '215 - Installations techniques',
+    '218 - Autres immobilisations corporelles'
+  ],
+  '22 - Immobilisations mises en concession': [
+    '221 - Terrains en concession',
+    '222 - Agencements et aménagements de terrain en concession',
+    '223 - Constructions en concession',
+    '225 - Installations techniques en concession',
+    '228 - Autres immobilisations corporelles en concession',
+    '229 - Droits du concédant'
+  ],
+  '23 - Immobilisations en cours': [
+    '232 - Immobilisations corporelles en cours',
+    '237 - Immobilisations incorporelles en cours',
+    '238 - Avances et acomptes versés sur commandes d\'immobilisations'
+  ],
+  '26 - Participations et créances rattachées à des participations': [
+    '261 - Titres de participation',
+    '262 - Autres formes de participations',
+    '265 - Titres de participation évalués par équivalence',
+    '266 - Créances rattachées à des participations groupe',
+    '267 - Créances rattachées à des participations hors groupe',
+    '268 - Créances rattachées à des sociétés en participation',
+    '269 - Versements restant à effectuer sur titres de participation non libérés'
+  ],
+  '27 - Autres immobilisations financières': [
+    '271 - Titres immobilisés autres que les titres immobilisés de l\'activité de portefeuille',
+    '272 - Titres représentatifs de droit de créance',
+    '273 - Titres immobilisés de l\'activité de portefeuille',
+    '274 - Prêts',
+    '275 - Dépôts et cautionnements versés',
+    '276 - Autres créances immobilisées',
+    '277 - Actions propres',
+    '279 - Versements restant à effectuer sur titres immobilisés non libérés'
+  ]
+};
 
 function FormulaireImmobilisation({ immo, onSave, onCancel }) {
   const [form, setForm] = useState({
     reference: immo?.reference || '',
     designation: immo?.designation || '',
-    type_immobilisation: immo?.type_immobilisation || 'CORPORELLE',
-    numero_compte: immo?.numero_compte || '223',
     categorie: immo?.categorie || '',
+    // categorie = la catégorie principale (ex: '20 - Immobilisations incorporelles')
+    numero_compte: immo?.numero_compte || '',
+    // numero_compte = la sous-catégorie (ex: '203 - Frais de développement')
     date_acquisition: immo?.date_acquisition || '',
     date_debut_amortissement: immo?.date_debut_amortissement || '',
     date_fin_amortissement: immo?.date_fin_amortissement || '',
@@ -85,9 +117,7 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
     ? (Number(form.valeur_acquisition) / dureeJours).toFixed(4)
     : 0;
 
-  const comptesDisponibles = form.type_immobilisation === 'INCORPORELLE'
-    ? comptesIncorporels
-    : comptesCorporels;
+
 
   return (
     <div style={styles.modal}>
@@ -108,37 +138,33 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
               onChange={e => setForm({ ...form, designation: e.target.value })} />
           </div>
           <div>
-            <label style={styles.label}>Type *</label>
-            <select style={styles.input} value={form.type_immobilisation}
+            
+            <label style={styles.label}>Catégorie *</label>
+            <select style={styles.input} value={form.categorie}
               onChange={e => setForm({
                 ...form,
-                type_immobilisation: e.target.value,
-                numero_compte: e.target.value === 'INCORPORELLE' ? '213' : '223'
-              })}>
-              <option value="CORPORELLE">Corporelle</option>
-              <option value="INCORPORELLE">Incorporelle</option>
-            </select>
-          </div>
-          <div>
-            <label style={styles.label}>Compte PCG 2005 *</label>
-            <select style={styles.input} value={form.numero_compte}
-              onChange={e => setForm({ ...form, numero_compte: e.target.value })}>
-              {comptesDisponibles.map(c => (
-                <option key={c.key} value={c.key}>{c.label}</option>
+                categorie: e.target.value,
+                numero_compte: '' // reset sous-catégorie
+             })}>
+             <option value="">Sélectionner une catégorie</option>
+              {Object.keys(comptesImmobilisations).map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
-          <div>
-            <label style={styles.label}>Détail type</label>
-            <input style={styles.input} value={form.type_immobilisation_detail}
-              onChange={e => setForm({ ...form, type_immobilisation_detail: e.target.value })}
-              placeholder="Ex: Véhicule, Ordinateur..." />
-          </div>
-          <div>
-            <label style={styles.label}>Catégorie</label>
-            <input style={styles.input} value={form.categorie}
-              onChange={e => setForm({ ...form, categorie: e.target.value })} />
-          </div>
+
+          {form.categorie && comptesImmobilisations[form.categorie]?.length > 0 && (
+            <div>
+              <label style={styles.label}>Sous-catégorie *</label>
+              <select style={styles.input} value={form.numero_compte}
+                onChange={e => setForm({ ...form, numero_compte: e.target.value })}>
+                <option value="">Sélectionner une sous-catégorie</option>
+                {comptesImmobilisations[form.categorie].map(sc => (
+                  <option key={sc} value={sc.split(' - ')[0]}>{sc}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label style={styles.label}>Date acquisition *</label>
             <input style={styles.input} type="date" value={form.date_acquisition}
@@ -248,7 +274,66 @@ function ModalSortie({ immo, onSave, onCancel }) {
     </div>
   );
 }
+function ModalDotation({ dotation, onSave, onCancel }) {
+  const [form, setForm] = useState({
+    acquisitions_exercice: dotation?.acquisitions_exercice || 0,
+    cessions_exercice: dotation?.cessions_exercice || 0
+  });
+  const [enCours, setEnCours] = useState(false);
 
+  return (
+    <div style={styles.modal}>
+      <div style={{ ...styles.modalContent, width: '500px' }}>
+        <h3 style={{ color: '#004d5a', marginTop: 0 }}>
+          ✏️ Modifier dotation {dotation?.annee}
+        </h3>
+        <p style={{ fontSize: '13px', color: '#666' }}>
+          <strong>{dotation?.immobilisations?.designation}</strong>
+        </p>
+
+        <div style={{ background: '#e3f2fd', borderRadius: '8px',
+          padding: '12px', marginBottom: '15px', fontSize: '12px', color: '#1565c0' }}>
+          <strong>ℹ️ Explications :</strong><br/>
+          <strong>Acquisitions exercice</strong> : Valeur des améliorations ou ajouts
+          effectués sur ce bien pendant l'année {dotation?.annee}.<br/>
+          Ex : Installation d'un équipement supplémentaire sur un véhicule.<br/><br/>
+          <strong>Cessions exercice</strong> : Valeur d'une partie du bien vendue
+          ou retirée pendant l'année {dotation?.annee}.<br/>
+          Ex : Vente d'une machine faisant partie d'un groupe.
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div>
+            <label style={styles.label}>Acquisitions exercice (Ar)</label>
+            <input style={styles.input} type="number"
+              value={form.acquisitions_exercice}
+              onChange={e => setForm({ ...form, acquisitions_exercice: e.target.value })} />
+          </div>
+          <div>
+            <label style={styles.label}>Cessions exercice (Ar)</label>
+            <input style={styles.input} type="number"
+              value={form.cessions_exercice}
+              onChange={e => setForm({ ...form, cessions_exercice: e.target.value })} />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
+          <button
+            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+            disabled={enCours}
+            onClick={async () => {
+              setEnCours(true);
+              await onSave(form);
+              setEnCours(false);
+            }}>
+            {enCours ? '⏳ Enregistrement...' : '💾 Enregistrer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function ImmobilisationsPage() {
   const { entreprise } = useAuth();
   const [onglet, setOnglet] = useState('liste');
@@ -258,6 +343,8 @@ export default function ImmobilisationsPage() {
   const [modalOuvert, setModalOuvert] = useState(null);
   const [immoSelectionnee, setImmoSelectionnee] = useState(null);
   const [anneeTableau, setAnneeTableau] = useState(new Date().getFullYear());
+  const [dotationSelectionnee, setDotationSelectionnee] = useState(null);
+const [loadingTableau, setLoadingTableau] = useState(false);
 
   useEffect(() => { chargerDonnees(); }, []);
   useEffect(() => {
@@ -276,14 +363,31 @@ export default function ImmobilisationsPage() {
   }
 
   async function chargerTableau() {
-    try {
-      const res = await immobilisationService.getTableau(entreprise.id, anneeTableau);
-      setTableau(res.data);
-    } catch (err) {
-      toast.error('Erreur chargement tableau.');
-    }
+  setLoadingTableau(true);
+  try {
+    const res = await immobilisationService.getTableau(entreprise.id, anneeTableau);
+    setTableau(res.data);
+  } catch (err) {
+    toast.error('Erreur chargement tableau.');
+  } finally {
+    setLoadingTableau(false);
   }
-
+}
+  async function modifierDotation(form) {
+  try {
+    await immobilisationService.modifierDotation(
+      dotationSelectionnee.immobilisation_id,
+      dotationSelectionnee.annee,
+      form
+    );
+    toast.success('Dotation mise à jour !');
+    setModalOuvert(null);
+    setDotationSelectionnee(null);
+    chargerTableau();
+  } catch (err) {
+    toast.error('Erreur mise à jour dotation.');
+  }
+}
   async function creer(form) {
     try {
       await immobilisationService.creer({ ...form, entreprise_id: entreprise.id });
@@ -394,6 +498,13 @@ export default function ImmobilisationsPage() {
           immo={immoSelectionnee}
           onSave={modifier}
           onCancel={() => { setModalOuvert(null); setImmoSelectionnee(null); }}
+        />
+      )}
+      {modalOuvert === 'dotation' && dotationSelectionnee && (
+        <ModalDotation
+          dotation={dotationSelectionnee}
+          onSave={modifierDotation}
+          onCancel={() => { setModalOuvert(null); setDotationSelectionnee(null); }}
         />
       )}
       {modalOuvert === 'sortie' && immoSelectionnee && (
@@ -550,8 +661,12 @@ export default function ImmobilisationsPage() {
               📥 Export Excel
             </button>
           </div>
-
-          {tableau && (
+           {loadingTableau ? (
+             <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
+               ⏳ Chargement du tableau...
+             </div> 
+            
+           ) : tableau && (
             <div style={styles.card}>
               <h3 style={{ color: '#004d5a', marginTop: 0 }}>
                 Tableau d'amortissement au 31/12/{anneeTableau}
@@ -560,8 +675,10 @@ export default function ImmobilisationsPage() {
               {/* Table helper */}
               {[
                 { titre: 'IMMOBILISATIONS INCORPORELLES', lignes: tableau.incorporelles.lignes, total: tableau.incorporelles.total },
-                { titre: 'IMMOBILISATIONS CORPORELLES', lignes: tableau.corporelles.lignes, total: tableau.corporelles.total }
-              ].map(section => (
+                { titre: 'IMMOBILISATIONS CORPORELLES', lignes: tableau.corporelles.lignes, total: tableau.corporelles.total },
+                { titre: 'IMMOBILISATIONS EN COURS', lignes: tableau.en_cours?.lignes || [], total: tableau.en_cours?.total },
+                { titre: 'IMMOBILISATIONS FINANCIÈRES', lignes: tableau.financieres?.lignes || [], total: tableau.financieres?.total }
+              ].filter(s => s.lignes.length > 0).map(section => (
                 <div key={section.titre} style={{ marginBottom: '30px' }}>
                   <h4 style={{ color: '#004d5a', marginBottom: '10px' }}>{section.titre}</h4>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
@@ -572,6 +689,8 @@ export default function ImmobilisationsPage() {
                         <th style={{ padding: '8px', textAlign: 'right' }}>Acquisitions</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Cessions</th>
                         <th style={{ padding: '8px', textAlign: 'right', background: '#003d47' }}>Val. Brute</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Durée (j)</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Taux/jour</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Amort. Ant.</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Amort. Exo.</th>
                         <th style={{ padding: '8px', textAlign: 'right', background: '#003d47' }}>Cumul</th>
@@ -596,6 +715,12 @@ export default function ImmobilisationsPage() {
                             {Number(d.valeur_brute).toLocaleString('fr-FR')}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
+                            {d.immobilisations?.duree_jours} j
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right' }}>
+                            {Number(d.immobilisations?.taux_journalier).toLocaleString('fr-FR')} Ar
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right' }}>
                             {Number(d.amortissement_anterieur).toLocaleString('fr-FR')}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
@@ -610,18 +735,9 @@ export default function ImmobilisationsPage() {
                           <td style={{ padding: '8px', textAlign: 'right' }}>
                             <button style={{ ...styles.boutonSecondaire, fontSize: '11px', padding: '2px 6px' }}
                               onClick={() => {
-                                const acq = prompt(`Acquisitions ${d.annee} (Ar) :`, d.acquisitions_exercice || 0);
-                                const ces = prompt(`Cessions ${d.annee} (Ar) :`, d.cessions_exercice || 0);
-                                if (acq !== null && ces !== null) {
-                                  immobilisationService.modifierDotation(d.immobilisation_id, d.annee, {
-                                    acquisitions_exercice: Number(acq),
-                                    cessions_exercice: Number(ces)
-                                  }).then(() => {
-                                    toast.success('Dotation mise à jour !');
-                                    chargerTableau();
-                                  }).catch(() => toast.error('Erreur mise à jour.'));
-                                }
-                             }}>
+                                setDotationSelectionnee(d);
+                                setModalOuvert('dotation');
+                            }}>
                               ✏️
                             </button>
 
@@ -697,5 +813,4 @@ export default function ImmobilisationsPage() {
         </div>
       )}
     </div>
-  );
-}
+  )};
