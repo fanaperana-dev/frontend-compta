@@ -94,7 +94,9 @@ export default function SuperAdminTemplates() {
         mentions_legales: data.mentions_legales || '',
         couleur_primaire: data.couleur_primaire || '#004d5a',
         couleur_secondaire: data.couleur_secondaire || '#2e7d32',
-        police_ecriture: data.police_ecriture || 'Arial'
+        police_ecriture: data.police_ecriture || 'Arial',
+        systeme_comptable: data.systeme_comptable || 'NORMAL',
+        regime_fiscal: data.regime_fiscal || 'IS'
       });
     } catch (err) {
       toast.error('Erreur chargement détail entreprise.');
@@ -242,7 +244,34 @@ export default function SuperAdminTemplates() {
               value={form.mentions_legales}
               onChange={e => setForm({ ...form, mentions_legales: e.target.value })} />
           </div>
-
+          <div style={styles.card}>
+            <h3 style={{ color: '#004d5a', marginTop: 0 }}>⚖️ Configuration fiscale</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div>
+                <label style={styles.label}>Système comptable</label>
+                <select style={styles.input} value={form.systeme_comptable}
+                  onChange={e => setForm({ ...form, systeme_comptable: e.target.value })}>
+                  <option value="NORMAL">Système Normal PCG 2005</option>
+                  <option value="SMT">Système Minimal de Trésorerie (SMT)</option>
+                </select>
+                <span style={{ fontSize: '11px', color: '#666' }}>
+                  SMT pour CA &lt; 200 millions Ar
+                </span>
+              </div>
+              <div>
+                <label style={styles.label}>Régime fiscal</label>
+                <select style={styles.input} value={form.regime_fiscal}
+                  onChange={e => setForm({ ...form, regime_fiscal: e.target.value })}>
+                  <option value="IS">Impôt Synthétique (IS) - 5% du CA</option>
+                  <option value="IR">Impôt sur le Revenu (IR) - 20% du bénéfice net</option>
+                </select>
+                <span style={{ fontSize: '11px', color: '#666' }}>
+                  L'entreprise choisit son régime fiscal
+                </span>
+              </div>
+            </div>
+          </div>
+        
           <button style={styles.boutonPrimaire} disabled={sauvegardeEnCours}
             onClick={sauvegarderTextes}>
             {sauvegardeEnCours ? '⏳ Sauvegarde...' : '💾 Sauvegarder'}

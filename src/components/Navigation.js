@@ -78,7 +78,7 @@ export default function Navigation({ children }) {
              whiteSpace: 'nowrap',
              maxWidth: '170px'
            }}>
-             {entreprise?.nom}
+             by E&T Automatisation
           </div>
         </div>
         )}
