@@ -242,6 +242,24 @@ export const comptabiliteService = {
   supprimerAutreOperation: (id) =>
     api.delete(`/comptabilite/autres-operations/${id}`)
 };
+export const comptabiliteService = {
+  getCompteResultat: (entreprise_id, annee) =>
+    api.get(`/comptabilite/compte-resultat/${entreprise_id}/${annee}`),
+  getBilan: (entreprise_id, annee) =>
+    api.get(`/comptabilite/bilan/${entreprise_id}/${annee}`),
+  ajouterAutreOperation: (data) =>
+    api.post('/comptabilite/autres-operations', data),
+  getAutresOperations: (entreprise_id, annee) =>
+    api.get(`/comptabilite/autres-operations/${entreprise_id}/${annee}`),
+  supprimerAutreOperation: (id) =>
+    api.delete(`/comptabilite/autres-operations/${id}`),
+  ajouterElementBilan: (data) =>
+    api.post('/comptabilite/elements-bilan', data),
+  getElementsBilan: (entreprise_id, annee) =>
+    api.get(`/comptabilite/elements-bilan/${entreprise_id}/${annee}`),
+  supprimerElementBilan: (id) =>
+    api.delete(`/comptabilite/elements-bilan/${id}`)
+};
 // MAILS
 export const mailService = {
   envoyerFacture: (data) =>
