@@ -52,15 +52,8 @@ export default function Login() {
 
         {/* Logo et titre */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <ArivotekIcon size={62} />
-          <h1 style={{
-            color: '#004d5a',
-            fontSize: '24px',
-            margin: '15px 0 5px 0'
-          }}>
-            Arivotek
-          </h1>
-          <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
+          <ArivotekIcon height={130} />
+          <p style={{ color: '#666', margin: '15px 0 0 0', fontSize: '14px' }}>
             {modeAdmin ? 'Accès Administrateur' : 'Automatiser. Simplifier. Avancer.'}
           </p>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ArivotekIcon from './ArivotekIcon';
 
 const menuItems = [
   { path: '/dashboard', icon: '📊', label: 'Dashboard', module: 'dashboard' },
@@ -52,25 +53,36 @@ export default function Navigation({ children }) {
           alignItems: 'center',
           gap: '10px'
         }}>
-          <span style={{ fontSize: '24px', flexShrink: 0 }}>📊</span>
-          {menuOuvert && (
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '19px' }}>
-                E&T AUTOMATION
-              </div>
-              <div style={{
-                fontSize: '11px',
-                opacity: 0.7,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                maxWidth: '170px'
-              }}>
-                {entreprise?.nom}
-              </div>
-            </div>
-          )}
+        <div style={{
+          width: '40px',
+          height: '40px',
+          background: 'white',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          <ArivotekIcon variant="symbol" height={24} />
         </div>
+        {menuOuvert && (
+        <div>
+          <div style={{ fontWeight: 'bold', fontSize: '19px' }}>
+             ARIVOTEK
+          </div>
+          <div style={{
+             fontSize: '11px',
+             opacity: 0.7,
+             overflow: 'hidden',
+             textOverflow: 'ellipsis',
+             whiteSpace: 'nowrap',
+             maxWidth: '170px'
+           }}>
+             {entreprise?.nom}
+          </div>
+        </div>
+        )}
+       </div>
 
         {/* Bouton réduire menu */}
         <button

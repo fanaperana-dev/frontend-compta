@@ -1,82 +1,43 @@
-// ArivotekIcon.jsx — icone Arivotek reutilisable
-// Usage :  import ArivotekIcon from "./ArivotekIcon";
-//          <ArivotekIcon size={24} />
+// ArivotekIcon.jsx — logo Arivotek
+//
+// PREREQUIS : deposer arivotek-logo.png et arivotek-symbol.png dans le dossier public/
+//
+// Import :
+//   depuis src/pages/      ->  import ArivotekIcon from "../components/ArivotekIcon";
+//   depuis src/components/ ->  import ArivotekIcon from "./ArivotekIcon";
+//
+// Usage :
+//   <ArivotekIcon height={130} />                  logo complet (symbole + ARIVOTEK + by E&T)
+//   <ArivotekIcon variant="symbol" height={36} />  symbole seul (barre laterale)
 
-const LOGO_SRC =
-  "data:image/png;base64," +
-  "iVBORw0KGgoAAAANSUhEUgAAAD4AAAA+CAYAAABzwahEAAAAtGVYSWZJSSoACAAAAAYAEgEDAAEAAAABAAAAGgEFAAEAAABWAAAA" +
-  "GwEFAAEAAABeAAAAKAEDAAEAAAACAAAAEwIDAAEAAAABAAAAaYcEAAEAAABmAAAAAAAAAGAAAAABAAAAYAAAAAEAAAAGAACQBwAE" +
-  "AAAAMDIxMAGRBwAEAAAAAQIDAACgBwAEAAAAMDEwMAGgAwABAAAA//8AAAKgBAABAAAAPgAAAAOgBAABAAAAPgAAAAAAAACTDlNT" +
-  "AAAACXBIWXMAAA7EAAAOxAGVKw4bAAAFQWlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSfvu78nIGlk" +
-  "PSdXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQnPz4KPHg6eG1wbWV0YSB4bWxuczp4PSdhZG9iZTpuczptZXRhLyc+CjxyZGY6UkRG" +
-  "IHhtbG5zOnJkZj0naHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyc+CgogPHJkZjpEZXNjcmlwdGlv" +
-  "biByZGY6YWJvdXQ9JycKICB4bWxuczpBdHRyaWI9J2h0dHA6Ly9ucy5hdHRyaWJ1dGlvbi5jb20vYWRzLzEuMC8nPgogIDxBdHRy" +
-  "aWI6QWRzPgogICA8cmRmOlNlcT4KICAgIDxyZGY6bGkgcmRmOnBhcnNlVHlwZT0nUmVzb3VyY2UnPgogICAgIDxBdHRyaWI6Q3Jl" +
-  "YXRlZD4yMDI2LTA3LTE2PC9BdHRyaWI6Q3JlYXRlZD4KICAgICA8QXR0cmliOkRhdGE+eyZxdW90O2RvYyZxdW90OzomcXVvdDtE" +
-  "QUhQanExSDZvWSZxdW90OywmcXVvdDt1c2VyJnF1b3Q7OiZxdW90O1VBRW1fZElnWG1BJnF1b3Q7LCZxdW90O2JyYW5kJnF1b3Q7" +
-  "OiZxdW90O0NhbnZhIFBybyZxdW90O308L0F0dHJpYjpEYXRhPgogICAgIDxBdHRyaWI6RXh0SWQ+M2QwZmNhYmYtZWMzNC00MDA3" +
-  "LWI1NmEtMWIwNTNkZThiNThhPC9BdHRyaWI6RXh0SWQ+CiAgICAgPEF0dHJpYjpGYklkPjUyNTI2NTkxNDE3OTU4MDwvQXR0cmli" +
-  "OkZiSWQ+CiAgICAgPEF0dHJpYjpUb3VjaFR5cGU+MjwvQXR0cmliOlRvdWNoVHlwZT4KICAgIDwvcmRmOmxpPgogICA8L3JkZjpT" +
-  "ZXE+CiAgPC9BdHRyaWI6QWRzPgogPC9yZGY6RGVzY3JpcHRpb24+CgogPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9JycKICB4" +
-  "bWxuczpkYz0naHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8nPgogIDxkYzp0aXRsZT4KICAgPHJkZjpBbHQ+CiAgICA8" +
-  "cmRmOmxpIHhtbDpsYW5nPSd4LWRlZmF1bHQnPkxPR08gNjIqNjJQWCAtIDI8L3JkZjpsaT4KICAgPC9yZGY6QWx0PgogIDwvZGM6" +
-  "dGl0bGU+CiA8L3JkZjpEZXNjcmlwdGlvbj4KCiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0nJwogIHhtbG5zOnBkZj0naHR0" +
-  "cDovL25zLmFkb2JlLmNvbS9wZGYvMS4zLyc+CiAgPHBkZjpBdXRob3I+QW5qYXJhIEZhbmFwZXJhbmE8L3BkZjpBdXRob3I+CiA8" +
-  "L3JkZjpEZXNjcmlwdGlvbj4KCiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0nJwogIHhtbG5zOnhtcD0naHR0cDovL25zLmFk" +
-  "b2JlLmNvbS94YXAvMS4wLyc+CiAgPHhtcDpDcmVhdG9yVG9vbD5DYW52YSBkb2M9REFIUGpxMUg2b1kgdXNlcj1VQUVtX2RJZ1ht" +
-  "QSBicmFuZD1DYW52YSBQcm88L3htcDpDcmVhdG9yVG9vbD4KIDwvcmRmOkRlc2NyaXB0aW9uPgo8L3JkZjpSREY+CjwveDp4bXBt" +
-  "ZXRhPgo8P3hwYWNrZXQgZW5kPSdyJz8+zNkVwgAADA5JREFUaIHtWglUVccZ/v/7dkATE7O4oE2M1RJRI8tbAB/I9ngbD+Sxbz4R" +
-  "BGRHxAWJggERXBBFUVyjprjERG3TRKOmHmOPadN4eqyJTU4Sk5OmidXWGJVtOnfefRaMptZGBcp3zpx3751/Zv5v/mVm7n0A/ehH" +
-  "P/pxv1Bezj1sFR4sCEFWHNf/F+CtXE6Ypbl9v03h9p+ysectRPRQ9bqvEAjDqlUy7vAHJXjmIsHTFxaxZ++9J3mYqt0/CC6t2HJ4" +
-  "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";
+const SOURCES = {
+  full: "/arivotek-logo.png",
+  symbol: "/arivotek-symbol.png",
+};
 
-export default function ArivotekIcon({ size = 24, className = "", alt = "Arivotek", ...props }) {
+export default function ArivotekIcon({
+  variant = "full",   // "full" = symbole + texte  |  "symbol" = symbole seul
+  height,             // hauteur en px
+  className = "",
+  alt = "Arivotek",
+  style = {},
+  ...props
+}) {
+  const h = height ?? (variant === "symbol" ? 32 : 100);
+
   return (
     <img
-      src={LOGO_SRC}
+      src={SOURCES[variant] ?? SOURCES.full}
       alt={alt}
-      width={size}
-      height={size}
       className={className}
-      style={{ display: "inline-block", objectFit: "contain", verticalAlign: "middle" }}
+      style={{
+        height: h,
+        width: "auto",
+        display: "inline-block",
+        objectFit: "contain",
+        verticalAlign: "middle",
+        ...style,
+      }}
       {...props}
     />
   );
