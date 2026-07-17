@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ArivotekIcon from '../components/ArivotekIcon';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -51,27 +52,16 @@ export default function Login() {
 
         {/* Logo et titre */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <div style={{
-            width: '60px',
-            height: '60px',
-            background: '#004d5a',
-            borderRadius: '12px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '15px'
-          }}>
-            <span style={{ color: 'white', fontSize: '28px' }}>📊</span>
-          </div>
+          <ArivotekIcon size={62} />
           <h1 style={{
             color: '#004d5a',
             fontSize: '24px',
-            margin: '0 0 5px 0'
+            margin: '15px 0 5px 0'
           }}>
-            E&T Automation
+            Arivotek
           </h1>
           <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
-            {modeAdmin ? 'Accès Administrateur' : 'Automatisation suivi admin'}
+            {modeAdmin ? 'Accès Administrateur' : 'Automatiser. Simplifier. Avancer.'}
           </p>
         </div>
 

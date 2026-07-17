@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import ArivotekIcon from '../components/ArivotekIcon';
 
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
@@ -196,7 +197,7 @@ export default function InscriptionPage() {
               de connexion par email sous <strong>24 heures ouvrables</strong>.
             </p>
             <p style={{ color: '#666', fontSize: '13px' }}>
-              En cas de question, contactez-nous à <strong>{process.env.REACT_APP_ADMIN_EMAIL || 'support@et-automatisation.mg'}</strong>
+              En cas de question, contactez-nous à <strong>{process.env.REACT_APP_ADMIN_EMAIL || 'gestion.etautomation@gmail.com'}</strong>
             </p>
           </div>
         </div>
@@ -209,11 +210,16 @@ export default function InscriptionPage() {
       <div style={styles.card}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h1 style={{ color: '#004d5a', margin: 0, fontSize: '24px' }}>
-            🏢 E&T Automation
+          <ArivotekIcon size={62} />
+          <h1 style={{
+            color: '#004d5a',
+            fontSize: '24px',
+            margin: '15px 0 5px 0'
+          }}>
+            Arivotek
           </h1>
-          <p style={{ color: '#666', margin: '5px 0 0 0', fontSize: '14px' }}>
-            Inscription — Créez votre compte entreprise
+          <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
+            Créez votre compte en quelques minutes
           </p>
         </div>
 
