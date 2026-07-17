@@ -232,7 +232,16 @@ export const entrepriseService = {
   modifierForfait: (id, data) => api.put(`/entreprises/forfaits/${id}`, data),
   uploadImage: (id, data) => api.post(`/entreprises/${id}/upload-image`, data)
 };
-
+export const comptabiliteService = {
+  getCompteResultat: (entreprise_id, annee) =>
+    api.get(`/comptabilite/compte-resultat/${entreprise_id}/${annee}`),
+  ajouterAutreOperation: (data) =>
+    api.post('/comptabilite/autres-operations', data),
+  getAutresOperations: (entreprise_id, annee) =>
+    api.get(`/comptabilite/autres-operations/${entreprise_id}/${annee}`),
+  supprimerAutreOperation: (id) =>
+    api.delete(`/comptabilite/autres-operations/${id}`)
+};
 // MAILS
 export const mailService = {
   envoyerFacture: (data) =>
