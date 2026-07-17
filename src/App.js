@@ -26,6 +26,8 @@ import SuperAdminTickets from './pages/superadmin/SuperAdminTickets';
 import SuperAdminCorrections from './pages/superadmin/SuperAdminCorrections';
 import SuperAdminImport from './pages/superadmin/SuperAdminImport';
 import SuperAdminDemandes from './pages/superadmin/SuperAdminDemandes';
+import ComptabiliteResultatPage from './pages/ComptabiliteResultatPage';
+
 
 
 function RouteAdmin({ children }) {
@@ -117,6 +119,13 @@ function App() {
             <RouteProtegee>
               <ModuleProtege module="journal">
                 <JournalPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/comptabilite/resultat" element={
+            <RouteProtegee>
+              <ModuleProtege module="comptabilite">
+                <ComptabiliteResultatPage />
               </ModuleProtege>
             </RouteProtegee>
           } />

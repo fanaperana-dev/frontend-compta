@@ -44,7 +44,8 @@ const tousLesModules = [
   { key: 'stocks', label: '📦 Stocks' },
   { key: 'immobilisations', label: '🏗️ Immobilisations' },
   { key: 'rh', label: '👤 Ressources Humaines' },
-  { key: 'journal', label: '📒 Journal' }
+  { key: 'journal', label: '📒 Journal' },
+  { key: 'comptabilite', label: '📊 Comptabilité (Résultat/Bilan)' }
 ];
 
 function FormulaireForfait({ forfait, onSave, onCancel }) {

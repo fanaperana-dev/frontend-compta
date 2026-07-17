@@ -13,6 +13,7 @@ const menuItems = [
   { path: '/rh', icon: '👤', label: 'Ressources Humaines', module: 'rh' },
   { path: '/journal', icon: '📒', label: 'Journal', module: 'journal' },
   { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
+  { path: '/comptabilite/resultat', icon: '📊', label: 'Compte de résultat', module: 'comptabilite' },
 ];
 const menuItemsAdmin = [
   { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },
