@@ -250,7 +250,9 @@ export const comptabiliteService = {
   getElementsBilan: (entreprise_id, annee) =>
     api.get(`/comptabilite/elements-bilan/${entreprise_id}/${annee}`),
   supprimerElementBilan: (id) =>
-    api.delete(`/comptabilite/elements-bilan/${id}`)
+    api.delete(`/comptabilite/elements-bilan/${id}`),
+  getGrandLivre: (entreprise_id, annee) =>
+    api.get(`/comptabilite/grand-livre/${entreprise_id}/${annee}`)
 };
 // MAILS
 export const mailService = {

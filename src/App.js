@@ -28,6 +28,7 @@ import SuperAdminImport from './pages/superadmin/SuperAdminImport';
 import SuperAdminDemandes from './pages/superadmin/SuperAdminDemandes';
 import ComptabiliteResultatPage from './pages/ComptabiliteResultatPage';
 import BilanPage from './pages/BilanPage';
+import GrandLivrePage from './pages/GrandLivrePage';
 
 
 
@@ -134,6 +135,13 @@ function App() {
             <RouteProtegee>
               <ModuleProtege module="comptabilite">
                 <BilanPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/comptabilite/grand-livre" element={
+            <RouteProtegee>
+              <ModuleProtege module="comptabilite">
+                <GrandLivrePage />
               </ModuleProtege>
             </RouteProtegee>
           } />

@@ -14,6 +14,7 @@ const menuItems = [
   { path: '/journal', icon: '📒', label: 'Journal', module: 'journal' },
   { path: '/comptabilite/resultat', icon: '📊', label: 'Compte de résultat', module: 'comptabilite' },
   { path: '/comptabilite/bilan', icon: '⚖️', label: 'Bilan', module: 'comptabilite' },
+  { path: '/comptabilite/grand-livre', icon: '📒', label: 'Grand Livre', module: 'comptabilite' },
   { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
   
 ];
