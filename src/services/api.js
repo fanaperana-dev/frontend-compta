@@ -233,7 +233,7 @@ export const entrepriseService = {
   uploadImage: (id, data) => api.post(`/entreprises/${id}/upload-image`, data)
 };
 
-};
+
 export const comptabiliteService = {
   getCompteResultat: (entreprise_id, annee) =>
     api.get(`/comptabilite/compte-resultat/${entreprise_id}/${annee}`),
