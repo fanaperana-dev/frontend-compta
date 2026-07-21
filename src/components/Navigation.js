@@ -12,8 +12,10 @@ const menuItems = [
   { path: '/immobilisations', icon: '🏗️', label: 'Immobilisations', module: 'immobilisations' },
   { path: '/rh', icon: '👤', label: 'Ressources Humaines', module: 'rh' },
   { path: '/journal', icon: '📒', label: 'Journal', module: 'journal' },
-  { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
   { path: '/comptabilite/resultat', icon: '📊', label: 'Compte de résultat', module: 'comptabilite' },
+  { path: '/comptabilite/bilan', icon: '⚖️', label: 'Bilan', module: 'comptabilite' },
+  { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
+  
 ];
 const menuItemsAdmin = [
   { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },
