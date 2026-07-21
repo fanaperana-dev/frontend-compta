@@ -215,19 +215,45 @@ export default function BilanPage() {
         </div>
       ) : bilan && (
         <>
-          {/* Équilibre */}
-          <div style={{
-            background: Math.abs(equilibre) < 1 ? '#e8f5e9' : '#ffebee',
-            borderRadius: '8px', padding: '12px', marginBottom: '20px',
-            fontSize: '13px',
-            color: Math.abs(equilibre) < 1 ? '#2e7d32' : '#c62828'
-          }}>
-            {Math.abs(equilibre) < 1
-              ? '✅ Bilan équilibré — ACTIF = PASSIF'
-              : `⚠️ Écart de ${Number(Math.abs(equilibre)).toLocaleString('fr-FR')} Ar entre ACTIF et PASSIF`}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            {/* Équilibre */}
+            <div style={{
+              background: Math.abs(equilibre) < 1 ? '#e8f5e9' : '#fff3e0',
+              borderRadius: '8px', padding: '15px', marginBottom: '20px',
+              border: `1px solid ${Math.abs(equilibre) < 1 ? '#2e7d32' : '#e65100'}`
+            }}>
+              {Math.abs(equilibre) < 1 ? (
+                <div style={{ color: '#2e7d32', fontWeight: 'bold' }}>
+                  ✅ Bilan équilibré — ACTIF = PASSIF
+                </div>
+              ) : (
+                <div>
+                  <div style={{ color: '#e65100', fontWeight: 'bold', marginBottom: '8px' }}>
+                    ⚠️ Écart de {Number(Math.abs(equilibre)).toLocaleString('fr-FR')} Ar entre ACTIF et PASSIF
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.6' }}>
+                    <strong>Causes possibles :</strong><br/>
+                    {equilibre > 0 ? (
+                      <>
+                        Le PASSIF est insuffisant. Vérifiez :<br/>
+                        • Capital social non saisi → cliquez <strong>"+ Élément manuel"</strong> → Capital<br/>
+                        • Réserves non saisies → cliquez <strong>"+ Élément manuel"</strong> → Réserves<br/>
+                        • Emprunts non saisis → cliquez <strong>"+ Élément manuel"</strong> → Emprunt long terme<br/>
+                        • Autres dettes manquantes → cliquez <strong>"+ Élément manuel"</strong> → Autre passif
+                      </>
+                    ) : (
+                      <>
+                        L'ACTIF est insuffisant. Vérifiez :<br/>
+                        • Autres actifs manquants → cliquez <strong>"+ Élément manuel"</strong> → Autre actif<br/>
+                        • Stocks ou créances non enregistrés dans l'outil
+                      </>
+                    )}
+                    <br/><br/>
+                    <strong>💡 Astuce :</strong> Le bilan doit toujours être équilibré (ACTIF = PASSIF).
+                    Ajoutez les éléments manquants via le bouton <strong>"+ Élément manuel"</strong>.
+                  </div>
+                </div>
+              )}
+            </div>
             {/* ACTIF */}
             <div style={styles.card}>
               <h3 style={{ color: '#004d5a', marginTop: 0 }}>ACTIF</h3>
