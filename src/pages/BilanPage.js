@@ -391,7 +391,7 @@ export default function BilanPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          
 
           {/* Résumé indicateurs */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
