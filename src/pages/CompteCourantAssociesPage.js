@@ -47,9 +47,20 @@ function ModalOperation({ onSave, onCancel }) {
     type: 'AVANCE',
     montant: 0,
     libelle: '',
+    compte_contrepartie: '53',
     date_operation: new Date().toISOString().split('T')[0]
   });
   const [enCours, setEnCours] = useState(false);
+  const comptesContrepartie = [
+    { key: '51', label: '51 - Banque' },
+    { key: '521', label: '52 - MVola' },
+    { key: '522', label: '52 - Orange Money' },
+    { key: '523', label: '52 - Airtel Money' },
+    { key: '53', label: '53 - Caisse' },
+    { key: '21', label: '21 - Immobilisations corporelles' },
+    { key: '20', label: '20 - Immobilisations incorporelles' },
+    { key: 'autre', label: 'Autre (préciser dans libellé)' }
+  ];
 
   return (
     <div style={styles.modal}>
@@ -75,6 +86,23 @@ function ModalOperation({ onSave, onCancel }) {
               onChange={e => setForm({ ...form, type: e.target.value })}>
               <option value="AVANCE">Avance de l'associé → entreprise</option>
               <option value="REMBOURSEMENT">Remboursement entreprise → associé</option>
+            </select>
+          </div>
+          <div>
+            <label style={styles.label}>
+              {form.type === 'AVANCE' 
+                ? 'Compte débité (destination de l\'argent) *'
+                : 'Compte crédité (source du remboursement) *'}
+            </label>
+            <select style={styles.input} value={form.compte_contrepartie}
+                onChange={e => setForm({ ...form, compte_contrepartie: e.target.value })}>
+                {comptesContrepartie
+                  .filter(c => form.type === 'REMBOURSEMENT' 
+                    ? ['51', '52', '53', 'autre'].includes(c.key)
+                    : true)
+                  .map(c => (
+                    <option key={c.key} value={c.key}>{c.label}</option>
+               ))}
             </select>
           </div>
           <div>
@@ -259,6 +287,9 @@ export default function CompteCourantAssociesPage() {
                       color: op.type === 'AVANCE' ? '#c62828' : '#2e7d32' }}>
                       {op.type === 'AVANCE' ? '📥 Avance' : '📤 Remboursement'}
                     </span>
+                  </td>
+                  <td style={{ padding: '10px', fontSize: '12px', color: '#666' }}>
+                    {comptesContrepartie.find(c => c.key === op.compte_contrepartie)?.label || op.compte_contrepartie || '—'}
                   </td>
                   <td style={{ padding: '10px', fontSize: '13px', color: '#666' }}>
                     {op.libelle || '—'}
