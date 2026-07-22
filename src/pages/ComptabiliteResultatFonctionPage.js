@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { comptabiliteService } from '../services/api';
+import api from '../services/api';
 
 const styles = {
   boutonPrimaire: {
@@ -76,12 +77,19 @@ function LigneResultat({ label, montant, niveau = 0, gras = false, couleur = nul
   );
 }
 
-function ModalFonction({ onSave, onCancel }) {
+function ModalFonction({ onSave, onCancel, entrepriseId }) {
   const [form, setForm] = useState({
     fonction_salarie: '',
     fonction_comptable: 'FRAIS_ADMINISTRATIFS'
   });
   const [enCours, setEnCours] = useState(false);
+  const [postes, setPostes] = useState([]);
+
+  useEffect(() => {
+    api.get(`/rh/postes/${entrepriseId}`)
+      .then(res => setPostes(res.data.data || []))
+      .catch(() => {});
+  }, []);
 
   return (
     <div style={styles.modal}>
@@ -92,15 +100,17 @@ function ModalFonction({ onSave, onCancel }) {
         <div style={{ background: '#e3f2fd', borderRadius: '8px',
           padding: '12px', marginBottom: '15px', fontSize: '12px', color: '#1565c0' }}>
           ℹ️ Définissez la fonction comptable pour un poste de salarié.
-          Tous les salariés ayant ce poste seront automatiquement classés
-          dans la fonction comptable choisie.
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={styles.label}>Poste du salarié *</label>
-            <input style={styles.input} value={form.fonction_salarie}
-              onChange={e => setForm({ ...form, fonction_salarie: e.target.value })}
-              placeholder="Ex: Commercial, Comptable, Manœuvre..." />
+            <select style={styles.input} value={form.fonction_salarie}
+              onChange={e => setForm({ ...form, fonction_salarie: e.target.value })}>
+              <option value="">Sélectionner un poste</option>
+              {postes.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label style={styles.label}>Fonction comptable *</label>
@@ -129,6 +139,8 @@ function ModalFonction({ onSave, onCancel }) {
     </div>
   );
 }
+
+  
 
 export default function ComptabiliteResultatFonctionPage() {
   const { entreprise } = useAuth();
@@ -199,6 +211,7 @@ export default function ComptabiliteResultatFonctionPage() {
         <ModalFonction
           onSave={ajouterFonction}
           onCancel={() => setModalOuvert(false)}
+          entrepriseId={entreprise.id}
         />
       )}
 
