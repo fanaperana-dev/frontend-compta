@@ -252,8 +252,17 @@ export const comptabiliteService = {
   supprimerElementBilan: (id) =>
     api.delete(`/comptabilite/elements-bilan/${id}`),
   getGrandLivre: (entreprise_id, annee) =>
-    api.get(`/comptabilite/grand-livre/${entreprise_id}/${annee}`)
+    api.get(`/comptabilite/grand-livre/${entreprise_id}/${annee}`),
+  getFonctionsComptables: (entreprise_id) =>
+    api.get(`/comptabilite/fonctions-comptables/${entreprise_id}`),
+  ajouterFonctionComptable: (data) =>
+    api.post('/comptabilite/fonctions-comptables', data),
+  supprimerFonctionComptable: (id) =>
+    api.delete(`/comptabilite/fonctions-comptables/${id}`),
+  getCompteResultatFonction: (entreprise_id, annee) =>
+    api.get(`/comptabilite/compte-resultat-fonction/${entreprise_id}/${annee}`),
 };
+
 // MAILS
 export const mailService = {
   envoyerFacture: (data) =>

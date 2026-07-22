@@ -29,7 +29,7 @@ import SuperAdminDemandes from './pages/superadmin/SuperAdminDemandes';
 import ComptabiliteResultatPage from './pages/ComptabiliteResultatPage';
 import BilanPage from './pages/BilanPage';
 import GrandLivrePage from './pages/GrandLivrePage';
-
+import ComptabiliteResultatFonctionPage from './pages/ComptabiliteResultatFonctionPage';
 
 
 function RouteAdmin({ children }) {
@@ -142,6 +142,13 @@ function App() {
             <RouteProtegee>
               <ModuleProtege module="comptabilite">
                 <GrandLivrePage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/comptabilite/resultat-fonction" element={
+            <RouteProtegee>
+              <ModuleProtege module="comptabilite">
+                <ComptabiliteResultatFonctionPage />
               </ModuleProtege>
             </RouteProtegee>
           } />
