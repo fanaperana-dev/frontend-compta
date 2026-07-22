@@ -354,10 +354,11 @@ export default function BilanPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    ))}
+                  <LigneBilan label="Compte courant associés"
+                    montant={bilan.passif.non_courant.compte_courant_associes} niveau={1} />
                   <LigneBilan label="Total passif non courant"
                     montant={bilan.passif.non_courant.total} gras couleur="#004d5a" />
-
                   {/* Passif courant */}
                   <LigneBilan label="PASSIF COURANT" sousTitre />
                   <LigneBilan label="Dettes fournisseurs"

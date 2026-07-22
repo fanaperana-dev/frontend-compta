@@ -261,6 +261,12 @@ export const comptabiliteService = {
     api.delete(`/comptabilite/fonctions-comptables/${id}`),
   getCompteResultatFonction: (entreprise_id, annee) =>
     api.get(`/comptabilite/compte-resultat-fonction/${entreprise_id}/${annee}`),
+  getCompteCourant: (entreprise_id, annee) =>
+    api.get(`/comptabilite/compte-courant/${entreprise_id}`, { params: { annee } }),
+  ajouterCompteCourant: (data) =>
+    api.post('/comptabilite/compte-courant', data),
+  supprimerCompteCourant: (id) =>
+    api.delete(`/comptabilite/compte-courant/${id}`),
 };
 
 // MAILS

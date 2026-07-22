@@ -30,6 +30,7 @@ import ComptabiliteResultatPage from './pages/ComptabiliteResultatPage';
 import BilanPage from './pages/BilanPage';
 import GrandLivrePage from './pages/GrandLivrePage';
 import ComptabiliteResultatFonctionPage from './pages/ComptabiliteResultatFonctionPage';
+import CompteCourantAssociesPage from './pages/CompteCourantAssociesPage';
 
 
 function RouteAdmin({ children }) {
@@ -92,6 +93,13 @@ function App() {
             <RouteProtegee>
               <ModuleProtege module="fournisseurs">
                 <FournisseursPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/comptabilite/compte-courant" element={
+            <RouteProtegee>
+              <ModuleProtege module="comptabilite">
+                <CompteCourantAssociesPage />
               </ModuleProtege>
             </RouteProtegee>
           } />

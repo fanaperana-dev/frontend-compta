@@ -8,6 +8,7 @@ const menuItems = [
   { path: '/clients', icon: '👥', label: 'Clients', module: 'factures' },
   { path: '/paiements', icon: '💰', label: 'Paiements', module: 'factures' },
   { path: '/fournisseurs', icon: '🏭', label: 'Fournisseurs', module: 'fournisseurs' },
+  { path: '/comptabilite/compte-courant', icon: '👥', label: 'Compte courant associés', module: 'comptabilite' },
   { path: '/stocks', icon: '📦', label: 'Stocks', module: 'stocks' },
   { path: '/immobilisations', icon: '🏗️', label: 'Immobilisations', module: 'immobilisations' },
   { path: '/rh', icon: '👤', label: 'Ressources Humaines', module: 'rh' },
