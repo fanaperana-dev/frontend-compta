@@ -273,6 +273,8 @@ export const comptabiliteService = {
     api.post('/comptabilite/tresorerie-ouverture', data),
   exportPDFCompteResultat: (entreprise_id, annee) =>
     api.get(`/comptabilite/compte-resultat/${entreprise_id}/${annee}/pdf`),
+  exportPDFBilan: (entreprise_id, annee) =>
+    api.get(`/comptabilite/bilan/${entreprise_id}/${annee}/pdf`),
 };
 
 // MAILS

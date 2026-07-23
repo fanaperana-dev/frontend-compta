@@ -140,6 +140,7 @@ export default function BilanPage() {
   const [bilan, setBilan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [modalOuvert, setModalOuvert] = useState(false);
+  const [exportEnCours, setExportEnCours] = useState(false);
 
   useEffect(() => { charger(); }, [annee]);
 
@@ -165,6 +166,19 @@ export default function BilanPage() {
       charger();
     } catch (err) {
       toast.error('Erreur ajout élément.');
+    }
+  }
+
+  async function exporterPDF() {
+    setExportEnCours(true);
+    try {
+      const res = await comptabiliteService.exportPDFBilan(entreprise.id, annee);
+      window.open(res.data.url, '_blank');
+      toast.success('PDF généré !');
+    } catch (err) {
+      toast.error('Erreur génération PDF.');
+    } finally {
+      setExportEnCours(false);
     }
   }
 
@@ -201,10 +215,11 @@ export default function BilanPage() {
             ))}
           </select>
           <button style={styles.boutonSecondaire} onClick={() => setModalOuvert(true)}>
-            + Élément manuel
+            + Élément manuel  
           </button>
-          <button style={styles.boutonSecondaire} onClick={() => toast.info('Export PDF en cours de développement')}>
-            📄 Export PDF
+          <button style={{ ...styles.boutonSecondaire, opacity: exportEnCours ? 0.6 : 1 }}
+            disabled={exportEnCours} onClick={exporterPDF}>
+            {exportEnCours ? '⏳ Génération...' : '📄 Export PDF'}
           </button>
         </div>
       </div>
