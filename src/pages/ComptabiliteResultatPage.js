@@ -143,6 +143,7 @@ export default function ComptabiliteResultatPage() {
   const [resultat, setResultat] = useState(null);
   const [loading, setLoading] = useState(false);
   const [modalOuvert, setModalOuvert] = useState(false);
+  const [exportEnCours, setExportEnCours] = useState(false);
 
   useEffect(() => { charger(); }, [annee]);
 
@@ -183,8 +184,19 @@ export default function ComptabiliteResultatPage() {
       toast.error('Erreur suppression.');
     }
   }
-
-  function exporterExcel() {
+  async function exporterPDF() {
+    setExportEnCours(true);
+    try {
+      const res = await comptabiliteService.exportPDFCompteResultat(entreprise.id, annee);
+      window.open(res.data.url, '_blank');
+      toast.success('PDF généré !');
+    } catch (err) {
+      toast.error('Erreur génération PDF.');
+    } finally {
+      setExportEnCours(false);
+    }
+  }
+  {/*function exporterExcel() {
     if (!resultat) return;
     const wb = XLSX.utils.book_new();
     const data = [
@@ -223,7 +235,7 @@ export default function ComptabiliteResultatPage() {
     XLSX.utils.book_append_sheet(wb, ws, `CR ${annee}`);
     XLSX.writeFile(wb, `Compte_Resultat_${annee}.xlsx`);
     toast.success('Export Excel généré !');
-  }
+  }*/}
 
   return (
     <div>
@@ -244,11 +256,16 @@ export default function ComptabiliteResultatPage() {
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
-          <button style={styles.boutonSecondaire} onClick={() => setModalOuvert(true)}>
+          {/*<button style={styles.boutonSecondaire} onClick={() => setModalOuvert(true)}>
             + Opération manuelle
           </button>
           <button style={styles.boutonSecondaire} onClick={exporterExcel}>
             📥 Export Excel
+          </button>*/}
+          <button style={{ ...styles.boutonSecondaire, opacity: exportEnCours ? 0.6 : 1 }}
+            disabled={exportEnCours}
+            onClick={exporterPDF}>
+            {exportEnCours ? '⏳ Génération...' : '📄 Export PDF'}
           </button>
         </div>
       </div>

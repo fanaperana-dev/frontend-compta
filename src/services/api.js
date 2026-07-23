@@ -271,6 +271,8 @@ export const comptabiliteService = {
     api.get(`/comptabilite/flux-tresorerie/${entreprise_id}/${annee}`),
   saveTresorerieOuverture: (data) =>
     api.post('/comptabilite/tresorerie-ouverture', data),
+  exportPDFCompteResultat: (entreprise_id, annee) =>
+    api.get(`/comptabilite/compte-resultat/${entreprise_id}/${annee}/pdf`),
 };
 
 // MAILS
