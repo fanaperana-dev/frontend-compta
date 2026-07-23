@@ -170,17 +170,28 @@ export default function BilanPage() {
   }
 
   async function exporterPDF() {
-    setExportEnCours(true);
-    try {
-      const res = await comptabiliteService.exportPDFBilan(entreprise.id, annee);
-      window.open(res.data.url, '_blank');
-      toast.success('PDF généré !');
-    } catch (err) {
-      toast.error('Erreur génération PDF.');
-    } finally {
-      setExportEnCours(false);
-    }
+  setExportEnCours(true);
+  try {
+    const html2pdf = (await import('html2pdf.js')).default;
+    
+    const element = document.getElementById('bilan-contenu');
+    
+    const options = {
+      margin: 10,
+      filename: `Bilan_${entreprise.nom}_${annee}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+    
+    await html2pdf().set(options).from(element).save();
+    toast.success('PDF généré !');
+  } catch (err) {
+    toast.error('Erreur génération PDF.');
+  } finally {
+    setExportEnCours(false);
   }
+}
 
   async function supprimerElement(id) {
     if (!window.confirm('Supprimer cet élément ?')) return;
@@ -270,6 +281,7 @@ export default function BilanPage() {
               )}
             </div>
             {/* ACTIF */}
+             <div id="bilan-contenu" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div style={styles.card}>
               <h3 style={{ color: '#004d5a', marginTop: 0 }}>ACTIF</h3>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -407,7 +419,7 @@ export default function BilanPage() {
                 </tbody>
               </table>
             </div>
-          
+          </div> 
 
           {/* Résumé indicateurs */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
