@@ -40,7 +40,16 @@ const styles = {
     boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
   }
 };
-
+const comptesContrepartie = [
+    { key: '51', label: '51 - Banque' },
+    { key: '521', label: '52 - MVola' },
+    { key: '522', label: '52 - Orange Money' },
+    { key: '523', label: '52 - Airtel Money' },
+    { key: '53', label: '53 - Caisse' },
+    { key: '21', label: '21 - Immobilisations corporelles' },
+    { key: '20', label: '20 - Immobilisations incorporelles' },
+    { key: 'autre', label: 'Autre (préciser dans libellé)' }
+  ];
 function ModalOperation({ onSave, onCancel }) {
   const [form, setForm] = useState({
     nom_associe: '',
@@ -51,16 +60,7 @@ function ModalOperation({ onSave, onCancel }) {
     date_operation: new Date().toISOString().split('T')[0]
   });
   const [enCours, setEnCours] = useState(false);
-  const comptesContrepartie = [
-    { key: '51', label: '51 - Banque' },
-    { key: '521', label: '52 - MVola' },
-    { key: '522', label: '52 - Orange Money' },
-    { key: '523', label: '52 - Airtel Money' },
-    { key: '53', label: '53 - Caisse' },
-    { key: '21', label: '21 - Immobilisations corporelles' },
-    { key: '20', label: '20 - Immobilisations incorporelles' },
-    { key: 'autre', label: 'Autre (préciser dans libellé)' }
-  ];
+  
 
   return (
     <div style={styles.modal}>
