@@ -277,6 +277,8 @@ export const comptabiliteService = {
     api.get(`/comptabilite/bilan/${entreprise_id}/${annee}/pdf`),
   exportPDFGrandLivre: (entreprise_id, annee) =>
     api.get(`/comptabilite/grand-livre/${entreprise_id}/${annee}/pdf`),
+  exportPDFFluxTresorerie: (entreprise_id, annee) =>
+    api.get(`/comptabilite/flux-tresorerie/${entreprise_id}/${annee}/pdf`),
 };
 
 // MAILS
