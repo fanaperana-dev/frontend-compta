@@ -31,6 +31,7 @@ import BilanPage from './pages/BilanPage';
 import GrandLivrePage from './pages/GrandLivrePage';
 import ComptabiliteResultatFonctionPage from './pages/ComptabiliteResultatFonctionPage';
 import CompteCourantAssociesPage from './pages/CompteCourantAssociesPage';
+import FluxTresoreriePage from './pages/FluxTresoreriePage';
 
 
 function RouteAdmin({ children }) {
@@ -139,6 +140,20 @@ function App() {
               </ModuleProtege>
             </RouteProtegee>
           } />
+           <Route path="/comptabilite/resultat-fonction" element={
+            <RouteProtegee>
+              <ModuleProtege module="comptabilite">
+                <ComptabiliteResultatFonctionPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/comptabilite/flux-tresorerie" element={
+            <RouteProtegee>
+              <ModuleProtege module="comptabilite">
+                <FluxTresoreriePage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
           <Route path="/comptabilite/bilan" element={
             <RouteProtegee>
               <ModuleProtege module="comptabilite">
@@ -153,13 +168,7 @@ function App() {
               </ModuleProtege>
             </RouteProtegee>
           } />
-          <Route path="/comptabilite/resultat-fonction" element={
-            <RouteProtegee>
-              <ModuleProtege module="comptabilite">
-                <ComptabiliteResultatFonctionPage />
-              </ModuleProtege>
-            </RouteProtegee>
-          } />
+         
           <Route path="/profil" element={
             <RouteProtegee>
               <ProfilPage />

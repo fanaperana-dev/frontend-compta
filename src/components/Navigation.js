@@ -14,9 +14,10 @@ const menuItems = [
   { path: '/rh', icon: '👤', label: 'Ressources Humaines', module: 'rh' },
   { path: '/journal', icon: '📒', label: 'Journal', module: 'journal' },
   { path: '/comptabilite/resultat', icon: '📊', label: 'Compte de résultat', module: 'comptabilite' },
+  { path: '/comptabilite/resultat-fonction', icon: '📊', label: 'Résultat par fonction', module: 'comptabilite' },
+  { path: '/comptabilite/flux-tresorerie', icon: '💰', label: 'Flux de trésorerie', module: 'comptabilite' },
   { path: '/comptabilite/bilan', icon: '⚖️', label: 'Bilan', module: 'comptabilite' },
   { path: '/comptabilite/grand-livre', icon: '📒', label: 'Grand Livre', module: 'comptabilite' },
-  { path: '/comptabilite/resultat-fonction', icon: '📊', label: 'Résultat par fonction', module: 'comptabilite' },
   { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
   
 ];

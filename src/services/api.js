@@ -267,6 +267,10 @@ export const comptabiliteService = {
     api.post('/comptabilite/compte-courant', data),
   supprimerCompteCourant: (id) =>
     api.delete(`/comptabilite/compte-courant/${id}`),
+  getFluxTresorerie: (entreprise_id, annee) =>
+    api.get(`/comptabilite/flux-tresorerie/${entreprise_id}/${annee}`),
+  saveTresorerieOuverture: (data) =>
+    api.post('/comptabilite/tresorerie-ouverture', data),
 };
 
 // MAILS
