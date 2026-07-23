@@ -98,7 +98,7 @@ function ModalOperation({ onSave, onCancel }) {
                 onChange={e => setForm({ ...form, compte_contrepartie: e.target.value })}>
                 {comptesContrepartie
                   .filter(c => form.type === 'REMBOURSEMENT' 
-                    ? ['51', '52', '53', 'autre'].includes(c.key)
+                    ? ['51', '521', '522', '523', '524', '53', 'autre'].includes(c.key)
                     : true)
                   .map(c => (
                     <option key={c.key} value={c.key}>{c.label}</option>
@@ -260,7 +260,7 @@ export default function CompteCourantAssociesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
-                {['Date', 'Associé', 'Type', 'Libellé', 'Montant', 'Action'].map(h => (
+                {['Date', 'Associé', 'Type','Contrepartie',  'Libellé', 'Montant', 'Action'].map(h => (
                   <th key={h} style={{ padding: '10px', textAlign: 'left',
                     fontSize: '12px', color: '#555', borderBottom: '2px solid #e0e0e0' }}>
                     {h}
