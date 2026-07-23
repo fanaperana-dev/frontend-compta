@@ -24,6 +24,7 @@ export default function GrandLivrePage() {
   const [grandLivre, setGrandLivre] = useState(null);
   const [loading, setLoading] = useState(false);
   const [compteFiltre, setCompteFiltre] = useState('');
+  const [exportEnCours, setExportEnCours] = useState(false);
 
   useEffect(() => { charger(); }, [annee]);
 
@@ -39,6 +40,18 @@ export default function GrandLivrePage() {
     }
   }
 
+  async function exporterPDF() {
+  setExportEnCours(true);
+  try {
+    const res = await comptabiliteService.exportPDFGrandLivre(entreprise.id, annee);
+    window.open(res.data.url, '_blank');
+    toast.success('PDF généré !');
+  } catch (err) {
+    toast.error('Erreur génération PDF.');
+  } finally {
+    setExportEnCours(false);
+  }
+}
   const comptesFiltres = grandLivre?.comptes?.filter(c =>
     !compteFiltre ||
     c.numero.includes(compteFiltre) ||
@@ -63,9 +76,9 @@ export default function GrandLivrePage() {
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
-          <button style={styles.boutonSecondaire}
-            onClick={() => toast.info('Export PDF en cours de développement')}>
-            📄 Export PDF
+          <button style={{ ...styles.boutonSecondaire, opacity: exportEnCours ? 0.6 : 1 }}
+            disabled={exportEnCours} onClick={exporterPDF}>
+            {exportEnCours ? '⏳ Génération...' : '📄 Export PDF'}
           </button>
         </div>
       </div>
