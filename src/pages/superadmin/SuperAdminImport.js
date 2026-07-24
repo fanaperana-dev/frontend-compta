@@ -119,7 +119,7 @@ const modules = [
       '224', '2026-01-15', '2026-01-15', '2031-01-14',
       '15000000', 'LINEAIRE', 'Toyota Madagascar',
       'FAC-2026-001', 'Siège social']]
-- }
+}
 ];
 
 export default function SuperAdminImport() {
