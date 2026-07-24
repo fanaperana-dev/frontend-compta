@@ -322,7 +322,11 @@ export const correctionService = {
   modifierFactureTiers: (id, data) => api.put(`/tiers/admin/${id}`, data),
   // Fiches de paie
   getFichesPaie: (entreprise_id) => api.get(`/rh/fiches-paie/${entreprise_id}`),
-  modifierFichePaie: (id, data) => api.put(`/rh/fiches-paie/admin/${id}`, data)
+  modifierFichePaie: (id, data) => api.put(`/rh/fiches-paie/admin/${id}`, data),
+  getArticles: (entreprise_id) => api.get(`/import/articles/${entreprise_id}`),
+  modifierArticle: (id, data) => api.put(`/import/articles/${id}`, data),
+  getImmobilisations: (entreprise_id) => api.get(`/import/immobilisations/${entreprise_id}`),
+  modifierImmobilisation: (id, data) => api.put(`/import/immobilisations/${id}`, data),
 };
 
 // AUTOMATISATIONS

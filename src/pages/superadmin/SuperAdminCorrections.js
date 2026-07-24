@@ -40,7 +40,9 @@ const onglets = [
   { key: 'encaissements', label: '💰 Encaissements' },
   { key: 'fournisseurs', label: '🏭 Factures fournisseurs' },
   { key: 'tiers', label: '📄 Factures tiers' },
-  { key: 'paie', label: '👤 Fiches de paie' }
+  { key: 'paie', label: '👤 Fiches de paie' },
+  { key: 'stocks', label: '📦 Stocks' },
+  { key: 'immobilisations', label: '🏗️ Immobilisations' }
 ];
 
 // Modal édition générique
@@ -134,6 +136,8 @@ export default function SuperAdminCorrections() {
       else if (ongletActif === 'fournisseurs') res = await correctionService.getFacturesFournisseurs(entrepriseId);
       else if (ongletActif === 'tiers') res = await correctionService.getFacturesTiers(entrepriseId);
       else if (ongletActif === 'paie') res = await correctionService.getFichesPaie(entrepriseId);
+      else if (ongletActif === 'stocks') res = await correctionService.getArticles(entrepriseId);
+      else if (ongletActif === 'immobilisations') res = await correctionService.getImmobilisations(entrepriseId);
       setDonnees(res.data.data || []);
     } catch (err) {
       toast.error('Erreur chargement données.');
@@ -150,6 +154,8 @@ export default function SuperAdminCorrections() {
       else if (ongletActif === 'fournisseurs') await correctionService.modifierFactureFournisseur(elementSelectionne.id, form);
       else if (ongletActif === 'tiers') await correctionService.modifierFactureTiers(elementSelectionne.id, form);
       else if (ongletActif === 'paie') await correctionService.modifierFichePaie(elementSelectionne.id, form);
+      else if (ongletActif === 'stocks') await correctionService.modifierArticle(elementSelectionne.id, form);
+      else if (ongletActif === 'immobilisations') await correctionService.modifierImmobilisation(elementSelectionne.id, form);
 
       toast.success('Correction enregistrée !');
       setElementSelectionne(null);
@@ -235,6 +241,42 @@ export default function SuperAdminCorrections() {
         ]
       };
     }
+    if (ongletActif === 'stocks') {
+      return {
+        colonnes: ['reference', 'designation', 'categorie', 'stock_actuel', 'valeur_stock'],
+        champs: [
+          { key: 'designation', label: 'Désignation' },
+          { key: 'categorie', label: 'Catégorie' },
+          { key: 'unite', label: 'Unité' },
+          { key: 'prix_achat_ht', label: 'Prix achat HT', type: 'number' },
+          { key: 'taux_tva', label: 'Taux TVA (%)', type: 'number' },
+          { key: 'remise_pourcent', label: 'Remise (%)', type: 'number' },
+          { key: 'stock_actuel', label: 'Stock actuel', type: 'number' },
+          { key: 'valeur_stock', label: 'Valeur stock', type: 'number' },
+          { key: 'stock_minimum', label: 'Stock minimum', type: 'number' },
+          { key: 'methode_valorisation', label: 'Méthode valorisation', type: 'select',
+            options: ['CMUP', 'FIFO'] }
+        ]
+      };
+    }
+
+    if (ongletActif === 'immobilisations') {
+      return {
+        colonnes: ['reference', 'designation', 'categorie', 'valeur_acquisition', 'date_acquisition'],
+        champs: [
+          { key: 'designation', label: 'Désignation' },
+          { key: 'categorie', label: 'Catégorie' },
+          { key: 'numero_compte', label: 'N° compte PCG' },
+          { key: 'date_acquisition', label: 'Date acquisition', type: 'date' },
+          { key: 'date_debut_amortissement', label: 'Début amortissement', type: 'date' },
+          { key: 'date_fin_amortissement', label: 'Fin amortissement', type: 'date' },
+          { key: 'valeur_acquisition', label: 'Valeur acquisition', type: 'number' },
+          { key: 'fournisseur', label: 'Fournisseur' },
+          { key: 'numero_facture', label: 'N° facture' },
+          { key: 'localisation', label: 'Localisation' }
+       ]
+      };
+    }
     return { colonnes: [], champs: [] };
   }
 
@@ -246,7 +288,7 @@ export default function SuperAdminCorrections() {
     <div>
       {elementSelectionne && (
         <ModalEdition
-          titre={`🔧 Correction — ${elementSelectionne.numero_facture || elementSelectionne.numero || elementSelectionne.matricule || 'Élément'}`}
+          titre={`🔧 Correction — ${elementSelectionne.numero_facture || elementSelectionne.numero || elementSelectionne.matricule || elementSelectionne.reference || 'Élément'}`}
           donnee={elementSelectionne}
           champs={config.champs}
           onSave={sauvegarderCorrection}
