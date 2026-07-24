@@ -98,7 +98,28 @@ const modules = [
     exemples: [['EMP-001', 'Janvier', '2025', '2025-01-31', 'Virement',
       'PAYEE', '800000', '720000', '8000', '8000', '8000', '104000', '40000',
       '8000', '25000', '0', '776000', '26', '0', '0', '26', '26', '0', '0', '0', '0', '0', '0']]
-  }
+  },
+  {
+    key: 'stocks',
+    label: '📦 Articles (Stocks)',
+    colonnes: ['reference', 'designation', 'categorie', 'unite',
+      'prix_achat_ht', 'taux_tva', 'remise_pourcent',
+      'methode_valorisation', 'stock_initial', 'stock_minimum'],
+    exemples: [['ART-001', 'Stylo BIC bleu', 'Fourniture', 'pièce',
+      '500', '0', '0', 'CMUP', '100', '10']]
+  },
+  {
+    key: 'immobilisations',
+    label: '🏗️ Immobilisations',
+    colonnes: ['reference', 'designation', 'categorie', 'numero_compte',
+      'date_acquisition', 'date_debut_amortissement', 'date_fin_amortissement',
+      'valeur_acquisition', 'mode_amortissement', 'fournisseur',
+      'numero_facture', 'localisation'],
+    exemples: [['IMM-001', 'Véhicule Toyota Hilux', '21 - Immobilisations corporelles',
+      '224', '2026-01-15', '2026-01-15', '2031-01-14',
+      '15000000', 'LINEAIRE', 'Toyota Madagascar',
+      'FAC-2026-001', 'Siège social']]
+- }
 ];
 
 export default function SuperAdminImport() {
