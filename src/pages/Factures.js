@@ -1594,7 +1594,29 @@ function exporterCSV() {
     >
                             👁️
                            </button>
-
+                          {/* Visualiser PDF */}
+                          {facture.pdf_url ? (
+                            <a href={facture.pdf_url} target="_blank" rel="noreferrer"
+                              style={{ ...styles.boutonSecondaire, padding: '4px 8px', textDecoration: 'none' }}
+                              title="Voir PDF">
+                              📄
+                            </a>
+                          ) : (
+                            <button style={styles.boutonSecondaire}
+                              title="Régénérer PDF"
+                              onClick={async () => {
+                                try {
+                                  await api.post(`/factures/${facture.id}/regenerer-pdf`,
+                                    { entreprise_id: entreprise.id });
+                                  toast.success('PDF régénéré !');
+                                  chargerDonnees();
+                                } catch (err) {
+                                  toast.error('Erreur régénération PDF.');
+                                }
+                              }}>
+                              🔄
+                            </button>
+                          )}
                           {/* Modifier */}
                           {['CREE', 'ENVOYEE'].includes(facture.statut) && 
                           facture.montant_paye === 0 && (
