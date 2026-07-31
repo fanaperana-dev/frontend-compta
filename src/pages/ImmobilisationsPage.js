@@ -108,7 +108,7 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
     localisation: immo?.localisation || '',
     type_immobilisation_detail: immo?.type_immobilisation_detail || ''
   });
-
+  const [enCours, setEnCours] = useState(false);
   // Calcul automatique durée et taux
   const dureeJours = form.date_debut_amortissement && form.date_fin_amortissement
     ? Math.round((new Date(form.date_fin_amortissement) - new Date(form.date_debut_amortissement)) / (1000 * 60 * 60 * 24))
@@ -223,8 +223,16 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            {immo ? 'Modifier' : 'Créer'}
+            <button
+             style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+             disabled={enCours}
+             onClick={async () => {
+              setEnCours(true);
+              await onSave(form);
+              setEnCours(false);
+             }}>
+
+             {enCours ? '⏳...' : immo ? 'Modifier' : 'Créer'}
           </button>
         </div>
       </div>

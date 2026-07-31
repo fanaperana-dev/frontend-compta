@@ -79,7 +79,7 @@ function FormulaireSalarie({ salarie, onSave, onCancel }) {
     date_remise_niveau: salarie?.date_remise_niveau || '',
     nouveau_salaire_base: salarie?.nouveau_salaire_base || 0
   });
-
+  const [enCours, setEnCours] = useState(false);
   return (
     <div style={styles.modal}>
       <div style={styles.modalContent}>
@@ -223,8 +223,15 @@ function FormulaireSalarie({ salarie, onSave, onCancel }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            {salarie ? 'Modifier' : 'Créer'}
+          <button 
+            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+            disabled={enCours}
+            onClick={async () => {
+             setEnCours(true);
+             await onSave(form);
+             setEnCours(false);
+            }}>
+            {enCours ? '⏳...' : salarie ? 'Modifier' : 'Créer'}
           </button>
         </div>
       </div>

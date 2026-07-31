@@ -64,7 +64,7 @@ function FormulaireArticle({ article, onSave, onCancel }) {
     stock_minimum: article?.stock_minimum || 0,
     actif: article?.actif !== undefined ? article.actif : true
   });
-
+  const [enCours, setEnCours] = useState(false);
   const prix_ttc = (Number(form.prix_achat_ht) * (1 + Number(form.taux_tva) / 100)).toFixed(2);
   const prix_net = (Number(prix_ttc) * (1 - Number(form.remise_pourcent) / 100)).toFixed(2);
 
@@ -151,8 +151,15 @@ function FormulaireArticle({ article, onSave, onCancel }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            {article ? 'Modifier' : 'Créer'}
+          <button
+            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
+            disabled={enCours}
+            onClick={async () => {
+              setEnCours(true);
+              await onSave(form);
+              setEnCours(false);
+            }}>
+            {enCours ? '⏳...' : article ? 'Modifier' : 'Créer'}
           </button>
         </div>
       </div>
