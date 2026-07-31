@@ -158,6 +158,7 @@ function FormulaireArticle({ article, onSave, onCancel }) {
               setEnCours(true);
               await onSave(form);
               setEnCours(false);
+              onCancel();
             }}>
             {enCours ? '⏳...' : article ? 'Modifier' : 'Créer'}
           </button>
@@ -317,7 +318,6 @@ export default function StocksPage() {
     try {
       await stockService.creerArticle({ ...form, entreprise_id: entreprise.id });
       toast.success('Article créé !');
-      setModalOuvert(null);
       chargerDonnees();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur création.');
