@@ -319,7 +319,7 @@ export default function ListeSalaries() {
     try {
       const url = salarieSelectionne
         ? `${API_URL}/api/rh/salaries/${salarieSelectionne.id}`
-        : '${API_URL}/api/rh/salaries';
+        : `${API_URL}/api/rh/salaries`; 
       const method = salarieSelectionne ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
