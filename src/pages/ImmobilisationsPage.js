@@ -230,6 +230,7 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
               setEnCours(true);
               await onSave(form);
               setEnCours(false);
+              onCancel();
              }}>
 
              {enCours ? '⏳...' : immo ? 'Modifier' : 'Créer'}
@@ -400,7 +401,6 @@ const [loadingTableau, setLoadingTableau] = useState(false);
     try {
       await immobilisationService.creer({ ...form, entreprise_id: entreprise.id });
       toast.success('Immobilisation créée !');
-      setModalOuvert(null);
       chargerDonnees();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur création.');

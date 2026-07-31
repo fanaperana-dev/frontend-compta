@@ -230,6 +230,7 @@ function FormulaireSalarie({ salarie, onSave, onCancel }) {
              setEnCours(true);
              await onSave(form);
              setEnCours(false);
+             onCancel();
             }}>
             {enCours ? '⏳...' : salarie ? 'Modifier' : 'Créer'}
           </button>
@@ -341,7 +342,6 @@ export default function ListeSalaries() {
       if (!data.success) throw new Error(data.message);
 
       toast.success(salarieSelectionne ? 'Salarié modifié !' : 'Salarié créé !');
-      setModalOuvert(null);
       setSalarieSelectionne(null);
       chargerSalaries();
     } catch (err) {
