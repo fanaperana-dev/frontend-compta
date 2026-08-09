@@ -782,7 +782,21 @@ export default function FacturesFournisseurs() {
   }
 
   async function changerStatut(id, statut) {
+
     try {
+        
+    // Si on marque comme PAYEE, mettre à jour montant_paye aussi
+      if (statut === 'PAYEE') {
+        const facture = donnees.find(f => f.id === id);
+        if (facture) {
+          await fournisseurService.enregistrerPaiement(id, {
+            montant_paye: Number(facture.montant) - Number(facture.montant_paye || 0)
+          });
+          toast.success('Facture marquée comme payée !');
+          chargerDonnees();
+          return;
+        }
+      }
       await fournisseurService.changerStatut(id, statut);
       toast.success(`Statut mis à jour : ${statut}`);
       chargerDonnees();
