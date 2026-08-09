@@ -921,6 +921,8 @@ export default function Factures() {
   const [selection, setSelection] = useState([]);
   const [lignesFactureSelectionnee, setLignesFactureSelectionnee] = useState([]);
   const [noteDefaut, setNoteDefaut] = useState('');
+  const [triColonne, setTriColonne] = useState('numero_facture');
+  const [triOrdre, setTriOrdre] = useState('desc');
 
   const statuts = ['TOUS', 'CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE', 'ARCHIVEE'];
 
@@ -950,6 +952,15 @@ export default function Factures() {
   }
 }
 
+// Fonction pour changer le tri
+function changerTri(colonne) {
+  if (triColonne === colonne) {
+    setTriOrdre(triOrdre === 'asc' ? 'desc' : 'asc');
+  } else {
+    setTriColonne(colonne);
+    setTriOrdre('asc');
+  }
+}
   async function creerFacture(data) {
     try {
       await factureService.creer(data);
@@ -1298,7 +1309,6 @@ function exporterCSV() {
   // Filtrer les factures
   
   const facturesFiltrees = factures.filter(f => {
-  
   const matchStatut = filtreStatut === 'TOUS' || f.statut === filtreStatut;
   const matchClient = !filtreClient || f.client_id === filtreClient;
   const matchMois = !filtreMois || f.mois === filtreMois;
@@ -1307,6 +1317,25 @@ function exporterCSV() {
     f.numero_facture?.toLowerCase().includes(recherche.toLowerCase()) ||
     f.nom_client?.toLowerCase().includes(recherche.toLowerCase());
   return matchStatut && matchClient && matchMois && matchRecherche;
+}).sort((a, b) => {
+  let valA = a[triColonne] || '';
+  let valB = b[triColonne] || '';
+  
+  if (triColonne === 'numero_facture') {
+    const numA = parseInt(valA.replace(/[^0-9]/g, '')) || 0;
+    const numB = parseInt(valB.replace(/[^0-9]/g, '')) || 0;
+    return triOrdre === 'asc' ? numA - numB : numB - numA;
+  }
+  
+  if (triColonne === 'date_facture' || triColonne === 'date_limite') {
+    return triOrdre === 'asc' 
+      ? new Date(valA) - new Date(valB)
+      : new Date(valB) - new Date(valA);
+  }
+  
+  return triOrdre === 'asc'
+    ? valA.localeCompare(valB)
+    : valB.localeCompare(valA);
 });
   const totalPages = Math.ceil(facturesFiltrees.length / parPage);
   const facturesPage = facturesFiltrees.slice((page - 1) * parPage, page * parPage);
@@ -1492,21 +1521,32 @@ function exporterCSV() {
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
                 <th style={{ padding: '12px', width: '40px' }}>
-                  <input
-                    type="checkbox"
+                  <input type="checkbox"
                     checked={selection.length === facturesFiltrees.length && facturesFiltrees.length > 0}
                     onChange={toggleTout}
                   />
                 </th>
-                {['N° Facture', 'Client', 'Mois', 'Date', 'Échéance', 'Montant', 'Payé', 'Solde', 'Statut', 'Actions'].map(h => (
-                  <th key={h} style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '13px',
-                    color: '#555',
-                    borderBottom: '2px solid #e0e0e0'
-                  }}>
-                    {h}
+                {[
+                  { label: 'N° Facture', colonne: 'numero_facture' },
+                  { label: 'Client', colonne: 'nom_client' },
+                  { label: 'Mois', colonne: 'mois' },
+                  { label: 'Date', colonne: 'date_facture' },
+                  { label: 'Échéance', colonne: 'date_limite' },
+                  { label: 'Montant', colonne: 'montant_total' },
+                  { label: 'Payé', colonne: 'montant_paye' },
+                  { label: 'Solde', colonne: 'solde' },
+                  { label: 'Statut', colonne: 'statut' },
+                  { label: 'Actions', colonne: null }
+                ].map(({ label, colonne }) => (
+                  <th key={label}
+                    style={{
+                      padding: '12px', textAlign: 'left', fontSize: '13px',
+                      color: '#555', borderBottom: '2px solid #e0e0e0',
+                      cursor: colonne ? 'pointer' : 'default',
+                      userSelect: 'none'
+               }}
+                    onClick={() => colonne && changerTri(colonne)}>
+                    {label} {colonne && triColonne === colonne ? (triOrdre === 'asc' ? '↑' : '↓') : colonne ? '↕' : ''}
                   </th>
                 ))}
               </tr>
