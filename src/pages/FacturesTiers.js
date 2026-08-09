@@ -727,14 +727,25 @@ export default function FacturesTiers() {
   }
 
   async function changerStatut(id, statut) {
-    try {
-      await tiersService.changerStatut(id, statut);
-      toast.success(`Statut mis à jour : ${statut}`);
-      chargerDonnees();
-    } catch (err) {
-      toast.error('Erreur changement statut.');
+  try {
+    if (statut === 'PAYEE') {
+      const facture = factures.find(f => f.id === id);
+      if (facture) {
+        await tiersService.enregistrerPaiement(id, {
+          montant_paye: Number(facture.montant) - Number(facture.montant_paye || 0)
+        });
+        toast.success('Facture marquée comme payée !');
+        chargerDonnees();
+        return;
+      }
     }
+    await tiersService.changerStatut(id, statut);
+    toast.success(`Statut mis à jour : ${statut}`);
+    chargerDonnees();
+  } catch (err) {
+    toast.error('Erreur changement statut.');
   }
+}
 
   const facturesFiltrees = factures.filter(f => {
     const matchStatut = filtreStatut === 'TOUS' || f.statut === filtreStatut;
