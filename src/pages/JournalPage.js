@@ -369,7 +369,7 @@ async function sauvegarderSoldesOuverture() {
             </tbody>
             <tfoot>
               <tr style={{ background: '#004d5a', color: 'white' }}>
-                <td colSpan={4} style={{ padding: '10px', fontWeight: 'bold' }}>TOTAL</td>
+                <td colSpan={3} style={{ padding: '10px', fontWeight: 'bold' }}>TOTAL</td>
                 <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>
                   {totalDebit.toLocaleString('fr-FR')}
                 </td>
@@ -379,6 +379,7 @@ async function sauvegarderSoldesOuverture() {
                 <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>
                   {soldeFinal.toLocaleString('fr-FR')}
                 </td>
+                <td></td>
                 <td></td>
               </tr>
             </tfoot>
