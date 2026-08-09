@@ -42,6 +42,12 @@ function OngletJournal({ typeJournal }) {
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [syncEnCours, setSyncEnCours] = useState(false);
+  const [modalSoldesOuverture, setModalSoldesOuverture] = useState(false);
+  const [anneeOuverture, setAnneeOuverture] = useState(new Date().getFullYear());
+  const [soldesOuverture, setSoldesOuverture] = useState({
+    BANQUE: 0, CAISSE: 0, MVOLA: 0,
+    ORANGE: 0, AIRTEL: 0, ASSOCIE: 0, ESPECES: 0
+  });
 
   useEffect(() => { chargerOperations(); }, [typeJournal]);
 
@@ -65,7 +71,7 @@ function OngletJournal({ typeJournal }) {
       setLoading(false);
     }
   }
-
+  
   async function synchroniser() {
     setSyncEnCours(true);
     try {
@@ -90,7 +96,47 @@ function OngletJournal({ typeJournal }) {
     setSyncEnCours(false);
     }
   }
+  async function chargerSoldesOuverture(annee) {
+  try {
+    const res = await fetch(
+      `${API_URL}/api/journal/soldes-ouverture/${entreprise.id}/${annee}`,
+      { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+    );
+    const data = await res.json();
+    if (data.success && data.data) {
+      const soldes = { BANQUE: 0, CAISSE: 0, MVOLA: 0, ORANGE: 0, AIRTEL: 0, ASSOCIE: 0, ESPECES: 0 };
+      data.data.forEach(s => { soldes[s.type_journal] = Number(s.solde_ouverture); });
+      setSoldesOuverture(soldes);
+    }
+  } catch (err) {
+    toast.error('Erreur chargement soldes ouverture.');
+  }
+}
 
+async function sauvegarderSoldesOuverture() {
+  try {
+    for (const [type_journal, solde_ouverture] of Object.entries(soldesOuverture)) {
+      await fetch(`${API_URL}/api/journal/soldes-ouverture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          entreprise_id: entreprise.id,
+          type_journal,
+          annee: anneeOuverture,
+          solde_ouverture
+        })
+      });
+    }
+    toast.success('Soldes d\'ouverture enregistrés !');
+    setModalSoldesOuverture(false);
+    synchroniser(); // Resynchroniser pour recalculer
+  } catch (err) {
+    toast.error('Erreur sauvegarde soldes ouverture.');
+  }
+}
   function exporterExcel() {
     const XLSX = require('xlsx');
     const donnees = operations.map(op => ({
@@ -144,6 +190,62 @@ function OngletJournal({ typeJournal }) {
 
   return (
     <div>
+      {modalSoldesOuverture && (
+        <div style={styles.modal}>
+          <div style={{ ...styles.modalContent, width: '500px' }}>
+            <h3 style={{ color: '#004d5a', marginTop: 0 }}>
+            💰 Soldes d'ouverture journal
+           </h3>
+          <div style={{ background: '#e3f2fd', borderRadius: '8px',
+            padding: '12px', marginBottom: '15px', fontSize: '12px', color: '#1565c0' }}>
+            ℹ️ Saisissez le solde de départ pour chaque compte.
+            Si c'est une nouvelle entreprise, laissez à 0.
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={styles.label}>Année</label>
+            <select style={styles.input} value={anneeOuverture}
+              onChange={e => {
+               setAnneeOuverture(Number(e.target.value));
+               chargerSoldesOuverture(Number(e.target.value));
+              }}>
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[
+              { key: 'BANQUE', label: '🏦 Banque' },
+              { key: 'CAISSE', label: '💵 Caisse' },
+              { key: 'MVOLA', label: '📱 MVola' },
+              { key: 'ORANGE', label: '📱 Orange Money' },
+              { key: 'AIRTEL', label: '📱 Airtel Money' },
+              { key: 'ASSOCIE', label: '👤 Associé' },
+              { key: 'ESPECES', label: '💶 Espèces' }
+            ].map(({ key, label }) => (
+               <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <label style={{ ...styles.label, margin: 0, width: '150px' }}>{label}</label>
+                <input style={{ ...styles.input, width: '200px' }}
+                  type="number"
+                  value={soldesOuverture[key]}
+                  onChange={e => setSoldesOuverture({
+                    ...soldesOuverture, [key]: Number(e.target.value)
+                  })} />
+                <span style={{ fontSize: '12px', color: '#666' }}>Ar</span>
+               </div>
+              ))}
+          </div>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <button style={styles.boutonSecondaire}
+              onClick={() => setModalSoldesOuverture(false)}>Annuler</button>
+            <button style={styles.boutonPrimaire}
+              onClick={sauvegarderSoldesOuverture}>
+              💾 Enregistrer et recalculer
+            </button>
+          </div>
+         </div>
+      </div>
+      )}
       {/* Filtres */}
       <div style={styles.card}>
         <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -159,6 +261,13 @@ function OngletJournal({ typeJournal }) {
           </div>
           <button style={styles.boutonPrimaire} onClick={chargerOperations}>
             🔍 Filtrer
+          </button>
+          <button style={styles.boutonSecondaire}
+            onClick={() => {
+              chargerSoldesOuverture(anneeOuverture);
+              setModalSoldesOuverture(true);
+            }}>
+             💰 Soldes ouverture
           </button>
           <button style={{ ...styles.boutonSecondaire, color: '#e65100', borderColor: '#e65100' }}
             onClick={synchroniser}>

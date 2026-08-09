@@ -181,7 +181,11 @@ export const journalService = {
     api.get(`/journal/${entreprise_id}`, { params }),
 
   ajouterOperation: (data) =>
-    api.post('/journal/operation', data)
+    api.post('/journal/operation', data),
+  getSoldesOuverture: (entreprise_id, annee) =>
+    api.get(`/journal/soldes-ouverture/${entreprise_id}/${annee}`),
+  saveSoldeOuverture: (data) =>
+    api.post('/journal/soldes-ouverture', data)
 };
 
 // DASHBOARD
