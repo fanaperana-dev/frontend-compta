@@ -308,6 +308,13 @@ export default function ComptabiliteResultatPage() {
                 <LigneResultat label="PRODUITS D'EXPLOITATION" sousTitre />
                 <LigneResultat label="70 — Ventes et prestations"
                   montant={resultat.produits.ventes} niveau={1} />
+                  {resultat.produits.recettes_tiers > 0 && (
+                    <LigneResultat 
+                      label="Autres produits (recettes diverses)"
+                      montant={resultat.produits.recettes_tiers} 
+                      niveau={1} 
+                    />
+                )}
                 {resultat.produits.autres.map(p => (
                   <tr key={p.id} style={{ borderBottom: '1px solid #e0e0e0' }}>
                     <td style={{ padding: '8px 12px', paddingLeft: '32px', fontSize: '13px' }}>
