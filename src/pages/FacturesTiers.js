@@ -254,6 +254,27 @@ const recettes = [
   'Recette associé'
 ];
 
+// Nature de l'opération : impose le compte comptable pour l'IRSA et les cotisations sociales
+const naturesOperation = [
+  { key: '', label: 'Autre opération (catégorie au choix)' },
+  { key: 'IRSA', label: "Reversement de l'IRSA à l'administration fiscale", categorie: '44 - État et collectivités',
+    sousCategorie: '447 - État - autres impôts et versements', sens: 'depense' },
+  { key: 'CNAPS_OSTIE', label: 'Reversement des cotisations CNAPS / OSTIE', categorie: '43 - Organismes sociaux',
+    sousCategorie: '431 - Organismes sociaux A', sens: 'depense' },
+  { key: 'REMB_CNAPS', label: 'Remboursement des allocations familiales par la CNAPS', categorie: '43 - Organismes sociaux',
+    sousCategorie: '431 - Organismes sociaux A', sens: 'recette' }
+];
+
+function natureDepuisFacture(f) {
+  const sc = String(f?.sous_categorie || '');
+  if (sc.startsWith('447') && f?.depense) return 'IRSA';
+  if (sc.startsWith('431') && f?.depense) return 'CNAPS_OSTIE';
+  if (sc.startsWith('431') && f?.recette) return 'REMB_CNAPS';
+  return '';
+}
+
+const aujourdhui = () => new Date().toLocaleDateString('en-CA'); // AAAA-MM-JJ, date locale de l'utilisateur
+
 const modesPaiement = [
     'Virement bancaire',
     'Carte bancaire',
@@ -372,10 +393,11 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
     date_echeance: facture?.date_echeance
       ? new Date(facture.date_echeance).toISOString().split('T')[0]
       : '',
-    commentaire: facture?.commentaire || ''
+    commentaire: facture?.commentaire || '',
+    nature: natureDepuisFacture(facture)
   });
 
-  const [sousCategories, setSousCategories] = useState([]);
+  const [sousCategories, setSousCategories] = useState(categoriesTiers[facture?.categorie] || []);
   const [fichierScan, setFichierScan] = useState(null);
   const [fichiersJustificatifs, setFichiersJustificatifs] = useState([]);
 
@@ -401,6 +423,34 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
     const cat = e.target.value;
     setForm({ ...form, categorie: cat, sous_categorie: '' });
     setSousCategories(categoriesTiers[cat] || []);
+  }
+
+  function handleNatureChange(e) {
+    const cle = e.target.value;
+    const n = naturesOperation.find(x => x.key === cle);
+    if (n && n.key) {
+      setForm({
+        ...form,
+        nature: cle,
+        categorie: n.categorie,
+        sous_categorie: n.sousCategorie,
+        // un reversement est une dépense, un remboursement reçu est une recette
+        recette: n.sens === 'depense' ? '' : form.recette,
+        depense: n.sens === 'recette' ? '' : form.depense
+      });
+      setSousCategories(categoriesTiers[n.categorie] || []);
+    } else {
+      setForm({ ...form, nature: '', categorie: '', sous_categorie: '' });
+      setSousCategories([]);
+    }
+  }
+
+  function verifierAvantEnregistrement() {
+    const n = naturesOperation.find(x => x.key === form.nature);
+    if (!n || !n.key) return true;
+    if (n.sens === 'depense' && !form.depense) { toast.error('Choisissez le moyen de paiement dans « Dépenses » (banque, caisse, Mvola...).'); return false; }
+    if (n.sens === 'recette' && !form.recette) { toast.error('Choisissez le moyen de réception dans « Recettes » (banque, caisse, Mvola...).'); return false; }
+    return true;
   }
 
   function handleAjouterJustificatif(e) {
@@ -479,6 +529,7 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
           <div>
             <label style={styles.label}>Dépenses</label>
             <select style={styles.input} value={form.depense}
+              disabled={form.nature === 'REMB_CNAPS'}
               onChange={e => setForm({ ...form, depense: e.target.value })}>
               <option value="">Sélectionner</option>
               {[
@@ -496,6 +547,7 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
           <div>
             <label style={styles.label}>Recettes</label>
             <select style={styles.input} value={form.recette}
+              disabled={form.nature === 'IRSA' || form.nature === 'CNAPS_OSTIE'}
               onChange={e => setForm({ ...form, recette: e.target.value })}>
               <option value="">Sélectionner</option>
               {[
@@ -510,10 +562,23 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
           </div>
 
 
+          {/* Nature de l'opération */}
+          <div style={{ gridColumn: 'span 2' }}>
+            <label style={styles.label}>Nature de l'opération</label>
+            <select style={styles.input} value={form.nature} onChange={handleNatureChange}>
+              {naturesOperation.map(n => <option key={n.key} value={n.key}>{n.label}</option>)}
+            </select>
+            {form.nature && (
+              <p style={{ fontSize: '12px', color: '#1565c0', margin: '6px 0 0 0' }}>
+                ℹ️ Le compte {form.sous_categorie.split(' ')[0]} est appliqué automatiquement pour que votre bilan reste juste.
+              </p>
+            )}
+          </div>
+
           {/* Catégorie */}
           <div>
             <label style={styles.label}>Catégorie</label>
-            <select style={styles.input} value={form.categorie} onChange={handleCategorieChange}>
+            <select style={styles.input} value={form.categorie} onChange={handleCategorieChange} disabled={!!form.nature}>
               <option value="">Sélectionner une catégorie</option>
               {Object.keys(categoriesTiers).map(c => (
                 <option key={c} value={c}>{c}</option>
@@ -525,7 +590,7 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
           {sousCategories.length > 0 && (
             <div>
               <label style={styles.label}>Sous-catégorie</label>
-              <select style={styles.input} value={form.sous_categorie}
+              <select style={styles.input} value={form.sous_categorie} disabled={!!form.nature}
                 onChange={e => setForm({ ...form, sous_categorie: e.target.value })}>
                 <option value="">Sélectionner</option>
                 {sousCategories.map(sc => <option key={sc} value={sc}>{sc}</option>)}
@@ -596,6 +661,7 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
             style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
             disabled={enCours}
             onClick={async () => {
+              if (!verifierAvantEnregistrement()) return;
               setEnCours(true);
               await onSave(form, fichierScan, fichiersJustificatifs);
               setEnCours(false);
@@ -626,6 +692,8 @@ export default function FacturesTiers() {
   const [factureSelectionnee, setFactureSelectionnee] = useState(null);
   const [modalPaiement, setModalPaiement] = useState(null);
   const [montantPaiement, setMontantPaiement] = useState('');
+  const [datePaiement, setDatePaiement] = useState(aujourdhui());
+  const [modePaiementVersement, setModePaiementVersement] = useState('');
 
   const statuts = ['TOUS', 'EN_ATTENTE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE'];
 
@@ -672,6 +740,7 @@ export default function FacturesTiers() {
         date_facture: form.date_facture,
         date_echeance: form.date_echeance || null,
         commentaire: form.commentaire,
+        nature_depense: form.nature,
         statut: Number(form.montant_paye) >= Number(form.montant) ? 'PAYEE' 
          : Number(form.montant_paye) > 0 ? 'PAIEMENT_PARTIEL' 
          : 'EN_ATTENTE'
@@ -795,6 +864,19 @@ export default function FacturesTiers() {
                 onChange={e => setMontantPaiement(e.target.value)}
                 placeholder="Montant payé ce jour..." />
             </div>
+            <div style={{ marginTop: '12px' }}>
+              <label style={styles.label}>Date du paiement *</label>
+              <input style={styles.input} type="date" value={datePaiement}
+                onChange={e => setDatePaiement(e.target.value)} />
+            </div>
+            <div style={{ marginTop: '12px' }}>
+              <label style={styles.label}>Mode de paiement</label>
+              <select style={styles.input} value={modePaiementVersement}
+                onChange={e => setModePaiementVersement(e.target.value)}>
+                <option value="">Même mode que la facture</option>
+                {modesPaiement.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
               <button style={styles.boutonSecondaire}
                 onClick={() => { setModalPaiement(null); setMontantPaiement(''); }}>
@@ -808,7 +890,9 @@ export default function FacturesTiers() {
                   }
                   try {
                     await tiersService.enregistrerPaiement(modalPaiement.id, {
-                      montant_paye: Number(montantPaiement)
+                      montant_paye: Number(montantPaiement),
+                      date_paiement: datePaiement || aujourdhui(),
+                      mode_paiement: modePaiementVersement || modalPaiement.mode_paiement || ''
                     });
                     toast.success('Paiement enregistré !');
                     setModalPaiement(null);
@@ -1000,7 +1084,7 @@ export default function FacturesTiers() {
                           <button
                             style={{ ...styles.boutonSecondaire, padding: '4px 8px',
                              color: '#1565c0', borderColor: '#1565c0' }}
-                            onClick={() => { setModalPaiement(f); setMontantPaiement(''); }}
+                            onClick={() => { setModalPaiement(f); setMontantPaiement(''); setDatePaiement(aujourdhui()); setModePaiementVersement(''); }}
                             title="Enregistrer paiement partiel">💰
                           </button>
                         )}

@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { comptabiliteService } from '../services/api';
 import api from '../services/api';
+import { fmt, useEtat, SelecteurAnnee, BandeauEtat } from './EtatsCommuns';
 
 const styles = {
   boutonPrimaire: {
@@ -49,34 +50,6 @@ const fonctionsComptables = [
   { key: 'AUTRES', label: 'Autres charges' }
   
 ];
-
-function LigneResultat({ label, montant, niveau = 0, gras = false, couleur = null, sousTitre = false, total = false }) {
-  return (
-    <tr style={{
-      background: total ? '#004d5a' : sousTitre ? '#f5f5f5' : 'white',
-      borderBottom: '1px solid #e0e0e0'
-    }}>
-      <td style={{
-        padding: '8px 12px',
-        paddingLeft: `${12 + niveau * 20}px`,
-        fontSize: '13px',
-        fontWeight: gras || sousTitre || total ? 'bold' : 'normal',
-        color: total ? 'white' : sousTitre ? '#004d5a' : '#333'
-      }}>
-        {label}
-      </td>
-      <td style={{
-        padding: '8px 12px', textAlign: 'right', fontSize: '13px',
-        fontWeight: gras || total ? 'bold' : 'normal',
-        color: total ? 'white' : couleur || '#333'
-      }}>
-        {montant !== undefined && montant !== null
-          ? `${Number(montant).toLocaleString('fr-FR')} Ar`
-          : ''}
-      </td>
-    </tr>
-  );
-}
 
 function ModalFonction({ onSave, onCancel, entrepriseId }) {
   const [form, setForm] = useState({
@@ -147,18 +120,12 @@ function ModalFonction({ onSave, onCancel, entrepriseId }) {
 export default function ComptabiliteResultatFonctionPage() {
   const { entreprise } = useAuth();
   const [annee, setAnnee] = useState(new Date().getFullYear());
-  const [resultat, setResultat] = useState(null);
   const [fonctions, setFonctions] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [modalOuvert, setModalOuvert] = useState(false);
   const [onglet, setOnglet] = useState('resultat');
+  const { etat, loading, recharger } = useEtat('par-fonction', entreprise.id, annee);
 
-  useEffect(() => {
-    chargerFonctions();
-    charger();
-  }, []);
-
-  useEffect(() => { charger(); }, [annee]);
+  useEffect(() => { chargerFonctions(); }, []);
 
   async function chargerFonctions() {
     try {
@@ -166,19 +133,6 @@ export default function ComptabiliteResultatFonctionPage() {
       setFonctions(res.data.data || []);
     } catch (err) {
       toast.error('Erreur chargement correspondances.');
-    }
-  }
-
-
-  async function charger() {
-    setLoading(true);
-    try {
-      const res = await comptabiliteService.getCompteResultatFonction(entreprise.id, annee);
-      setResultat(res.data);
-    } catch (err) {
-      toast.error('Erreur chargement compte de résultat par fonction.');
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -190,7 +144,7 @@ export default function ComptabiliteResultatFonctionPage() {
       toast.success('Correspondance ajoutée !');
       setModalOuvert(false);
       chargerFonctions();
-      charger();
+      recharger();
     } catch (err) {
       toast.error('Erreur ajout correspondance.');
     }
@@ -202,7 +156,7 @@ export default function ComptabiliteResultatFonctionPage() {
       await comptabiliteService.supprimerFonctionComptable(id);
       toast.success('Correspondance supprimée.');
       chargerFonctions();
-      charger();
+      recharger();
     } catch (err) {
       toast.error('Erreur suppression.');
     }
@@ -221,14 +175,7 @@ export default function ComptabiliteResultatFonctionPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between',
         alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: 0, color: '#004d5a' }}>📊 Compte de résultat par fonction</h2>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <select style={{ ...styles.input, width: '120px' }}
-            value={annee} onChange={e => setAnnee(Number(e.target.value))}>
-            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(a => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-        </div>
+        <SelecteurAnnee annee={annee} setAnnee={setAnnee} />
       </div>
 
       {/* Onglets */}
@@ -254,94 +201,59 @@ export default function ComptabiliteResultatFonctionPage() {
       {/* Onglet Compte de résultat */}
       {onglet === 'resultat' && (
         loading ? (
-          <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>
-            ⏳ Chargement...
-          </div>
-        ) : resultat && (
+          <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>⏳ Chargement...</div>
+        ) : (
           <>
-            {fonctions.length === 0 && (
-              <div style={{ background: '#fff3e0', borderRadius: '8px', padding: '12px',
-                marginBottom: '20px', fontSize: '13px', color: '#e65100' }}>
-                ⚠️ Aucune correspondance de postes configurée — les charges de personnel
-                sont classées dans "Autres charges". Allez dans l'onglet
-                <strong> "Correspondances postes"</strong> pour configurer.
-              </div>
+            <BandeauEtat etat={etat} annee={annee} />
+            {etat && etat.disponible && (
+              <>
+                {etat.personnelNonAffecte > 0 && (
+                  <div style={{ background: '#fff3e0', borderRadius: '8px', padding: '12px',
+                    marginBottom: '20px', fontSize: '13px', color: '#e65100' }}>
+                    ⚠️ {fmt(etat.personnelNonAffecte)} Ar de charges de personnel n'ont pas de fonction définie : elles sont
+                    classées dans « Autres charges opérationnelles ». Allez dans l'onglet
+                    <strong> « Correspondances postes »</strong> pour associer chaque poste à une fonction.
+                  </div>
+                )}
+                <div style={styles.card}>
+                  <h3 style={{ color: '#004d5a', marginTop: 0 }}>
+                    Compte de résultat par fonction — Exercice {annee}
+                  </h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: '#004d5a', color: 'white' }}>
+                        <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '13px' }}>Désignation</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: '13px' }}>Montant (Ar)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {etat.lignes.map(l => {
+                        const final = l.code === 'RES_NET';
+                        return (
+                          <tr key={l.code} style={{
+                            background: final ? '#004d5a' : l.total ? '#f5f5f5' : 'white',
+                            borderBottom: '1px solid #e0e0e0'
+                          }}>
+                            <td style={{
+                              padding: final ? '12px' : '8px 12px', paddingLeft: l.total || final ? undefined : '32px',
+                              fontSize: l.memo ? '12px' : final ? '14px' : '13px',
+                              fontWeight: l.total ? 'bold' : 'normal', fontStyle: l.memo ? 'italic' : 'normal',
+                              color: final ? 'white' : l.memo ? '#777' : l.total ? '#004d5a' : '#333'
+                            }}>{l.libelle}</td>
+                            <td style={{
+                              padding: final ? '12px' : '8px 12px', textAlign: 'right',
+                              fontSize: final ? '16px' : '13px', fontWeight: l.total ? 'bold' : 'normal',
+                              fontStyle: l.memo ? 'italic' : 'normal',
+                              color: final ? 'white' : l.memo ? '#777' : l.montant < 0 ? '#c62828' : '#333'
+                            }}>{fmt(l.montant)} Ar</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
-
-            <div style={styles.card}>
-              <h3 style={{ color: '#004d5a', marginTop: 0 }}>
-                Compte de résultat par fonction — Exercice {annee}
-              </h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#004d5a', color: 'white' }}>
-                    <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: '13px' }}>
-                      Libellé
-                    </th>
-                    <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: '13px' }}>
-                      Montant (Ar)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* PRODUITS */}
-                  <LigneResultat label="PRODUITS" sousTitre />
-                  <LigneResultat label="Chiffre d'affaires"
-                    montant={resultat.produits.ca} niveau={1} />
-                  {resultat.produits.autres > 0 && (
-                    <LigneResultat label="Autres produits"
-                      montant={resultat.produits.autres} niveau={1} />
-                  )}
-                  <LigneResultat label="TOTAL PRODUITS"
-                    montant={resultat.produits.total} gras couleur="#2e7d32" />
-
-                  {/* CHARGES PAR FONCTION */}
-                  <LigneResultat label="CHARGES PAR FONCTION" sousTitre />
-                  <LigneResultat label="Coût des ventes"
-                    montant={resultat.charges.cout_ventes} niveau={1} />
-                  <LigneResultat label="Frais commerciaux"
-                    montant={resultat.charges.frais_commerciaux} niveau={1} />
-                  <LigneResultat label="Frais administratifs"
-                    montant={resultat.charges.frais_administratifs} niveau={1} />
-                  {resultat.charges.autres > 0 && (
-                    <LigneResultat label="Autres charges"
-                      montant={resultat.charges.autres} niveau={1} />
-                  )}
-                  <LigneResultat label="TOTAL CHARGES"
-                    montant={resultat.charges.total} gras couleur="#c62828" />
-
-                  {/* RÉSULTATS */}
-                  <LigneResultat label="RÉSULTAT AVANT IMPÔT" sousTitre />
-                  <LigneResultat
-                    label="Résultat avant impôt"
-                    montant={resultat.resultats.avant_impot}
-                    gras
-                    couleur={resultat.resultats.avant_impot >= 0 ? '#2e7d32' : '#c62828'}
-                  />
-
-                  <LigneResultat label="IMPÔT" sousTitre />
-                  <LigneResultat
-                    label={`${resultat.regime_fiscal} — ${resultat.regime_fiscal === 'IS'
-                      ? '5% du CA'
-                      : '20% du bénéfice net'}`}
-                    montant={resultat.resultats.impot}
-                    niveau={1}
-                  />
-
-                  {/* RÉSULTAT NET */}
-                  <tr style={{ background: '#004d5a' }}>
-                    <td style={{ padding: '12px', color: 'white',
-                      fontWeight: 'bold', fontSize: '14px' }}>
-                      RÉSULTAT NET DE L'EXERCICE {annee}
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'right',
-                      color: 'white', fontWeight: 'bold', fontSize: '16px' }}>
-                      {Number(resultat.resultats.net).toLocaleString('fr-FR')} Ar
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
           </>
         )
       )}

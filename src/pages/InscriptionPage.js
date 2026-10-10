@@ -104,7 +104,6 @@ const couleursPredef = [
 export default function InscriptionPage() {
   const [etape, setEtape] = useState(1);
   const [enCours, setEnCours] = useState(false);
-  const [demandeId, setDemandeId] = useState(null);
   const [form, setForm] = useState({
     // Infos générales
     nom: '',
@@ -153,9 +152,8 @@ export default function InscriptionPage() {
     setEnCours(true);
     try {
       // 1. Soumettre la demande
-      const res = await axios.post(`${API_URL}/api/inscription`, form);
+      const res = await axios.post(`${API_URL}/api/inscription`, form, { timeout: 60000 });
       const id = res.data.id || res.data.data?.id;
-      setDemandeId(id);
 
       // 2. Uploader les fichiers si présents
       for (const [type, fichier] of Object.entries(fichiers)) {
@@ -167,19 +165,27 @@ export default function InscriptionPage() {
             reader.readAsDataURL(fichier);
           });
 
-          await axios.post(`${API_URL}/api/inscription/${id}/upload`, {
-            fichier_base64: base64,
-            nom_fichier: fichier.name,
-            type_mime: fichier.type,
-            type_image: type
-          });
+          try {
+            await axios.post(`${API_URL}/api/inscription/${id}/upload`, {
+              fichier_base64: base64,
+              nom_fichier: fichier.name,
+              type_mime: fichier.type,
+              type_image: type
+            }, { timeout: 60000 });
+          } catch (e) {
+            // La demande est déjà enregistrée : un fichier raté ne doit pas la faire paraître en échec
+            toast.warn(`Le fichier « ${fichier.name} » n'a pas pu être envoyé. Vous pourrez l'envoyer à notre équipe par email.`);
+          }
         }
       }
 
       toast.success(res.data.message);
       setEtape(5); // Étape confirmation
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur lors de l\'envoi.');
+      toast.error(err.response?.data?.message ||
+        (err.code === 'ECONNABORTED' || !err.response
+          ? 'Le serveur met trop de temps à répondre. Patientez une minute puis réessayez.'
+          : 'Erreur lors de l\'envoi.'));
     } finally {
       setEnCours(false);
     }
@@ -246,9 +252,9 @@ export default function InscriptionPage() {
                     onChange={e => setForm({ ...form, statut_juridique: e.target.value })}>
                     <option value="">Sélectionner</option>
                     <option value="SARL">SARL</option>
-                    <option value="SA">SARLU</option>
+                    <option value="SARLU">SARLU</option>
                     <option value="EI">Entreprise Individuelle</option>
-                    <option value="SNC">SA</option>
+                    <option value="SA">SA</option>
                     <option value="Autre">Autre</option>
                   </select>
                 </div>
@@ -547,7 +553,13 @@ export default function InscriptionPage() {
           {etape < 4 ? (
             <button style={{ ...styles.boutonPrimaire, width: etape === 1 ? '100%' : 'auto',
               padding: '12px 25px', marginLeft: 'auto' }}
-              onClick={() => setEtape(etape + 1)}>
+              onClick={() => {
+                if (etape === 1 && (!form.nom.trim() || !form.email.trim() || !form.telephone.trim())) {
+                  toast.error('Nom, email et téléphone sont obligatoires.');
+                  return;
+                }
+                setEtape(etape + 1);
+              }}>
               Suivant →
             </button>
           ) : (
