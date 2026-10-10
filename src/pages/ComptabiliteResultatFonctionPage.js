@@ -152,7 +152,6 @@ export default function ComptabiliteResultatFonctionPage() {
   const [loading, setLoading] = useState(false);
   const [modalOuvert, setModalOuvert] = useState(false);
   const [onglet, setOnglet] = useState('resultat');
-  const [exportEnCours, setExportEnCours] = useState(false);
 
   useEffect(() => {
     chargerFonctions();
@@ -170,18 +169,6 @@ export default function ComptabiliteResultatFonctionPage() {
     }
   }
 
-  async function exporterPDF() {
-  setExportEnCours(true);
-  try {
-    const res = await comptabiliteService.exportPDFCompteResultatFonction(entreprise.id, annee);
-    window.open(res.data.url, '_blank');
-    toast.success('PDF généré !');
-  } catch (err) {
-    toast.error('Erreur génération PDF.');
-  } finally {
-    setExportEnCours(false);
-  }
-}
 
   async function charger() {
     setLoading(true);
@@ -241,10 +228,6 @@ export default function ComptabiliteResultatFonctionPage() {
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
-          <button style={{ ...styles.boutonSecondaire, opacity: exportEnCours ? 0.6 : 1 }}
-            disabled={exportEnCours} onClick={exporterPDF}>
-            {exportEnCours ? '⏳ Génération...' : '📄 Export PDF'}
-          </button>
         </div>
       </div>
 

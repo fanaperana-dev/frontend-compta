@@ -63,7 +63,6 @@ export default function FluxTresoreriePage() {
   const [tresorerieOuverture, setTresorerieOuverture] = useState(0);
   const [editOuverture, setEditOuverture] = useState(false);
   const [enCours, setEnCours] = useState(false);
-  const [exportEnCours, setExportEnCours] = useState(false);
 
   useEffect(() => { charger(); }, [annee]);
 
@@ -80,18 +79,6 @@ export default function FluxTresoreriePage() {
     }
   }
 
-  async function exporterPDF() {
-  setExportEnCours(true);
-  try {
-    const res = await comptabiliteService.exportPDFFluxTresorerie(entreprise.id, annee);
-    window.open(res.data.url, '_blank');
-    toast.success('PDF généré !');
-  } catch (err) {
-    toast.error('Erreur génération PDF.');
-  } finally {
-    setExportEnCours(false);
-  }
-}
 
   async function sauvegarderOuverture() {
     setEnCours(true);
@@ -123,10 +110,6 @@ export default function FluxTresoreriePage() {
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
-          <button style={{ ...styles.boutonSecondaire, opacity: exportEnCours ? 0.6 : 1 }}
-            disabled={exportEnCours} onClick={exporterPDF}>
-            {exportEnCours ? '⏳ Génération...' : '📄 Export PDF'}
-          </button>
         </div>
       </div>
 
