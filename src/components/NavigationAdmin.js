@@ -10,6 +10,7 @@ const menuItemsAdmin = [
   { path: '/admin/tickets', icon: '🎫', label: 'Tickets' },
   { path: '/admin/corrections', icon: '🔧', label: 'Corrections' },
   { path: '/admin/import', icon: '📥', label: 'Import Excel' },
+  { path: '/admin/saisie-comptable', icon: '🧾', label: 'Saisie comptable' },
 ];
 
 export default function NavigationAdmin({ children }) {

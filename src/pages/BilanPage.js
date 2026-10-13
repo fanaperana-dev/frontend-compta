@@ -31,6 +31,7 @@ export default function BilanPage() {
   const { etat, loading, recharger } = useEtat('bilan', entreprise.id, annee);
 
   const dispo = etat && etat.disponible;
+  const resultatNet = (dispo && etat.resultat && etat.resultat.resultatNet) || 0;
   const n1 = dispo && etat.n1 ? etat.n1 : null;           // colonne N-1 : réservée au SuperAdmin (le serveur ne l'envoie qu'à lui)
   const n1Actif = n1 ? Object.fromEntries(n1.actif.lignes.map(l => [l.code, l.net])) : {};
   const n1Passif = n1 ? Object.fromEntries(n1.passif.lignes.map(l => [l.code, l.montant])) : {};
@@ -83,7 +84,7 @@ export default function BilanPage() {
 
       {loading && <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>⏳ Chargement du bilan...</div>}
 
-      {!loading && <BandeauEtat etat={etat} annee={annee} />}
+      {!loading && <BandeauEtat etat={etat} annee={annee} setAnnee={setAnnee} />}
 
       {!loading && dispo && (
         <>
@@ -135,8 +136,8 @@ export default function BilanPage() {
             {[
               { label: 'Total Actif (net)', value: etat.actif.totaux.total.net, couleur: '#004d5a' },
               { label: 'Total Passif', value: etat.passif.totaux.total, couleur: '#1565c0' },
-              { label: 'Résultat net', value: etat.resultat.resultatNet,
-                couleur: etat.resultat.resultatNet >= 0 ? '#2e7d32' : '#c62828' }
+              { label: 'Résultat net', value: resultatNet,
+                couleur: resultatNet >= 0 ? '#2e7d32' : '#c62828' }
             ].map(item => (
               <div key={item.label} style={{ ...styles.card, marginBottom: 0, borderLeft: `4px solid ${item.couleur}` }}>
                 <div style={{ fontSize: '12px', color: '#666' }}>{item.label}</div>

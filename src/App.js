@@ -26,6 +26,7 @@ import SuperAdminTickets from './pages/superadmin/SuperAdminTickets';
 import SuperAdminCorrections from './pages/superadmin/SuperAdminCorrections';
 import SuperAdminImport from './pages/superadmin/SuperAdminImport';
 import SuperAdminDemandes from './pages/superadmin/SuperAdminDemandes';
+import SuperAdminSaisieCompta from './pages/superadmin/SuperAdminSaisieCompta';
 import ComptabiliteResultatPage from './pages/ComptabiliteResultatPage';
 import BilanPage from './pages/BilanPage';
 import GrandLivrePage from './pages/GrandLivrePage';
@@ -207,6 +208,11 @@ function App() {
           <Route path="/admin/import" element={
             <RouteAdmin>
               <SuperAdminImport />
+            </RouteAdmin>
+          } />
+          <Route path="/admin/saisie-comptable" element={
+            <RouteAdmin>
+              <SuperAdminSaisieCompta />
             </RouteAdmin>
           } />
           <Route path="/admin" element={<Navigate to="/admin/entreprises" />} />
