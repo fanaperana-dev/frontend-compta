@@ -301,12 +301,12 @@ export default function InscriptionPage() {
                 <div>
                   <label style={styles.label}>NIF</label>
                   <input style={styles.input} value={form.nif}
-                    onChange={e => setForm({ ...form, nif: e.target.value })} />
+                    onChange={e => setForm({ ...form, nif: e.target.value.replace(/\s+/g, '') })} />
                 </div>
                 <div>
                   <label style={styles.label}>STAT</label>
                   <input style={styles.input} value={form.stat}
-                    onChange={e => setForm({ ...form, stat: e.target.value })} />
+                    onChange={e => setForm({ ...form, stat: e.target.value.replace(/\s+/g, '') })} />
                 </div>
                 <div>
                   <label style={styles.label}>RCS</label>
