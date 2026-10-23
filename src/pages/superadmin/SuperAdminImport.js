@@ -197,7 +197,8 @@ export default function SuperAdminImport() {
 
       const nb = res.data.resultats.importes?.length || 0;
       const nbErr = res.data.resultats.erreurs?.length || 0;
-      toast.success(`Import terminé : ${nb} importé(s), ${nbErr} erreur(s).`);
+      const nbAv = res.data.resultats.avertissements?.length || 0;
+      toast.success(`Import terminé : ${nb} importé(s), ${nbErr} erreur(s)${nbAv ? `, ${nbAv} correction(s) automatique(s)` : ''}.`);
     } catch (err) {
       toast.error('Erreur lors de l\'import.');
     } finally {
@@ -374,6 +375,23 @@ export default function SuperAdminImport() {
                   <div key={i} style={{ background: '#ffebee', padding: '8px 12px',
                     borderRadius: '6px', fontSize: '12px', color: '#c62828' }}>
                     <strong>{e.ligne || 'Ligne inconnue'}</strong> — {e.raison}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {resultats.avertissements?.length > 0 && (
+            <div style={{ marginTop: '15px' }}>
+              <strong style={{ fontSize: '13px', color: '#e65100' }}>
+                Corrections automatiques appliquées ({resultats.avertissements.length}) :
+              </strong>
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '5px',
+                maxHeight: '260px', overflow: 'auto' }}>
+                {resultats.avertissements.map((a, i) => (
+                  <div key={i} style={{ background: '#fff3e0', padding: '8px 12px',
+                    borderRadius: '6px', fontSize: '12px', color: '#e65100' }}>
+                    <strong>{a.ligne || 'Ligne inconnue'}</strong> — {a.raison}
                   </div>
                 ))}
               </div>

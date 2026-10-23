@@ -37,8 +37,13 @@ export default function BilanPage() {
   const n1Passif = n1 ? Object.fromEntries(n1.passif.lignes.map(l => [l.code, l.montant])) : {};
 
   const ligneActif = (l) => (
-    <Ligne key={l.code} label={l.libelle} niveau={1} note={l.regroupe ? '(regroupé)' : null}
-      valeurs={[l.brut, l.amort ? -l.amort : 0, l.net, ...(n1 ? [n1Actif[l.code] || 0] : [])]} />
+    <React.Fragment key={l.code}>
+      <Ligne label={l.libelle} niveau={1} note={l.regroupe ? '(regroupé)' : null}
+        valeurs={[l.brut, l.amort ? -l.amort : 0, l.net, ...(n1 ? [n1Actif[l.code] || 0] : [])]} />
+      {(l.detail || []).map((d, i) => (
+        <Ligne key={i} label={d.libelle} niveau={2} valeurs={[null, null, d.montant, ...(n1 ? [null] : [])]} />
+      ))}
+    </React.Fragment>
   );
   const sectionActif = (cle, titre, tot) => {
     const lignes = etat.actif.lignes.filter(l => l.section === cle);
