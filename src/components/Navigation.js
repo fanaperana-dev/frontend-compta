@@ -36,7 +36,8 @@ export default function Navigation({ children }) {
   return (
     <div style={{
       display: 'flex',
-      minHeight: '100vh',
+      height: '100vh',
+      overflow: 'hidden',
       fontFamily: 'Arial, sans-serif'
     }}>
 
@@ -48,7 +49,8 @@ export default function Navigation({ children }) {
         display: 'flex',
         flexDirection: 'column',
         transition: 'width 0.3s',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: 'auto',
         flexShrink: 0
       }}>
 
@@ -187,38 +189,17 @@ export default function Navigation({ children }) {
           </>
          )}
         </nav>
-        
-
-        {/* Déconnexion */}
-        <div
-          onClick={deconnexion}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '15px',
-            cursor: 'pointer',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            whiteSpace: 'nowrap'
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <span style={{ fontSize: '18px', flexShrink: 0 }}>🚪</span>
-          {menuOuvert && (
-            <span style={{ fontSize: '14px' }}>Déconnexion</span>
-          )}
-        </div>
 
       </div>
 
       {/* Contenu principal */}
       <div style={{
         flex: 1,
+        minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
         background: '#d9e2e4',
-        overflow: 'auto'
+        overflow: 'hidden'
       }}>
 
         {/* Barre du haut */}
@@ -239,16 +220,45 @@ export default function Navigation({ children }) {
             {menuItems.find(m => m.path === location.pathname)?.label || 'E&T Automation'}
           </h2>
           <div style={{
-            fontSize: '14px',
-            color: '#666'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '15px'
           }}>
-            👋 {entreprise?.nom}
+            <div style={{
+              fontSize: '14px',
+              color: '#666'
+            }}>
+              👋 {entreprise?.nom}
+            </div>
+            <button
+              onClick={deconnexion}
+              title="Déconnexion"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'white',
+                border: '1px solid #004d5a',
+                color: '#004d5a',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#004d5a'; e.currentTarget.style.color = 'white'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#004d5a'; }}
+            >
+              🚪 Déconnexion
+            </button>
           </div>
         </div>
 
-        {/* Contenu de la page */}
-        <div style={{ padding: '25px', flex: 1 }}>
-          {children}
+        {/* Contenu de la page : défilement horizontal + vertical, barres toujours visibles à l'écran */}
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          <div style={{ padding: '25px' }}>
+            {children}
+          </div>
         </div>
 
       </div>
