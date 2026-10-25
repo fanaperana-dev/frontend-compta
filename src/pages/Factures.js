@@ -1104,6 +1104,13 @@ function changerTri(colonne) {
     return;
   }
 
+  // On ouvre l'onglet TOUT DE SUITE (sur le clic) : si on attend la fin de la génération du PDF,
+  // le navigateur considère l'ouverture comme une fenêtre intempestive et la bloque sans rien afficher.
+  const onglet = window.open('', '_blank');
+  if (onglet) {
+    onglet.document.write('<p style="font-family:Arial,sans-serif;padding:30px;color:#004d5a;">Chargement de la facture...</p>');
+  }
+
   try {
     toast.info('Chargement du PDF...');
     const response = await fetch(
@@ -1119,14 +1126,21 @@ function changerTri(colonne) {
     );
 
     if (!response.ok) {
+      if (onglet) onglet.close();
       toast.error('Erreur chargement PDF.');
       return;
     }
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    if (onglet) {
+      onglet.location.href = url;
+    } else {
+      // Le navigateur a refusé d'ouvrir un onglet : on le dit au lieu de ne rien afficher
+      toast.warn('Le navigateur a bloqué l\'ouverture. Autorise les fenêtres pop-up pour ce site, puis réessaie.');
+    }
   } catch (err) {
+    if (onglet) onglet.close();
     toast.error('Erreur visualisation.');
   }
 }
@@ -1679,11 +1693,14 @@ function exporterCSV() {
   
                         {/* Justificatifs multiples */}
                         {(() => {
-                          const justificatifs = Array.isArray(facture.justificatifs_url) 
+                          const justificatifsAjoutes = Array.isArray(facture.justificatifs_url) 
                             ? facture.justificatifs_url 
                             : typeof facture.justificatifs_url === 'string'
                               ? JSON.parse(facture.justificatifs_url || '[]')
                               : [];
+                          // Le justificatif joint depuis le formulaire de paiement est enregistré dans justificatif_url :
+                          // on l'affiche avec ceux ajoutés par le bouton 📎 (sans doublon).
+                          const justificatifs = [...new Set([facture.justificatif_url, ...justificatifsAjoutes].filter(Boolean))];
   
                           return justificatifs.length > 0 ? (
                             <>
@@ -1723,7 +1740,7 @@ function exporterCSV() {
                                           fichier_base64: base64,
                                           nom_fichier: fichier.name,
                                           type_mime: fichier.type,
-                                          index: justificatifs.length + 1
+                                          index: justificatifsAjoutes.length + 1
                                          })
                                         }
                                        );
