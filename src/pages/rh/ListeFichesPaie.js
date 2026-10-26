@@ -46,6 +46,13 @@ const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
 const modesPaiement = ['Virement bancaire','Espèces','Chèque','Mobile money'];;
 
 
+// Nom du fichier PDF d'une fiche : Nom_Prenom_Mois_Annee.pdf
+function nomFichierFiche(fiche) {
+  const propre = t => String(t || '').trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+  return [fiche.nom_salarie, fiche.prenom_salarie, fiche.mois, fiche.annee]
+    .map(propre).filter(Boolean).join('_') + '.pdf';
+}
+
 // Retenues d'avances dues pour un mois : { [salarie_id]: { montant, avances: [...] } }
 async function chargerRetenues(entrepriseId, mois, annee) {
   try {
@@ -967,7 +974,7 @@ export default function ListeFichesPaie() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `FichePaie_${fiche.matricule}_${fiche.mois}_${fiche.annee}.pdf`;
+      a.download = nomFichierFiche(fiche);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
