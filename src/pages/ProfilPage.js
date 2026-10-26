@@ -43,8 +43,6 @@ export default function ProfilPage() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [envoiTicketEnCours, setEnvoiTicketEnCours] = useState(false);
-  const [testEnCours, setTestEnCours] = useState(false);
-  const [saveMailEnCours, setSaveMailEnCours] = useState(false);
   const [voirAncienMdp, setVoirAncienMdp] = useState(false);
   const [voirNouveauMdp, setVoirNouveauMdp] = useState(false);
   const [voirConfirmMdp, setVoirConfirmMdp] = useState(false);
@@ -60,36 +58,16 @@ export default function ProfilPage() {
     categorie: 'AUTRE'
   });
 
-  const [configMail, setConfigMail] = useState({
-    nom_expediteur: '',
-    email_reponse: '',
-    smtp_host: '',
-    smtp_port: '587',
-    smtp_user: '',
-    smtp_password: ''
-  });
-
   useEffect(() => { chargerDonnees(); }, []);
 
   async function chargerDonnees() {
     try {
-      const [profilRes, ticketsRes, configMailRes] = await Promise.all([
+      const [profilRes, ticketsRes] = await Promise.all([
         profilService.getMonProfil(entreprise.id),
-        ticketService.getAll(entreprise.id),
-        profilService.getConfigMail(entreprise.id)
+        ticketService.getAll(entreprise.id)
       ]);
       setProfil(profilRes.data.data);
       setTickets(ticketsRes.data.data || []);
-      if (configMailRes.data.data) {
-        setConfigMail({
-          nom_expediteur: configMailRes.data.data.nom_expediteur || '',
-          email_reponse: configMailRes.data.data.email_reponse || '',
-          smtp_host: configMailRes.data.data.smtp_host || '',
-          smtp_port: configMailRes.data.data.smtp_port || '587',
-          smtp_user: configMailRes.data.data.smtp_user || '',
-          smtp_password: configMailRes.data.data.smtp_password || ''
-        });
-      }
     } catch (err) {
       toast.error('Erreur chargement profil.');
     } finally {
@@ -137,30 +115,6 @@ export default function ProfilPage() {
       toast.error('Erreur envoi ticket.');
     } finally {
       setEnvoiTicketEnCours(false);
-    }
-  }
-
-  async function sauvegarderConfigMail() {
-    setSaveMailEnCours(true);
-    try {
-      await profilService.sauvegarderConfigMail(entreprise.id, configMail);
-      toast.success('Configuration mail sauvegardée !');
-    } catch (err) {
-      toast.error('Erreur sauvegarde configuration mail.');
-    } finally {
-      setSaveMailEnCours(false);
-    }
-  }
-
-  async function testerConfigMail() {
-    setTestEnCours(true);
-    try {
-      const res = await profilService.testerConfigMail(entreprise.id, configMail);
-      toast.success(res.data.message);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur test configuration mail.');
-    } finally {
-      setTestEnCours(false);
     }
   }
 
@@ -325,77 +279,6 @@ export default function ProfilPage() {
   </div>
 </div>
 
-      {/* Configuration mail */}
-      <div style={styles.card}>
-        <h3 style={{ color: '#004d5a', marginTop: 0 }}>📧 Configuration mail</h3>
-        <p style={{ fontSize: '12px', color: '#666', marginTop: 0 }}>
-          Configurez votre SMTP pour que vos factures et relances soient envoyées
-          depuis votre propre adresse mail.
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-            <div>
-              <label style={styles.label}>Nom expéditeur</label>
-              <input style={styles.input} value={configMail.nom_expediteur}
-                onChange={e => setConfigMail({ ...configMail, nom_expediteur: e.target.value })}
-                placeholder="Ex: Société A" />
-            </div>
-            <div>
-              <label style={styles.label}>Email de réponse</label>
-              <input style={styles.input} type="email" value={configMail.email_reponse}
-                onChange={e => setConfigMail({ ...configMail, email_reponse: e.target.value })}
-                placeholder="contact@societeA.com" />
-            </div>
-            <div>
-              <label style={styles.label}>SMTP Host</label>
-              <input style={styles.input} value={configMail.smtp_host}
-                onChange={e => setConfigMail({ ...configMail, smtp_host: e.target.value })}
-                placeholder="smtp.gmail.com" />
-            </div>
-            <div>
-              <label style={styles.label}>SMTP Port</label>
-              <input style={styles.input} value={configMail.smtp_port}
-                onChange={e => setConfigMail({ ...configMail, smtp_port: e.target.value })}
-                placeholder="587" />
-            </div>
-            <div>
-              <label style={styles.label}>SMTP User (email)</label>
-              <input style={styles.input} value={configMail.smtp_user}
-                onChange={e => setConfigMail({ ...configMail, smtp_user: e.target.value })}
-                placeholder="contact@societeA.com" />
-            </div>
-            <div>
-              <label style={styles.label}>SMTP Password</label>
-              <input style={styles.input} type="password" value={configMail.smtp_password}
-                onChange={e => setConfigMail({ ...configMail, smtp_password: e.target.value })}
-                placeholder="Mot de passe ou clé d'application" />
-            </div>
-          </div>
-          <div style={{ background: '#e3f2fd', borderRadius: '8px', padding: '12px',
-            fontSize: '12px', color: '#1565c0' }}>
-            ℹ️ Pour Gmail, utilisez un <strong>mot de passe d'application</strong>
-            (Paramètres Google → Sécurité → Mots de passe des applications).
-            Pour d'autres fournisseurs, utilisez les paramètres SMTP fournis.
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              style={{ ...styles.boutonPrimaire, opacity: saveMailEnCours ? 0.6 : 1 }}
-              disabled={saveMailEnCours}
-              onClick={sauvegarderConfigMail}>
-              {saveMailEnCours ? '⏳ Sauvegarde...' : '💾 Sauvegarder'}
-            </button>
-            <button
-              style={{ ...styles.boutonPrimaire, background: '#1565c0',
-                opacity: testEnCours ? 0.6 : 1 }}
-              disabled={testEnCours}
-              onClick={testerConfigMail}>
-              {testEnCours ? '⏳ Test en cours...' : '📧 Tester la configuration'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      
     </div>
   );
 }
