@@ -46,8 +46,23 @@ const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
 const modesPaiement = ['Virement bancaire','Espèces','Chèque','Mobile money'];;
 
 
+// Retenues d'avances dues pour un mois : { [salarie_id]: { montant, avances: [...] } }
+async function chargerRetenues(entrepriseId, mois, annee) {
+  try {
+    const res = await fetch(
+      `${API_URL}/api/avances/retenues/${entrepriseId}?mois=${encodeURIComponent(mois)}&annee=${annee}`,
+      { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+    );
+    const data = await res.json();
+    return data.success ? (data.data || {}) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
 // Composant création en masse
 function FormulaireMasse({ salaries, onSave, onCancel }) {
+  const { entreprise } = useAuth();
   const anneeActuelle = new Date().getFullYear();
   const moisActuel = moisListe[new Date().getMonth()];
   const [enCours, setEnCours] = useState(false);
@@ -83,6 +98,16 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     }))
   );
 
+  // Pré-remplit la colonne Avance avec les retenues dues pour le mois choisi
+  useEffect(() => {
+    let actif = true;
+    chargerRetenues(entreprise.id, config.mois, config.annee).then(map => {
+      if (!actif) return;
+      setLignes(ls => ls.map(l => ({ ...l, avance_sur_salaire: map[l.salarie_id]?.montant || 0 })));
+    });
+    return () => { actif = false; };
+  }, [config.mois, config.annee]);
+
   function modifierLigne(index, champ, valeur) {
     const nouvLignes = [...lignes];
     nouvLignes[index][champ] = Number(valeur) || 0;
@@ -103,7 +128,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     { key: 'prime_exceptionnelle', label: 'Prime excep.' },
     { key: 'acompte', label: 'Acompte' },
     { key: 'retenue', label: 'Retenue' },
-    { key: 'avance_sur_salaire', label: 'Avance sal.' }
+    { key: 'avance_sur_salaire', label: 'Avance' }
   ];
 
   const colonnesStage = [
@@ -255,7 +280,9 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
 
 // Composant création fiche unique
 function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
+  const { entreprise } = useAuth();
   const modeEdition = !!ficheInitiale;
+  const [retenues, setRetenues] = useState({});
   const anneeActuelle = new Date().getFullYear();
   const [enCours, setEnCours] = useState(false);
   const [form, setForm] = useState({
@@ -321,6 +348,19 @@ function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
       solde_conge_precedent: Number(ficheInitiale.solde_conge_precedent) || 0
     } : {})
   });
+
+  // Pré-remplit l'avance avec la retenue due pour le salarié et le mois choisis (création uniquement)
+  useEffect(() => {
+    if (modeEdition) return undefined;
+    let actif = true;
+    chargerRetenues(entreprise.id, form.mois, form.annee).then(map => { if (actif) setRetenues(map); });
+    return () => { actif = false; };
+  }, [form.mois, form.annee]);
+
+  useEffect(() => {
+    if (modeEdition) return;
+    setForm(f => ({ ...f, avance_sur_salaire: retenues[f.salarie_id]?.montant || 0 }));
+  }, [retenues, form.salarie_id]);
 
   const salarieSelectionne = salaries.find(s => s.id === form.salarie_id);
   const estStage = salarieSelectionne?.type_contrat === 'STAGE';
@@ -412,9 +452,14 @@ function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
               onChange={e => setForm({ ...form, retenue: Number(e.target.value) })} />
           </div>
           <div>
-            <label style={styles.label}>Avance sur salaire (Ar)</label>
+            <label style={styles.label}>Avance (Ar)</label>
             <input style={styles.input} type="number" value={form.avance_sur_salaire}
               onChange={e => setForm({ ...form, avance_sur_salaire: Number(e.target.value) })} />
+            {!modeEdition && retenues[form.salarie_id] && (
+              <div style={{ fontSize: '11px', color: '#2e7d32', marginTop: '4px' }}>
+                Retenue prévue : {retenues[form.salarie_id].avances.map(a => a.numero).join(', ')}
+              </div>
+            )}
           </div>
 
           {/* Variables non-stage */}
