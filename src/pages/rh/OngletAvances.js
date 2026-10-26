@@ -356,6 +356,29 @@ export default function OngletAvances() {
     }
   }
 
+  // Télécharge le document : Nom_Prenom_Avance_N°.pdf
+  async function telecharger(avance) {
+    try {
+      const res = await fetch(`${API_URL}/api/avances/${avance.id}/pdf`, { method: 'POST', headers: entete() });
+      if (!res.ok) {
+        let msg = 'Erreur génération du document.';
+        try { msg = (await res.json()).message || msg; } catch (e) { /* pas de JSON */ }
+        throw new Error(msg);
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const propre = t => String(t || '').trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+      const nom = [avance.salaries?.nom, avance.salaries?.prenom,
+        avance.type_avance === 'AVANCE_SALAIRE' ? 'Avance_sur_salaire' : 'Avance_exceptionnelle', avance.numero]
+        .map(propre).filter(Boolean).join('_') + '.pdf';
+      const a = document.createElement('a');
+      a.href = url; a.download = nom;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  }
+
   const avancesFiltrees = useMemo(() => avances.filter(a =>
     (!filtreStatut || a.statut === filtreStatut) &&
     (!filtreType || a.type_avance === filtreType) &&
@@ -471,6 +494,8 @@ export default function OngletAvances() {
                         <div style={{ display: 'flex', gap: '4px' }}>
                           <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
                             onClick={() => visualiser(a)} title="Voir le document">👁️</button>
+                          <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
+                            onClick={() => telecharger(a)} title="Télécharger le document">⬇️</button>
                           {a.statut === 'EN_COURS' && (
                             <button style={{ ...styles.boutonSecondaire, padding: '4px 8px', color: '#2e7d32', borderColor: '#2e7d32' }}
                               onClick={() => setAvanceRemb(a)} title="Enregistrer un remboursement">💶</button>

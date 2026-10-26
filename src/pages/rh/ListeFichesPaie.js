@@ -936,6 +936,9 @@ export default function ListeFichesPaie() {
        toast.info('📄 PDF non disponible — cette fiche de paie a été importée et n\'est pas stockée sur la plateforme.');
        return;
     }
+    // Onglet ouvert tout de suite (clic de l'utilisateur) : sinon le navigateur bloque le popup après l'attente du PDF
+    const onglet = window.open('', '_blank');
+    if (onglet) onglet.document.write('<p style="font-family:Arial;padding:20px">Chargement de la fiche de paie...</p>');
     try {
       const res = await fetch(
         `${API_URL}/api/rh/fiches-paie/${fiche.id}/pdf`,
@@ -948,11 +951,13 @@ export default function ListeFichesPaie() {
           body: JSON.stringify({ entreprise_id: entreprise.id })
         }
       );
-      if (!res.ok) { toast.error('Erreur génération PDF.'); return; }
+      if (!res.ok) { if (onglet) onglet.close(); toast.error('Erreur génération PDF.'); return; }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      if (onglet) onglet.location.href = url;
+      else toast.warn('Autorise les popups pour ouvrir la fiche de paie.');
     } catch (err) {
+      if (onglet) onglet.close();
       toast.error('Erreur visualisation.');
     }
   }
