@@ -254,7 +254,8 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
 }
 
 // Composant création fiche unique
-function FormulaireUnique({ salaries, onSave, onCancel }) {
+function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
+  const modeEdition = !!ficheInitiale;
   const anneeActuelle = new Date().getFullYear();
   const [enCours, setEnCours] = useState(false);
   const [form, setForm] = useState({
@@ -286,7 +287,39 @@ function FormulaireUnique({ salaries, onSave, onCancel }) {
     avantage_nature_logement: 0,
     avantage_nature_vehicule: 0,
     avantage_nature_autre: 0,
-    solde_conge_precedent: 0
+    solde_conge_precedent: 0,
+    ...(ficheInitiale ? {
+      salarie_id: ficheInitiale.salarie_id,
+      mois: ficheInitiale.mois,
+      annee: ficheInitiale.annee,
+      date_paiement: ficheInitiale.date_paiement
+        ? String(ficheInitiale.date_paiement).slice(0, 10) : '',
+      nb_jours_travailles: Number(ficheInitiale.nb_jours_travailles) || 0,
+      nb_jours_conge: Number(ficheInitiale.nb_jours_conge) || 0,
+      nb_jours_absence: Number(ficheInitiale.nb_jours_absence) || 0,
+      nb_jours_panier_repas: Number(ficheInitiale.nb_jours_panier_repas) || 0,
+      nb_jours_transport: Number(ficheInitiale.nb_jours_transport) || 0,
+      nb_heures_sup_130: Number(ficheInitiale.nb_heures_sup_130) || 0,
+      nb_heures_sup_150: Number(ficheInitiale.nb_heures_sup_150) || 0,
+      nb_heures_ferie: Number(ficheInitiale.nb_heures_ferie) || 0,
+      autre_indemnite: Number(ficheInitiale.autre_indemnite) || 0,
+      prime: Number(ficheInitiale.prime) || 0,
+      prime_exceptionnelle: Number(ficheInitiale.prime_exceptionnelle) || 0,
+      acompte: Number(ficheInitiale.acompte) || 0,
+      retenue: Number(ficheInitiale.retenue) || 0,
+      avance_sur_salaire: Number(ficheInitiale.avance_sur_salaire) || 0,
+      regulation_positive: Number(ficheInitiale.regulation_positive) || 0,
+      regulation_negative: Number(ficheInitiale.regulation_negative) || 0,
+      indemnite_logement: Number(ficheInitiale.indemnite_logement) || 0,
+      indemnite_carburant: Number(ficheInitiale.indemnite_carburant) || 0,
+      indemnite_ecolage: Number(ficheInitiale.indemnite_ecolage) || 0,
+      indemnite_telephone: Number(ficheInitiale.indemnite_telephone) || 0,
+      indemnite_autre: Number(ficheInitiale.indemnite_autre) || 0,
+      avantage_nature_logement: Number(ficheInitiale.avantage_nature_logement) || 0,
+      avantage_nature_vehicule: Number(ficheInitiale.avantage_nature_vehicule) || 0,
+      avantage_nature_autre: Number(ficheInitiale.avantage_nature_autre) || 0,
+      solde_conge_precedent: Number(ficheInitiale.solde_conge_precedent) || 0
+    } : {})
   });
 
   const salarieSelectionne = salaries.find(s => s.id === form.salarie_id);
@@ -304,13 +337,16 @@ function FormulaireUnique({ salaries, onSave, onCancel }) {
   return (
     <div style={styles.modal}>
       <div style={{ ...styles.modalContent, maxWidth: '700px' }}>
-        <h3 style={{ color: '#004d5a', marginTop: 0 }}>📝 Nouvelle fiche de paie</h3>
+        <h3 style={{ color: '#004d5a', marginTop: 0 }}>
+          {modeEdition ? '✏️ Modifier la fiche de paie (brouillon)' : '📝 Nouvelle fiche de paie'}
+        </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           {/* Salarié */}
           <div style={{ gridColumn: 'span 2' }}>
             <label style={styles.label}>Salarié *</label>
-            <select style={styles.input} value={form.salarie_id} onChange={handleSalarieChange}>
+            <select style={styles.input} value={form.salarie_id} onChange={handleSalarieChange}
+              disabled={modeEdition}>
               <option value="">Sélectionner un salarié</option>
               {salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI').map(s => (
                 <option key={s.id} value={s.id}>
@@ -322,14 +358,14 @@ function FormulaireUnique({ salaries, onSave, onCancel }) {
 
           <div>
             <label style={styles.label}>Mois *</label>
-            <select style={styles.input} value={form.mois}
+            <select style={styles.input} value={form.mois} disabled={modeEdition}
               onChange={e => setForm({ ...form, mois: e.target.value })}>
               {moisListe.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           <div>
             <label style={styles.label}>Année *</label>
-            <input style={styles.input} type="number" value={form.annee}
+            <input style={styles.input} type="number" value={form.annee} disabled={modeEdition}
               onChange={e => setForm({ ...form, annee: Number(e.target.value) })} />
           </div>
           <div>
@@ -493,7 +529,7 @@ function FormulaireUnique({ salaries, onSave, onCancel }) {
              setEnCours(false);
             }}
           >
-            {enCours ? '⏳ Création en cours...' : 'Créer la fiche de paie'}
+            {enCours ? (modeEdition ? '⏳ Enregistrement...' : '⏳ Création en cours...') : (modeEdition ? 'Enregistrer les modifications' : 'Créer la fiche de paie')}
           </button>
         </div>
       </div>
@@ -652,6 +688,7 @@ export default function ListeFichesPaie() {
   const [modalPaiement, setModalPaiement] = useState(false);
   const [fichierJustificatif, setFichierJustificatif] = useState(null);
   const [modalAjouterPJ, setModalAjouterPJ] = useState(false);
+  const [ficheEnEdition, setFicheEnEdition] = useState(null);
 
   useEffect(() => { chargerDonnees(); }, []);
 
@@ -691,6 +728,26 @@ export default function ListeFichesPaie() {
       chargerDonnees();
     } catch (err) {
       toast.error(err.message || 'Erreur création.');
+    }
+  }
+
+  async function modifierFiche(form) {
+    try {
+      const res = await fetch(`${API_URL}/api/rh/fiches-paie/${ficheEnEdition.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ ...form, entreprise_id: entreprise.id })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+      toast.success('Fiche de paie modifiée !');
+      setFicheEnEdition(null);
+      chargerDonnees();
+    } catch (err) {
+      toast.error(err.message || 'Erreur modification.');
     }
   }
 
@@ -963,6 +1020,14 @@ export default function ListeFichesPaie() {
           onCancel={() => setModalOuvert(null)}
         />
       )}
+      {ficheEnEdition && (
+        <FormulaireUnique
+          salaries={salaries}
+          ficheInitiale={ficheEnEdition}
+          onSave={modifierFiche}
+          onCancel={() => setFicheEnEdition(null)}
+        />
+      )}
       {modalOuvert === 'masse' && (
         <FormulaireMasse
           salaries={salaries}
@@ -1146,6 +1211,11 @@ export default function ListeFichesPaie() {
                       <div style={{ display: 'flex', gap: '4px' }}>
                         <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
                           onClick={() => visualiserFiche(f)} title="Voir fiche">👁️</button>
+                        {f.statut === 'BROUILLON' && (
+                          <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
+                            onClick={() => setFicheEnEdition(f)}
+                            title="Modifier la fiche (brouillon)">✏️</button>
+                        )}
                         {/* Voir justificatif existant */}
                         {f.justificatif_url && (
                           <a href={f.justificatif_url} target="_blank" rel="noreferrer"
