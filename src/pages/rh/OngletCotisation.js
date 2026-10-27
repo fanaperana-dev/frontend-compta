@@ -27,6 +27,12 @@ const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
 const PLAFOND_CNAPS = 2101440;
 
 // Mois sélectionnés rangés dans l'ordre du calendrier : M1 = le plus ancien, M3 = le plus récent
+// Salaire brut hors avantages en nature : les avantages (cadres) ont leur propre colonne dans les déclarations,
+// le brut des fiches les contient déjà. Pour un salarié sans avantage, rien ne change.
+function brutHorsAvantages(m) {
+  return Number(m?.salaire_brut || 0) - Number(m?.total_avantages_nature || 0);
+}
+
 function trierMois(liste) {
   return [...liste].sort((a, b) => moisListe.indexOf(a) - moisListe.indexOf(b));
 }
@@ -91,13 +97,13 @@ export default function OngletCotisation({ type }) {
       const donnees_export = [];
 
       donnees.forEach(d => {
-        const total_salaire_brut = d.mois.reduce((s, m) => s + Number(m.salaire_brut || 0), 0);
+        const total_salaire_brut = d.mois.reduce((s, m) => s + brutHorsAvantages(m), 0);
         const total_avantages_nature = d.mois.reduce((s, m) => s + Number(m.total_avantages_nature || 0), 0);
         const total_cnaps = d.mois.reduce((s, m) => s + Number(m.cnaps_salarial || 0), 0);
         const total_ostie = d.mois.reduce((s, m) => s + Number(m.ostie_salarial || 0), 0);
         const total_brut_imposable = d.mois.reduce((s, m) => s + Number(m.brut_imposable || 0), 0);
         const total_irsa = d.mois.reduce((s, m) => s + Number(m.irsa || 0), 0);
-        const nb_enfants = d.mois[0]?.nb_enfants || 0;
+        const nb_enfants = d.mois[d.mois.length - 1]?.nb_enfants || 0; // situation du mois le plus récent
         const reduction = nb_enfants * 3000 * d.mois.length;
         const periodes = d.mois.map(m => m.periode).join(', ');
 
@@ -201,7 +207,7 @@ export default function OngletCotisation({ type }) {
       const m = moisDeColonne(d, i, moisTries);
       if (m) {
         ligne.push(
-          m.salaire_brut || 0,
+          brutHorsAvantages(m),
           m.total_avantages_nature || 0,
           d.nb_heures_mois || 173.33,
           PLAFOND_CNAPS
@@ -225,7 +231,7 @@ export default function OngletCotisation({ type }) {
   const ligneTotal = ['TOTAL', '', '', '', '', '', ''];
   for (let i = 0; i < nbMoisAffiches; i++) {
     const totalSalaire = donnees.reduce((s, d) =>
-      s + Number(moisDeColonne(d, i, moisTries)?.salaire_brut || 0), 0);
+      s + brutHorsAvantages(moisDeColonne(d, i, moisTries)), 0);
     const totalAvantage = donnees.reduce((s, d) =>
       s + Number(moisDeColonne(d, i, moisTries)?.total_avantages_nature || 0), 0);
     ligneTotal.push(totalSalaire, totalAvantage, '', '');
