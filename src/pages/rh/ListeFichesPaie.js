@@ -81,7 +81,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
   });
 
   const [lignes, setLignes] = useState(
-    salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI').map(s => ({
+    salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI' && !s.est_cadre).map(s => ({
       salarie_id: s.id,
       matricule: s.matricule,
       nom: s.nom,
@@ -287,7 +287,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
 }
 
 // Composant création fiche unique
-function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
+function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInitiale }) {
   const { entreprise } = useAuth();
   const modeEdition = !!ficheInitiale;
   const [retenues, setRetenues] = useState({});
@@ -398,15 +398,17 @@ function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           {/* Salarié */}
           <div style={{ gridColumn: 'span 2' }}>
-            <label style={styles.label}>Salarié *</label>
+            <label style={styles.label}>{cadre && !modeEdition ? 'Cadre *' : 'Salarié *'}</label>
             <select style={styles.input} value={form.salarie_id} onChange={handleSalarieChange}
               disabled={modeEdition}>
-              <option value="">Sélectionner un salarié</option>
-              {salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI').map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.est_cadre ? '💼 ' : ''}{s.matricule} — {[s.nom, s.prenom].filter(Boolean).join(' ')} ({s.type_contrat})
-                </option>
-              ))}
+              <option value="">{cadre && !modeEdition ? 'Sélectionner un cadre' : 'Sélectionner un salarié'}</option>
+              {salaries
+                .filter(s => s.actif && s.statut_emploi !== 'SORTI' && (modeEdition || !cadre || s.est_cadre))
+                .map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.matricule} — {[s.nom, s.prenom].filter(Boolean).join(' ')} ({s.type_contrat})
+                  </option>
+                ))}
             </select>
           </div>
 
@@ -1079,6 +1081,7 @@ export default function ListeFichesPaie() {
     <div>
       {modalOuvert === 'unique' && (
         <FormulaireUnique
+          cadre
           salaries={salaries}
           onSave={creerFicheUnique}
           onCancel={() => setModalOuvert(null)}
