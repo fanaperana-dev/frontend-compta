@@ -68,7 +68,27 @@ async function chargerRetenues(entrepriseId, mois, annee) {
 }
 
 // Composant création en masse
-function FormulaireMasse({ salaries, onSave, onCancel }) {
+// Colonnes propres aux cadres (en plus de celles des salariés)
+const colonnesCadreSupp = [
+  { key: 'solde_conge_precedent', label: 'Solde congé préc. (j)' },
+  { key: 'regulation_positive', label: 'Régul. +' },
+  { key: 'regulation_negative', label: 'Régul. −' }
+];
+const colonnesIndemnitesCadre = [
+  { key: 'indemnite_logement', label: 'Ind. logement' },
+  { key: 'indemnite_carburant', label: 'Ind. carburant' },
+  { key: 'indemnite_ecolage', label: 'Ind. écolage' },
+  { key: 'indemnite_telephone', label: 'Ind. téléphone' },
+  { key: 'indemnite_autre', label: 'Autre ind. cadre' }
+];
+const colonnesAvantagesCadre = [
+  { key: 'avantage_nature_logement', label: 'Logement (nature)' },
+  { key: 'avantage_nature_vehicule', label: 'Véhicule (nature)' },
+  { key: 'avantage_nature_autre', label: 'Autre (nature)' }
+];
+
+// Création en masse : la liste des salariés (cadre = false) ou celle des cadres (cadre = true)
+function FormulaireMasse({ salaries, cadre = false, onSave, onCancel }) {
   const { entreprise } = useAuth();
   const anneeActuelle = new Date().getFullYear();
   const moisActuel = moisListe[new Date().getMonth()];
@@ -81,7 +101,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
   });
 
   const [lignes, setLignes] = useState(
-    salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI').map(s => ({
+    salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI' && !!s.est_cadre === cadre).map(s => ({
       salarie_id: s.id,
       matricule: s.matricule,
       nom: s.nom,
@@ -102,7 +122,15 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
       prime_exceptionnelle: 0,
       acompte: 0,
       retenue: 0,
-      avance_sur_salaire: 0
+      avance_sur_salaire: 0,
+      // Cadres : indemnités et avantages prévus sur leur fiche, modifiables pour le mois
+      ...(cadre ? {
+        solde_conge_precedent: 0,
+        regulation_positive: 0,
+        regulation_negative: 0,
+        ...Object.fromEntries([...colonnesIndemnitesCadre, ...colonnesAvantagesCadre]
+          .map(c => [c.key, Number(s[c.key]) || 0]))
+      } : {})
     }))
   );
 
@@ -136,8 +164,12 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     { key: 'prime_exceptionnelle', label: 'Prime excep.' },
     { key: 'acompte', label: 'Acompte' },
     { key: 'retenue', label: 'Retenue' },
-    { key: 'avance_sur_salaire', label: 'Avance' }
+    { key: 'avance_sur_salaire', label: 'Avance' },
+    ...(cadre ? [...colonnesCadreSupp, ...colonnesIndemnitesCadre, ...colonnesAvantagesCadre] : [])
   ];
+  const fondEntete = key =>
+    colonnesIndemnitesCadre.some(c => c.key === key) ? '#1565c0'
+    : colonnesAvantagesCadre.some(c => c.key === key) ? '#e65100' : null;
 
   const colonnesStage = [
     { key: 'nb_jours_travailles', label: 'Jours trav.' },
@@ -152,7 +184,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     <div style={styles.modal}>
       <div style={styles.modalContent}>
         <h3 style={{ color: '#004d5a', marginTop: 0 }}>
-          📋 Créer fiches de paie en masse
+          {cadre ? '💼 Créer les fiches de paie des cadres' : '📋 Créer fiches de paie en masse'}
         </h3>
 
         {/* Config */}
@@ -193,13 +225,25 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
                 <th style={{ padding: '8px', textAlign: 'left', minWidth: '80px' }}>Contrat</th>
                 <th style={{ padding: '8px', textAlign: 'right', minWidth: '100px' }}>Sal. base</th>
                 {colonnesNormales.map(c => (
-                  <th key={c.key} style={{ padding: '8px', textAlign: 'center', minWidth: '80px' }}>
+                  <th key={c.key} style={{
+                    padding: '8px', textAlign: 'center', minWidth: '80px',
+                    ...(fondEntete(c.key) ? { background: fondEntete(c.key) } : {})
+                  }}>
                     {c.label}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
+              {lignes.length === 0 && (
+                <tr>
+                  <td colSpan={20} style={{ padding: '30px', textAlign: 'center', color: '#666' }}>
+                    {cadre
+                      ? "Aucun cadre actif. Crée d'abord un cadre dans l'onglet « Liste cadres »."
+                      : 'Aucun salarié actif.'}
+                  </td>
+                </tr>
+              )}
               {lignes.map((ligne, i) => {
                 const estStage = ligne.type_contrat === 'STAGE';
                 const colonnes = estStage ? colonnesStage : colonnesNormales;
@@ -246,7 +290,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
                            value={ligne[c.key]}
                            onChange={e => modifierLigne(i, c.key, e.target.value)}
                            style={{
-                             width: '70px', padding: '4px 6px',
+                             width: cadre ? '90px' : '70px', padding: '4px 6px',
                              border: '1px solid #e0e0e0', borderRadius: '4px',
                              fontSize: '12px', textAlign: 'center'
                            }}
@@ -404,7 +448,7 @@ function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
               <option value="">Sélectionner un salarié</option>
               {salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI').map(s => (
                 <option key={s.id} value={s.id}>
-                  {s.est_cadre ? '💼 ' : ''}{s.matricule} — {[s.nom, s.prenom].filter(Boolean).join(' ')} ({s.type_contrat})
+                  {s.matricule} — {[s.nom, s.prenom].filter(Boolean).join(' ')} ({s.type_contrat})
                 </option>
               ))}
             </select>
@@ -1099,6 +1143,14 @@ export default function ListeFichesPaie() {
           onCancel={() => setModalOuvert(null)}
         />
       )}
+      {modalOuvert === 'cadre' && (
+        <FormulaireMasse
+          cadre
+          salaries={salaries}
+          onSave={creerFichesMasse}
+          onCancel={() => setModalOuvert(null)}
+        />
+      )}
       {modalPaiement && (
         <ModalPaiementFiche
           fiches={
@@ -1184,7 +1236,7 @@ export default function ListeFichesPaie() {
             📋 Fiches en masse
           </button>
           <button style={styles.boutonPrimaire}
-            onClick={() => setModalOuvert('unique')}>
+            onClick={() => setModalOuvert('cadre')}>
             + Fiche cadre
           </button>
         </div>
