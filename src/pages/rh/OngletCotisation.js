@@ -49,6 +49,7 @@ function moisDeColonne(d, i, moisTries) {
 export default function OngletCotisation({ type }) {
   const { entreprise } = useAuth();
   const [donnees, setDonnees] = useState([]);
+  const [numeroCnapsEmployeur, setNumeroCnapsEmployeur] = useState('');
   const [loading, setLoading] = useState(true);
   const [moisSelectionnes, setMoisSelectionnes] = useState([]);
   const [filtreAnnee, setFiltreAnnee] = useState(new Date().getFullYear());
@@ -82,6 +83,7 @@ export default function OngletCotisation({ type }) {
       );
       const data = await res.json();
       setDonnees(data.data || []);
+      setNumeroCnapsEmployeur(data.employeur?.numero_cnaps || entreprise?.numero_cnaps || '');
     } catch (err) {
       toast.error('Erreur chargement.');
     } finally {
@@ -193,7 +195,7 @@ export default function OngletCotisation({ type }) {
       d.cin || '',
       d.nom,
       d.prenom || '',
-      '', // N° CNAPS employeur — à remplir depuis infos entreprise
+      numeroCnapsEmployeur, // N° CNAPS de l'employeur (renseigné à l'inscription)
       d.date_embauche
         ? new Date(d.date_embauche).toLocaleDateString('fr-FR')
         : '',
@@ -226,18 +228,7 @@ export default function OngletCotisation({ type }) {
     ws_data.push(ligne);
   });
 
-  // Ligne total
   const nbMoisAffiches = moisSelectionnes.length || 3;
-  const ligneTotal = ['TOTAL', '', '', '', '', '', ''];
-  for (let i = 0; i < nbMoisAffiches; i++) {
-    const totalSalaire = donnees.reduce((s, d) =>
-      s + brutHorsAvantages(moisDeColonne(d, i, moisTries)), 0);
-    const totalAvantage = donnees.reduce((s, d) =>
-      s + Number(moisDeColonne(d, i, moisTries)?.total_avantages_nature || 0), 0);
-    ligneTotal.push(totalSalaire, totalAvantage, '', '');
-  }
-  ligneTotal.push('', '', '');
-  ws_data.push(ligneTotal);
 
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
