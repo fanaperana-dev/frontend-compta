@@ -85,6 +85,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
       salarie_id: s.id,
       matricule: s.matricule,
       nom: s.nom,
+      prenom: s.prenom || '',
       type_contrat: s.type_contrat,
       salaire_base: s.salaire_base,
       nb_jours_mois: s.nb_jours_mois || 30,
@@ -188,7 +189,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
                 <th style={{
                   padding: '8px', textAlign: 'left', minWidth: '150px',
                   position: 'sticky', left: '80px', background: '#004d5a', zIndex: 2
-                }}>Nom</th>
+                }}>Nom et prénom</th>
                 <th style={{ padding: '8px', textAlign: 'left', minWidth: '80px' }}>Contrat</th>
                 <th style={{ padding: '8px', textAlign: 'right', minWidth: '100px' }}>Sal. base</th>
                 {colonnesNormales.map(c => (
@@ -220,7 +221,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
                    position: 'sticky', left: '80px', background: bgRow, zIndex: 1,
                    minWidth: '150px', borderRight: '1px solid #e0e0e0'
                   }}>
-                  {ligne.nom}
+                  {[ligne.nom, ligne.prenom].filter(Boolean).join(' ')}
                   </td>
                   <td style={{ padding: '6px', width: '55px', minWidth: '55px' }}>
                    <span style={{
@@ -381,28 +382,71 @@ function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
     });
   }
 
+  const nomComplet = sal => [sal?.nom, sal?.prenom].filter(Boolean).join(' ');
+
+  // Colonnes du tableau, comme dans le formulaire en masse
+  const colonnesVariables = [
+    { key: 'nb_jours_travailles', label: 'Jours trav.', step: '0.5' },
+    { key: 'nb_jours_absence', label: 'Absences', step: '0.5' },
+    { key: 'nb_jours_panier_repas', label: 'Panier (j)', step: '0.5' },
+    { key: 'nb_jours_transport', label: 'Transport (j)', step: '0.5' },
+    { key: 'autre_indemnite', label: 'Autre ind.' },
+    { key: 'acompte', label: 'Acompte' },
+    { key: 'retenue', label: 'Retenue' },
+    { key: 'avance_sur_salaire', label: 'Avance' }
+  ];
+  const colonnesCadre = [
+    { key: 'solde_conge_precedent', label: 'Solde congé préc. (j)', step: '0.5' },
+    { key: 'nb_jours_conge', label: 'Congés (j)', step: '0.5' },
+    { key: 'nb_heures_sup_130', label: 'H.sup 130%', step: '0.5' },
+    { key: 'nb_heures_sup_150', label: 'H.sup 150%', step: '0.5' },
+    { key: 'nb_heures_ferie', label: 'H.férié (50%)', step: '0.5' },
+    { key: 'prime', label: 'Prime' },
+    { key: 'prime_exceptionnelle', label: 'Prime excep.' },
+    { key: 'regulation_positive', label: 'Régul. +' },
+    { key: 'regulation_negative', label: 'Régul. −' }
+  ];
+  const colonnesIndemnites = [
+    { key: 'indemnite_logement', label: 'Ind. logement' },
+    { key: 'indemnite_carburant', label: 'Ind. carburant' },
+    { key: 'indemnite_ecolage', label: 'Ind. écolage' },
+    { key: 'indemnite_telephone', label: 'Ind. téléphone' },
+    { key: 'indemnite_autre', label: 'Autre ind. cadre' }
+  ];
+  const colonnesAvantages = [
+    { key: 'avantage_nature_logement', label: 'Logement (nature)' },
+    { key: 'avantage_nature_vehicule', label: 'Véhicule (nature)' },
+    { key: 'avantage_nature_autre', label: 'Autre (nature)' }
+  ];
+  const groupes = [
+    { cols: colonnesVariables, fond: null, cadre: false },
+    { cols: colonnesCadre, fond: null, cadre: true },
+    { cols: colonnesIndemnites, fond: '#1565c0', cadre: true },
+    { cols: colonnesAvantages, fond: '#e65100', cadre: true }
+  ];
+  const nbColonnes = groupes.reduce((n, g) => n + g.cols.length, 0);
+
   return (
     <div style={styles.modal}>
-      <div style={{ ...styles.modalContent, maxWidth: '700px' }}>
+      <div style={styles.modalContent}>
         <h3 style={{ color: '#004d5a', marginTop: 0 }}>
-          {modeEdition ? '✏️ Modifier la fiche de paie (brouillon)' : '📝 Nouvelle fiche de paie'}
+          {modeEdition ? '✏️ Modifier la fiche de paie (brouillon)' : '📝 Créer une fiche cadre'}
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-          {/* Salarié */}
-          <div style={{ gridColumn: 'span 2' }}>
+        {/* Config */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+          <div>
             <label style={styles.label}>Salarié *</label>
             <select style={styles.input} value={form.salarie_id} onChange={handleSalarieChange}
               disabled={modeEdition}>
               <option value="">Sélectionner un salarié</option>
               {salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI').map(s => (
                 <option key={s.id} value={s.id}>
-                  {s.matricule} — {s.nom} ({s.type_contrat})
+                  {s.matricule} — {nomComplet(s)} ({s.type_contrat})
                 </option>
               ))}
             </select>
           </div>
-
           <div>
             <label style={styles.label}>Mois *</label>
             <select style={styles.input} value={form.mois} disabled={modeEdition}
@@ -420,159 +464,113 @@ function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
             <input style={styles.input} type="date" value={form.date_paiement}
               onChange={e => setForm({ ...form, date_paiement: e.target.value })} />
           </div>
-        
+        </div>
 
-          {/* Variables communes */}
-          <div>
-            <label style={styles.label}>Jours travaillés</label>
-            <input style={styles.input} type="number" step="0.5" value={form.nb_jours_travailles}
-              onChange={e => setForm({ ...form, nb_jours_travailles: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label style={styles.label}>Jours d'absence</label>
-            <input style={styles.input} type="number" step="0.5" value={form.nb_jours_absence}
-              onChange={e => setForm({ ...form, nb_jours_absence: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label style={styles.label}>Panier repas (nb jours)</label>
-            <input style={styles.input} type="number" step="0.5" value={form.nb_jours_panier_repas}
-              onChange={e => setForm({ ...form, nb_jours_panier_repas: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label style={styles.label}>Transport (nb jours)</label>
-            <input style={styles.input} type="number" step="0.5" value={form.nb_jours_transport}
-              onChange={e => setForm({ ...form, nb_jours_transport: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label style={styles.label}>Autre indemnité (Ar)</label>
-            <input style={styles.input} type="number" value={form.autre_indemnite}
-              onChange={e => setForm({ ...form, autre_indemnite: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label style={styles.label}>Acompte (Ar)</label>
-            <input style={styles.input} type="number" value={form.acompte}
-              onChange={e => setForm({ ...form, acompte: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label style={styles.label}>Retenue (Ar)</label>
-            <input style={styles.input} type="number" value={form.retenue}
-              onChange={e => setForm({ ...form, retenue: Number(e.target.value) })} />
-          </div>
-          <div>
-            <label style={styles.label}>Avance (Ar)</label>
-            <input style={styles.input} type="number" value={form.avance_sur_salaire}
-              onChange={e => setForm({ ...form, avance_sur_salaire: Number(e.target.value) })} />
-            {!modeEdition && retenues[form.salarie_id] && (
-              <div style={{ fontSize: '11px', color: '#2e7d32', marginTop: '4px' }}>
-                Retenue prévue : {retenues[form.salarie_id].avances.map(a => a.numero).join(', ')}
-              </div>
-            )}
-          </div>
+        {/* Tableau variables */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <thead>
+              <tr style={{ background: '#004d5a', color: 'white' }}>
+                <th style={{
+                  padding: '8px', textAlign: 'left', minWidth: '80px',
+                  position: 'sticky', left: 0, background: '#004d5a', zIndex: 2
+                }}>Matricule</th>
+                <th style={{
+                  padding: '8px', textAlign: 'left', minWidth: '150px',
+                  position: 'sticky', left: '80px', background: '#004d5a', zIndex: 2
+                }}>Nom et prénom</th>
+                <th style={{ padding: '8px', textAlign: 'left', minWidth: '80px' }}>Contrat</th>
+                <th style={{ padding: '8px', textAlign: 'right', minWidth: '100px' }}>Sal. base</th>
+                {groupes.map(g => g.cols.map(c => (
+                  <th key={c.key} style={{
+                    padding: '8px', textAlign: 'center', minWidth: '80px',
+                    ...(g.fond ? { background: g.fond } : {})
+                  }}>
+                    {c.label}
+                  </th>
+                )))}
+              </tr>
+            </thead>
+            <tbody>
+              {!salarieSelectionne ? (
+                <tr>
+                  <td colSpan={4 + nbColonnes} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                    Sélectionne un salarié pour saisir les variables du mois.
+                  </td>
+                </tr>
+              ) : (
+                <tr style={{ background: 'white', borderBottom: '1px solid #e0e0e0' }}>
+                  <td style={{
+                    padding: '6px', fontWeight: 'bold', color: '#004d5a',
+                    position: 'sticky', left: 0, background: 'white', zIndex: 1,
+                    minWidth: '80px', borderRight: '1px solid #e0e0e0'
+                  }}>
+                    {salarieSelectionne.matricule}
+                  </td>
+                  <td style={{
+                    padding: '6px',
+                    position: 'sticky', left: '80px', background: 'white', zIndex: 1,
+                    minWidth: '150px', borderRight: '1px solid #e0e0e0'
+                  }}>
+                    {nomComplet(salarieSelectionne)}
+                  </td>
+                  <td style={{ padding: '6px', width: '55px', minWidth: '55px' }}>
+                    <span style={{
+                      padding: '2px 4px', borderRadius: '8px', fontSize: '10px',
+                      background: estStage ? '#e3f2fd' : '#e8f5e9',
+                      color: estStage ? '#1565c0' : '#2e7d32'
+                    }}>
+                      {salarieSelectionne.type_contrat}
+                    </span>
+                  </td>
+                  <td style={{ padding: '6px', textAlign: 'right', minWidth: '90px' }}>
+                    {Number(salarieSelectionne.salaire_base).toLocaleString('fr-FR')}
+                  </td>
+                  {groupes.map(g => g.cols.map(c => (
+                    <td key={c.key} style={{ padding: '4px' }}>
+                      {(g.cadre && estStage) ? (
+                        <span style={{ color: '#ccc', fontSize: '11px', display: 'block', textAlign: 'center' }}>
+                          —
+                        </span>
+                      ) : (
+                        <input
+                          type="number"
+                          step={c.step || '1'}
+                          value={form[c.key]}
+                          onChange={e => setForm({ ...form, [c.key]: Number(e.target.value) })}
+                          style={{
+                            width: '70px', padding: '4px 6px',
+                            border: '1px solid #e0e0e0', borderRadius: '4px',
+                            fontSize: '12px', textAlign: 'center'
+                          }}
+                        />
+                      )}
+                    </td>
+                  )))}
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-          {/* Variables non-stage */}
-          {!estStage && (
+        {/* Aides */}
+        <div style={{ fontSize: '11px', color: '#666', marginTop: '10px', lineHeight: 1.6 }}>
+          {!modeEdition && retenues[form.salarie_id] && (
+            <div style={{ color: '#2e7d32' }}>
+              Avance : retenue prévue {retenues[form.salarie_id].avances.map(a => a.numero).join(', ')}
+            </div>
+          )}
+          {!estStage && salarieSelectionne && (
             <>
-              <div>
-                <label style={styles.label}>Solde congé précédent (jours)</label>
-                <input style={styles.input} type="number" step="0.5" value={form.solde_conge_precedent}
-                  onChange={e => setForm({ ...form, solde_conge_precedent: Number(e.target.value) })} />
-                <span style={{ fontSize: '11px', color: '#666' }}>
-                  Laisser à 0 si l'historique existe déjà sur la plateforme
-                </span>
-              </div>
-              <div>
-                <label style={styles.label}>Congés payés (nb jours)</label>
-                <input style={styles.input} type="number" step="0.5" value={form.nb_jours_conge}
-                  onChange={e => setForm({ ...form, nb_jours_conge: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>H.sup 130% (nb heures)</label>
-                <input style={styles.input} type="number" step="0.5" value={form.nb_heures_sup_130}
-                  onChange={e => setForm({ ...form, nb_heures_sup_130: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>H.sup 150% (nb heures)</label>
-                <input style={styles.input} type="number" step="0.5" value={form.nb_heures_sup_150}
-                  onChange={e => setForm({ ...form, nb_heures_sup_150: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>H.férié travaillé (nb heures)</label>
-                <input style={styles.input} type="number" step="0.5" value={form.nb_heures_ferie}
-                  onChange={e => setForm({ ...form, nb_heures_ferie: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>Prime (Ar)</label>
-                <input style={styles.input} type="number" value={form.prime}
-                  onChange={e => setForm({ ...form, prime: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>Prime exceptionnelle (Ar)</label>
-                <input style={styles.input} type="number" value={form.prime_exceptionnelle}
-                  onChange={e => setForm({ ...form, prime_exceptionnelle: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>Régulation positive (Ar)</label>
-                <input style={styles.input} type="number" value={form.regulation_positive}
-                  onChange={e => setForm({ ...form, regulation_positive: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>Régulation négative (Ar)</label>
-                <input style={styles.input} type="number" value={form.regulation_negative}
-                  onChange={e => setForm({ ...form, regulation_negative: Number(e.target.value) })} />
-              </div>
-
-              {/* Avantages cadres */}
-              <div style={{ gridColumn: 'span 2' }}>
-                <div style={{ background: '#e3f2fd', borderRadius: '8px', padding: '12px', marginTop: '10px' }}>
-                  <strong style={{ color: '#1565c0' }}>💼 Indemnités cadres</strong>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '10px' }}>
-                    {[
-                      { key: 'indemnite_logement', label: 'Indemnité logement (Ar)' },
-                      { key: 'indemnite_carburant', label: 'Indemnité carburant (Ar)' },
-                      { key: 'indemnite_ecolage', label: 'Indemnité écolage (Ar)' },
-                      { key: 'indemnite_telephone', label: 'Indemnité téléphone (Ar)' },
-                      { key: 'indemnite_autre', label: 'Autre indemnité cadre (Ar)' }
-                    ].map(f => (
-                      <div key={f.key}>
-                        <label style={{ ...styles.label, fontSize: '12px' }}>{f.label}</label>
-                        <input style={{ ...styles.input, padding: '6px' }} type="number"
-                          value={form[f.key]}
-                          onChange={e => setForm({ ...form, [f.key]: Number(e.target.value) })} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ gridColumn: 'span 2' }}>
-                <div style={{ background: '#fff3e0', borderRadius: '8px', padding: '12px' }}>
-                  <strong style={{ color: '#e65100' }}>🏠 Avantages en nature</strong>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 10px 0' }}>
-                    Ces montants sont inclus dans le brut mais soustraits du net (fournis en nature, pas en argent)
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                    {[
-                      { key: 'avantage_nature_logement', label: 'Logement (Ar)' },
-                      { key: 'avantage_nature_vehicule', label: 'Véhicule (Ar)' },
-                      { key: 'avantage_nature_autre', label: 'Autre (Ar)' }
-                    ].map(f => (
-                      <div key={f.key}>
-                        <label style={{ ...styles.label, fontSize: '12px' }}>{f.label}</label>
-                        <input style={{ ...styles.input, padding: '6px' }} type="number"
-                          value={form[f.key]}
-                          onChange={e => setForm({ ...form, [f.key]: Number(e.target.value) })} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <div>Solde congé précédent : laisser à 0 si l'historique existe déjà sur la plateforme.</div>
+              <div>Avantages en nature : inclus dans le brut mais soustraits du net (fournis en nature, pas en argent).</div>
             </>
           )}
         </div>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button 
+          <button
             style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
             disabled={enCours}
             onClick={async () => {
@@ -1178,7 +1176,7 @@ export default function ListeFichesPaie() {
           </button>
           <button style={styles.boutonPrimaire}
             onClick={() => setModalOuvert('unique')}>
-            + Nouvelle fiche
+            + Fiche cadre
           </button>
         </div>
       </div>
