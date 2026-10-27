@@ -375,10 +375,16 @@ function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
 
   function handleSalarieChange(e) {
     const s = salaries.find(sal => sal.id === e.target.value);
+    // Les indemnités et avantages prévus sur la fiche du cadre sont repris automatiquement
+    const defautsCadre = {};
+    ['indemnite_logement', 'indemnite_carburant', 'indemnite_ecolage', 'indemnite_telephone', 'indemnite_autre',
+      'avantage_nature_logement', 'avantage_nature_vehicule', 'avantage_nature_autre']
+      .forEach(k => { defautsCadre[k] = Number(s?.[k]) || 0; });
     setForm({
       ...form,
       salarie_id: e.target.value,
-      nb_jours_travailles: s?.nb_jours_mois || 30
+      nb_jours_travailles: s?.nb_jours_mois || 30,
+      ...defautsCadre
     });
   }
 
@@ -442,7 +448,7 @@ function FormulaireUnique({ salaries, onSave, onCancel, ficheInitiale }) {
               <option value="">Sélectionner un salarié</option>
               {salaries.filter(s => s.actif && s.statut_emploi !== 'SORTI').map(s => (
                 <option key={s.id} value={s.id}>
-                  {s.matricule} — {nomComplet(s)} ({s.type_contrat})
+                  {s.est_cadre ? '💼 ' : ''}{s.matricule} — {nomComplet(s)} ({s.type_contrat})
                 </option>
               ))}
             </select>

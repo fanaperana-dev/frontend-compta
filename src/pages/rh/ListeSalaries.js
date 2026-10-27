@@ -41,6 +41,22 @@ const styles = {
 };
 
 const typesContrat = ['CDI', 'CDD', 'STAGE', 'INTERIM'];
+
+// Indemnités et avantages en nature prévus pour un cadre (repris par défaut sur ses fiches de paie)
+const champsIndemnites = [
+  { key: 'indemnite_logement', label: 'Ind. logement (Ar)' },
+  { key: 'indemnite_carburant', label: 'Ind. carburant (Ar)' },
+  { key: 'indemnite_ecolage', label: 'Ind. écolage (Ar)' },
+  { key: 'indemnite_telephone', label: 'Ind. téléphone (Ar)' },
+  { key: 'indemnite_autre', label: 'Autre ind. cadre (Ar)' }
+];
+const champsAvantages = [
+  { key: 'avantage_nature_logement', label: 'Logement (nature) (Ar)' },
+  { key: 'avantage_nature_vehicule', label: 'Véhicule (nature) (Ar)' },
+  { key: 'avantage_nature_autre', label: 'Autre (nature) (Ar)' }
+];
+const totalIndemnites = s => champsIndemnites.reduce((t, c) => t + (Number(s[c.key]) || 0), 0);
+const totalAvantages = s => champsAvantages.reduce((t, c) => t + (Number(s[c.key]) || 0), 0);
 const statutsEmploi = ['EN_POSTE', 'STAGIAIRE', 'SUSPENDU', 'SORTI'];
 
 function couleurStatutEmploi(statut) {
@@ -53,7 +69,7 @@ function couleurStatutEmploi(statut) {
   return c[statut] || { bg: '#f5f5f5', color: '#666', label: statut };
 }
 
-function FormulaireSalarie({ salarie, onSave, onCancel }) {
+function FormulaireSalarie({ salarie, cadre, onSave, onCancel }) {
   const [form, setForm] = useState({
     nom: salarie?.nom || '',
     prenom: salarie?.prenom || '',
@@ -77,14 +93,19 @@ function FormulaireSalarie({ salarie, onSave, onCancel }) {
     valeur_panier_repas: salarie?.valeur_panier_repas || 0,
     valeur_transport: salarie?.valeur_transport || 0,
     date_remise_niveau: salarie?.date_remise_niveau || '',
-    nouveau_salaire_base: salarie?.nouveau_salaire_base || 0
+    nouveau_salaire_base: salarie?.nouveau_salaire_base || 0,
+    ...(cadre ? Object.fromEntries(
+      [...champsIndemnites, ...champsAvantages].map(c => [c.key, Number(salarie?.[c.key]) || 0])
+    ) : {})
   });
   const [enCours, setEnCours] = useState(false);
   return (
     <div style={styles.modal}>
       <div style={styles.modalContent}>
         <h3 style={{ color: '#004d5a', marginTop: 0 }}>
-          {salarie ? '✏️ Modifier salarié' : '➕ Nouveau salarié'}
+          {cadre
+            ? (salarie ? '✏️ Modifier cadre' : '➕ Nouveau cadre')
+            : (salarie ? '✏️ Modifier salarié' : '➕ Nouveau salarié')}
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           <div>
@@ -220,6 +241,45 @@ function FormulaireSalarie({ salarie, onSave, onCancel }) {
             <input style={styles.input} type="number" value={form.nouveau_salaire_base}
               onChange={e => setForm({ ...form, nouveau_salaire_base: Number(e.target.value) })} />
           </div>
+
+          {cadre && (
+            <>
+              <div style={{ gridColumn: 'span 2' }}>
+                <div style={{ background: '#e3f2fd', borderRadius: '8px', padding: '12px', marginTop: '5px' }}>
+                  <strong style={{ color: '#1565c0' }}>💼 Indemnités cadres</strong>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 10px 0' }}>
+                    Montants mensuels repris automatiquement sur les fiches de paie (modifiables fiche par fiche).
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    {champsIndemnites.map(c => (
+                      <div key={c.key}>
+                        <label style={{ ...styles.label, fontSize: '12px' }}>{c.label}</label>
+                        <input style={{ ...styles.input, padding: '6px' }} type="number" value={form[c.key]}
+                          onChange={e => setForm({ ...form, [c.key]: Number(e.target.value) })} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <div style={{ background: '#fff3e0', borderRadius: '8px', padding: '12px' }}>
+                  <strong style={{ color: '#e65100' }}>🏠 Avantages en nature</strong>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 10px 0' }}>
+                    Inclus dans le brut mais soustraits du net (fournis en nature, pas en argent).
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                    {champsAvantages.map(c => (
+                      <div key={c.key}>
+                        <label style={{ ...styles.label, fontSize: '12px' }}>{c.label}</label>
+                        <input style={{ ...styles.input, padding: '6px' }} type="number" value={form[c.key]}
+                          onChange={e => setForm({ ...form, [c.key]: Number(e.target.value) })} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
@@ -297,7 +357,7 @@ function ModalStatut({ salarie, onSave, onCancel }) {
   );
 }
 
-export default function ListeSalaries() {
+export default function ListeSalaries({ cadre = false }) {
   const { entreprise } = useAuth();
   const [salaries, setSalaries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -336,12 +396,14 @@ export default function ListeSalaries() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({ ...form, entreprise_id: entreprise.id })
+        body: JSON.stringify({ ...form, entreprise_id: entreprise.id, est_cadre: cadre })
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
 
-      toast.success(salarieSelectionne ? 'Salarié modifié !' : 'Salarié créé !');
+      toast.success(cadre
+        ? (salarieSelectionne ? 'Cadre modifié !' : 'Cadre créé !')
+        : (salarieSelectionne ? 'Salarié modifié !' : 'Salarié créé !'));
       setSalarieSelectionne(null);
       chargerSalaries();
     } catch (err) {
@@ -395,9 +457,12 @@ export default function ListeSalaries() {
     }
   }
 
+  // Les cadres ont leur propre liste, à côté de celle des salariés
+  const liste = salaries.filter(s => !!s.est_cadre === cadre);
+
   function exporterExcel() {
     const XLSX = require('xlsx');
-    const donnees = salaries.map(s => ({
+    const donnees = liste.map(s => ({
       'Matricule': s.matricule,
       'Nom': s.nom,
       'Prénom': s.prenom || '',
@@ -419,16 +484,26 @@ export default function ListeSalaries() {
       'Transport': s.valeur_transport || 0,
       'Date remise niveau': s.date_remise_niveau || '',
       'Nouveau salaire': s.nouveau_salaire_base || 0,
+      ...(cadre ? {
+        'Ind. logement': s.indemnite_logement || 0,
+        'Ind. carburant': s.indemnite_carburant || 0,
+        'Ind. écolage': s.indemnite_ecolage || 0,
+        'Ind. téléphone': s.indemnite_telephone || 0,
+        'Autre ind. cadre': s.indemnite_autre || 0,
+        'Logement (nature)': s.avantage_nature_logement || 0,
+        'Véhicule (nature)': s.avantage_nature_vehicule || 0,
+        'Autre (nature)': s.avantage_nature_autre || 0
+      } : {}),
       'Actif': s.actif ? 'Oui' : 'Non'
     }));
     const ws = XLSX.utils.json_to_sheet(donnees);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Salariés');
-    XLSX.writeFile(wb, `Salaries_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, cadre ? 'Cadres' : 'Salariés');
+    XLSX.writeFile(wb, `${cadre ? 'Cadres' : 'Salaries'}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`);
     toast.success('Export Excel téléchargé !');
   }
 
-  const salariesFiltres = salaries.filter(s => {
+  const salariesFiltres = liste.filter(s => {
     const matchStatut = filtreStatut === 'TOUS' || s.statut_emploi === filtreStatut;
     const matchRecherche = !recherche ||
       s.nom?.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -443,6 +518,7 @@ export default function ListeSalaries() {
     <div>
       {modalOuvert === 'formulaire' && (
         <FormulaireSalarie
+          cadre={cadre}
           salarie={salarieSelectionne}
           onSave={sauvegarderSalarie}
           onCancel={() => { setModalOuvert(null); setSalarieSelectionne(null); }}
@@ -459,9 +535,9 @@ export default function ListeSalaries() {
       {/* En-tête */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
-          <h2 style={{ margin: 0, color: '#004d5a' }}>👥 Liste des salariés</h2>
+          <h2 style={{ margin: 0, color: '#004d5a' }}>{cadre ? '💼 Liste des cadres' : '👥 Liste des salariés'}</h2>
           <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '14px' }}>
-            {salaries.length} salarié(s) au total
+            {liste.length} {cadre ? 'cadre(s)' : 'salarié(s)'} au total
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -469,7 +545,7 @@ export default function ListeSalaries() {
             onClick={exporterExcel}>📊 Excel</button>
           <button style={styles.boutonPrimaire}
             onClick={() => { setSalarieSelectionne(null); setModalOuvert('formulaire'); }}>
-            + Nouveau salarié
+            {cadre ? '+ Nouveau cadre' : '+ Nouveau salarié'}
           </button>
         </div>
       </div>
@@ -503,13 +579,14 @@ export default function ListeSalaries() {
       <div style={styles.card}>
         {salariesFiltres.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-            Aucun salarié trouvé.
+            {cadre ? 'Aucun cadre trouvé.' : 'Aucun salarié trouvé.'}
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
                 {['Matricule', 'Nom', 'Fonction', 'Contrat', 'Statut', 'Salaire base',
+                  ...(cadre ? ['Indemnités', 'Avantages nature'] : []),
                   'Jours/mois', 'Heures/mois', 'Actif', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '12px', textAlign: 'left', fontSize: '13px',
                     color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
@@ -543,6 +620,16 @@ export default function ListeSalaries() {
                     <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold' }}>
                       {Number(s.salaire_base).toLocaleString('fr-FR')} Ar
                     </td>
+                    {cadre && (
+                      <>
+                        <td style={{ padding: '10px', fontSize: '13px', color: '#1565c0' }}>
+                          {totalIndemnites(s).toLocaleString('fr-FR')} Ar
+                        </td>
+                        <td style={{ padding: '10px', fontSize: '13px', color: '#e65100' }}>
+                          {totalAvantages(s).toLocaleString('fr-FR')} Ar
+                        </td>
+                      </>
+                    )}
                     <td style={{ padding: '10px', fontSize: '13px', color: '#666' }}>
                       {s.nb_jours_mois || 30}
                     </td>

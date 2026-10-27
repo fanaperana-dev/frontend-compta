@@ -10,6 +10,7 @@ export default function RHPage() {
 
   const onglets = [
     { id: 'salaries', label: '👥 Liste salariés' },
+    { id: 'cadres', label: '💼 Liste cadres' },
     { id: 'fiches', label: '📋 Fiches de paie' },
     { id: 'irsa', label: '💰 IRSA' },
     { id: 'cnaps', label: '🏦 CNAPS' },
@@ -52,6 +53,7 @@ export default function RHPage() {
       </div>
 
       {ongletActif === 'salaries' && <ListeSalaries />}
+      {ongletActif === 'cadres' && <ListeSalaries cadre />}
       {ongletActif === 'fiches' && <ListeFichesPaie />}
       {ongletActif === 'irsa' && <OngletCotisation type="IRSA" />}
       {ongletActif === 'cnaps' && <OngletCotisation type="CNAPS" />}
