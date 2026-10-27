@@ -648,7 +648,7 @@ function ModalPaiementFiche({ fiches, onSave, onCancel }) {
                 padding: '4px 0', fontSize: '12px',
                 borderBottom: '1px solid #f0f0f0'
               }}>
-                {f.matricule} — {f.nom_salarie} — {f.mois} {f.annee}
+                {f.matricule} — {[f.nom_salarie, f.prenom_salarie].filter(Boolean).join(' ')} — {f.mois} {f.annee}
               </div>
             ))}
           </div>
@@ -1219,7 +1219,7 @@ export default function ListeFichesPaie() {
                       else setSelection(fichesFiltrees.map(f => f.id));
                     }} />
                 </th>
-                {['Matricule', 'Nom', 'Fonction', 'Mois/Année', 'Sal. base', 'Sal. net', 'Statut', 'Actions'].map(h => (
+                {['Matricule', 'Nom et prénom', 'Fonction', 'Mois/Année', 'Sal. base', 'Sal. net', 'Statut', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '12px', textAlign: 'left', fontSize: '13px',
                     color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
                 ))}
@@ -1243,7 +1243,7 @@ export default function ListeFichesPaie() {
                     <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
                       {f.matricule}
                     </td>
-                    <td style={{ padding: '10px', fontSize: '13px' }}>{f.nom_salarie}</td>
+                    <td style={{ padding: '10px', fontSize: '13px' }}>{[f.nom_salarie, f.prenom_salarie].filter(Boolean).join(' ')}</td>
                     <td style={{ padding: '10px', fontSize: '13px', color: '#666' }}>
                       {f.fonction || '—'}
                     </td>
