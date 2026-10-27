@@ -26,6 +26,20 @@ const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
 
 const PLAFOND_CNAPS = 2101440;
 
+// Mois sélectionnés rangés dans l'ordre du calendrier : M1 = le plus ancien, M3 = le plus récent
+function trierMois(liste) {
+  return [...liste].sort((a, b) => moisListe.indexOf(a) - moisListe.indexOf(b));
+}
+
+// Fiche du salarié pour la colonne i (M1, M2, M3).
+// Avec une sélection : on prend le mois exact ; sans sélection : l'ordre du back (déjà chronologique).
+function moisDeColonne(d, i, moisTries) {
+  if (moisTries.length > 0) {
+    return d.mois.find(m => String(m.periode || '').split('/')[0] === moisTries[i]);
+  }
+  return d.mois[i];
+}
+
 export default function OngletCotisation({ type }) {
   const { entreprise } = useAuth();
   const [donnees, setDonnees] = useState([]);
@@ -137,8 +151,8 @@ export default function OngletCotisation({ type }) {
   const ws_data = [];
 
   // En-tête ligne 1
-  const moisHeaders = moisSelectionnes.length > 0
-    ? moisSelectionnes
+  const moisHeaders = moisTries.length > 0
+    ? moisTries
     : ['M1', 'M2', 'M3'];
 
   const header1 = [
@@ -184,7 +198,7 @@ export default function OngletCotisation({ type }) {
 
     const nbMoisAffiches = moisSelectionnes.length || 3;
     for (let i = 0; i < nbMoisAffiches; i++) {
-      const m = d.mois[i];
+      const m = moisDeColonne(d, i, moisTries);
       if (m) {
         ligne.push(
           m.salaire_brut || 0,
@@ -211,9 +225,9 @@ export default function OngletCotisation({ type }) {
   const ligneTotal = ['TOTAL', '', '', '', '', '', ''];
   for (let i = 0; i < nbMoisAffiches; i++) {
     const totalSalaire = donnees.reduce((s, d) =>
-      s + Number(d.mois[i]?.salaire_brut || 0), 0);
+      s + Number(moisDeColonne(d, i, moisTries)?.salaire_brut || 0), 0);
     const totalAvantage = donnees.reduce((s, d) =>
-      s + Number(d.mois[i]?.total_avantages_nature || 0), 0);
+      s + Number(moisDeColonne(d, i, moisTries)?.total_avantages_nature || 0), 0);
     ligneTotal.push(totalSalaire, totalAvantage, '', '');
   }
   ligneTotal.push('', '', '');
@@ -265,8 +279,8 @@ const header = [
 
 // Colonnes salaire par mois
 for (let i = 0; i < nbMoisAffiches; i++) {
-  const labelMois = moisSelectionnes[i]
-    ? `Salaire - ${moisSelectionnes[i]}`
+  const labelMois = moisTries[i]
+    ? `Salaire - ${moisTries[i]}`
     : i === 0 ? 'Salaire 1er mois'
     : i === 1 ? 'Salaire 2ème mois'
     : 'Salaire 3ème mois';
@@ -306,7 +320,7 @@ donnees.forEach((d, index) => {
 
   let total_salaire_non_plafonne = 0;
   for (let i = 0; i < nbMoisAffiches; i++) {
-    const salaire = Number(d.mois[i]?.salaire_brut || 0);
+    const salaire = Number(moisDeColonne(d, i, moisTries)?.salaire_brut || 0);
     total_salaire_non_plafonne += salaire;
     ligne.push(salaire);
   }
@@ -332,7 +346,7 @@ donnees.forEach((d, index) => {
 const ligneTotal = ['', 'TOTAL', '', '', '', '', '', '', '', '', ''];
 for (let i = 0; i < nbMoisAffiches; i++) {
   ligneTotal.push(
-    donnees.reduce((s, d) => s + Number(d.mois[i]?.salaire_brut || 0), 0)
+    donnees.reduce((s, d) => s + Number(moisDeColonne(d, i, moisTries)?.salaire_brut || 0), 0)
   );
 }
 
@@ -371,6 +385,9 @@ ws['!cols'] = [
     XLSX.writeFile(wb, `${type}_${filtreAnnee}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`);
     toast.success('Export Excel téléchargé !');
   }
+
+  // Mois sélectionnés du plus ancien (M1) au plus récent (M3), quel que soit l'ordre des clics
+  const moisTries = trierMois(moisSelectionnes);
 
   const titres = {
     IRSA: '💰 IRSA',
@@ -453,7 +470,7 @@ ws['!cols'] = [
                     type === 'IRSA' ? (
                       <React.Fragment key={i}>
                         <th style={{ padding: '12px', textAlign: 'center' }}>
-                          {moisSelectionnes[i] || `Mois ${i+1}`}
+                          {moisTries[i] || `Mois ${i+1}`}
                         </th>
                         <th style={{ padding: '12px', textAlign: 'right' }}>Brut imposable</th>
                         <th style={{ padding: '12px', textAlign: 'right' }}>IRSA</th>
@@ -461,7 +478,7 @@ ws['!cols'] = [
                     ) : (
                       <React.Fragment key={i}>
                         <th style={{ padding: '12px', textAlign: 'center' }}>
-                          {moisSelectionnes[i] || `Mois ${i+1}`}
+                          {moisTries[i] || `Mois ${i+1}`}
                         </th>
                         <th style={{ padding: '12px', textAlign: 'right' }}>Sal. brut</th>
                         <th style={{ padding: '12px', textAlign: 'right' }}>Salarial (1%)</th>
@@ -488,7 +505,7 @@ ws['!cols'] = [
                     </td>
                     <td style={{ padding: '10px', fontSize: '13px' }}>{d.nom}</td>
                     {Array.from({ length: moisSelectionnes.length || (type === 'IRSA' ? 2 : 3) }, (_, j) => {
-                      const m = d.mois[j];
+                      const m = moisDeColonne(d, j, moisTries);
                       if (!m) return type === 'IRSA'
                         ? <React.Fragment key={j}>
                             <td style={{ padding: '10px', color: '#ccc' }}>—</td>
