@@ -46,6 +46,13 @@ const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
 const modesPaiement = ['Virement bancaire','Espèces','Chèque','Mobile money'];;
 
 
+// Nom du fichier PDF d'une fiche : Nom_Prenom_Mois_Annee.pdf
+function nomFichierFiche(fiche) {
+  const propre = t => String(t || '').trim().replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+  return [fiche.nom_salarie, fiche.prenom_salarie, fiche.mois, fiche.annee]
+    .map(propre).filter(Boolean).join('_') + '.pdf';
+}
+
 // Retenues d'avances dues pour un mois : { [salarie_id]: { montant, avances: [...] } }
 async function chargerRetenues(entrepriseId, mois, annee) {
   try {
@@ -929,6 +936,9 @@ export default function ListeFichesPaie() {
        toast.info('📄 PDF non disponible — cette fiche de paie a été importée et n\'est pas stockée sur la plateforme.');
        return;
     }
+    // Onglet ouvert tout de suite (clic de l'utilisateur) : sinon le navigateur bloque le popup après l'attente du PDF
+    const onglet = window.open('', '_blank');
+    if (onglet) onglet.document.write('<p style="font-family:Arial;padding:20px">Chargement de la fiche de paie...</p>');
     try {
       const res = await fetch(
         `${API_URL}/api/rh/fiches-paie/${fiche.id}/pdf`,
@@ -941,11 +951,13 @@ export default function ListeFichesPaie() {
           body: JSON.stringify({ entreprise_id: entreprise.id })
         }
       );
-      if (!res.ok) { toast.error('Erreur génération PDF.'); return; }
+      if (!res.ok) { if (onglet) onglet.close(); toast.error('Erreur génération PDF.'); return; }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      if (onglet) onglet.location.href = url;
+      else toast.warn('Autorise les popups pour ouvrir la fiche de paie.');
     } catch (err) {
+      if (onglet) onglet.close();
       toast.error('Erreur visualisation.');
     }
   }
@@ -967,7 +979,7 @@ export default function ListeFichesPaie() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `FichePaie_${fiche.matricule}_${fiche.mois}_${fiche.annee}.pdf`;
+      a.download = nomFichierFiche(fiche);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
