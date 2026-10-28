@@ -783,6 +783,7 @@ export default function ListeFichesPaie() {
   const [filtreMois, setFiltreMois] = useState('');
   const [filtreAnnee, setFiltreAnnee] = useState(new Date().getFullYear());
   const [selection, setSelection] = useState([]);
+  const [tri, setTri] = useState({ cle: null, sens: 'asc' });
   const [modalOuvert, setModalOuvert] = useState(null);
   const [ficheSelectionnee, setFicheSelectionnee] = useState(null);
   const [modalPaiement, setModalPaiement] = useState(false);
@@ -1113,6 +1114,26 @@ export default function ListeFichesPaie() {
     const matchAnnee = !filtreAnnee || f.annee === filtreAnnee;
     return matchMois && matchAnnee;
   });
+  const COLONNES_TRI = {
+    'Matricule': f => String(f.matricule || ''),
+    'Nom': f => String(f.nom_salarie || ''),
+    'Fonction': f => String(f.fonction || ''),
+    'Mois/Année': f => Number(f.annee || 0) * 100 + moisListe.indexOf(f.mois),
+    'Sal. base': f => Number(f.salaire_base || 0),
+    'Sal. net': f => Number(f.salaire_net || 0),
+    'Statut': f => String(f.statut || '')
+  };
+  if (tri.cle && COLONNES_TRI[tri.cle]) {
+    const val = COLONNES_TRI[tri.cle];
+    const dir = tri.sens === 'asc' ? 1 : -1;
+    fichesFiltrees.sort((x, y) => {
+      const a = val(x), b = val(y);
+      return (typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'fr', { numeric: true })) * dir;
+    });
+  }
+  function changerTri(cle) {
+    setTri(t => t.cle === cle ? { cle, sens: t.sens === 'asc' ? 'desc' : 'asc' } : { cle, sens: 'asc' });
+  }
 
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>;
 
@@ -1271,8 +1292,13 @@ export default function ListeFichesPaie() {
                     }} />
                 </th>
                 {['Matricule', 'Nom', 'Fonction', 'Mois/Année', 'Sal. base', 'Sal. net', 'Statut', 'Actions'].map(h => (
-                  <th key={h} style={{ padding: '12px', textAlign: 'left', fontSize: '13px',
-                    color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
+                  <th key={h} onClick={COLONNES_TRI[h] ? () => changerTri(h) : undefined}
+                    title={COLONNES_TRI[h] ? 'Trier par cette colonne' : undefined}
+                    style={{ padding: '12px', textAlign: 'left', fontSize: '13px',
+                    color: '#555', borderBottom: '2px solid #e0e0e0',
+                    cursor: COLONNES_TRI[h] ? 'pointer' : 'default', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                    {h}{tri.cle === h ? (tri.sens === 'asc' ? ' ▲' : ' ▼') : ''}
+                  </th>
                 ))}
               </tr>
             </thead>
