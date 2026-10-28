@@ -33,6 +33,16 @@ function brutHorsAvantages(m) {
   return Number(m?.salaire_brut || 0) - Number(m?.total_avantages_nature || 0);
 }
 
+// Salariés triés par matricule, du plus ancien (EMP-001) au plus récent (EMP-002 avant EMP-010) ; sans matricule en dernier
+function trierParMatricule(liste) {
+  return [...liste].sort((a, b) => {
+    if (!a.matricule && !b.matricule) return 0;
+    if (!a.matricule) return 1;
+    if (!b.matricule) return -1;
+    return String(a.matricule).localeCompare(String(b.matricule), 'fr', { numeric: true });
+  });
+}
+
 function trierMois(liste) {
   return [...liste].sort((a, b) => moisListe.indexOf(a) - moisListe.indexOf(b));
 }
@@ -82,7 +92,8 @@ export default function OngletCotisation({ type }) {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       const data = await res.json();
-      setDonnees(data.data || []);
+      // CNAPS et OSTIE : par matricule, du plus ancien au plus récent (écran et export Excel)
+      setDonnees(type === 'IRSA' ? (data.data || []) : trierParMatricule(data.data || []));
       setNumeroCnapsEmployeur(data.employeur?.numero_cnaps || entreprise?.numero_cnaps || '');
     } catch (err) {
       toast.error('Erreur chargement.');
