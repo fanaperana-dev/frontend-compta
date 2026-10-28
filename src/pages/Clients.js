@@ -71,6 +71,7 @@ function FormulaireClient({ client, onSave, onCancel }) {
     conditions_paiement: client?.conditions_paiement || '',
     delai_paiement: client?.delai_paiement || 30,
     montant_mensuel: client?.montant_mensuel || 0,
+    remise_pourcent: client?.remise_pourcent || 0,
     actif: client?.actif || 'OUI'
   });
 
@@ -203,6 +204,26 @@ function FormulaireClient({ client, onSave, onCancel }) {
               value={form.montant_mensuel}
               onChange={handleChange}
             />
+          </div>
+          <div>
+            <label style={styles.label}>Remise contractuelle (%)</label>
+            <input
+              style={styles.input}
+              name="remise_pourcent"
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              value={form.remise_pourcent}
+              onChange={handleChange}
+              placeholder="Ex: 10 (fidélité…)"
+            />
+            {Number(form.remise_pourcent) > 0 && Number(form.montant_mensuel) > 0 && (
+              <span style={{ fontSize: '11px', color: '#2e7d32' }}>
+                Montant facturé : {(Number(form.montant_mensuel) * (1 - Math.min(100, Number(form.remise_pourcent)) / 100))
+                  .toLocaleString('fr-FR', { maximumFractionDigits: 2 })} Ar / mois
+              </span>
+            )}
           </div>
           <div style={{ gridColumn: 'span 2' }}>
             <label style={styles.label}>Conditions de paiement</label>
@@ -410,7 +431,7 @@ export default function Clients() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
-                {['Code', 'Nom', 'Société', 'Email', 'Téléphone', 'Délai', 'Montant mensuel', 'Statut', 'Actions'].map(h => (
+                {['Code', 'Nom', 'Société', 'Email', 'Téléphone', 'Délai', 'Montant mensuel', 'Remise', 'Statut', 'Actions'].map(h => (
                   <th key={h} style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -452,6 +473,11 @@ export default function Clients() {
                   </td>
                   <td style={{ padding: '12px', fontSize: '13px' }}>
                     {Number(client.montant_mensuel || 0).toLocaleString('fr-FR')} Ar
+                  </td>
+                  <td style={{ padding: '12px', fontSize: '13px', color: Number(client.remise_pourcent) > 0 ? '#2e7d32' : '#999' }}>
+                    {Number(client.remise_pourcent) > 0
+                      ? `${Number(client.remise_pourcent).toLocaleString('fr-FR')} %`
+                      : '—'}
                   </td>
                   <td style={{ padding: '12px' }}>
                     <span style={{

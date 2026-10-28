@@ -741,7 +741,7 @@ function FormulaireFactureMasse({ onSave, onCancel, noteDefaut }) {
             fontSize: '13px',
             color: '#1565c0'
           }}>
-            ℹ️ Les factures seront créées pour tous les clients <strong>actifs</strong> ayant un <strong>montant mensuel</strong> défini. Les clients déjà facturés pour ce mois seront ignorés.
+            ℹ️ Les factures seront créées pour tous les clients <strong>actifs</strong> ayant un <strong>montant mensuel</strong> défini. La <strong>remise</strong> prévue au contrat du client est appliquée et affichée sur la facture. Les clients déjà facturés pour ce mois seront ignorés.
           </div>
         </div>
 
