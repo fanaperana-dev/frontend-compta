@@ -119,9 +119,10 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
   function modifierLigne(index, champ, valeur) {
     const nouvLignes = [...lignes];
     nouvLignes[index][champ] = Number(valeur) || 0;
-    // Congés saisis → jours travaillés = jours du mois − congés
-    if (champ === 'nb_jours_conge') {
-      nouvLignes[index].nb_jours_travailles = Math.max(0, (Number(nouvLignes[index].nb_jours_mois) || 30) - (Number(valeur) || 0));
+    // Congés / absences saisis → jours travaillés = jours du mois − congés − absences
+    if (champ === 'nb_jours_conge' || champ === 'nb_jours_absence') {
+      const l = nouvLignes[index];
+      l.nb_jours_travailles = Math.max(0, (Number(l.nb_jours_mois) || 30) - (Number(l.nb_jours_conge) || 0) - (Number(l.nb_jours_absence) || 0));
     }
     setLignes(nouvLignes);
   }
@@ -464,7 +465,12 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
           <div>
             <label style={styles.label}>Jours d'absence</label>
             <input style={styles.input} type="number" step="0.5" value={form.nb_jours_absence}
-              onChange={e => setForm({ ...form, nb_jours_absence: Number(e.target.value) })} />
+              onChange={e => {
+              const abs = Number(e.target.value) || 0;
+              const sal = salaries.find(x => x.id === form.salarie_id);
+              const jMois = Number(sal?.nb_jours_mois) || 30;
+              setForm({ ...form, nb_jours_absence: abs, nb_jours_travailles: Math.max(0, jMois - (Number(form.nb_jours_conge) || 0) - abs) });
+            }} />
           </div>
           <div>
             <label style={styles.label}>Panier repas (nb jours)</label>
@@ -524,7 +530,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
                     const conge = Number(e.target.value) || 0;
                     const sal = salaries.find(x => x.id === form.salarie_id);
                     const jMois = Number(sal?.nb_jours_mois) || 30;
-                    setForm({ ...form, nb_jours_conge: conge, nb_jours_travailles: Math.max(0, jMois - conge) });
+                    setForm({ ...form, nb_jours_conge: conge, nb_jours_travailles: Math.max(0, jMois - conge - (Number(form.nb_jours_absence) || 0)) });
                   }} />
               </div>
               <div>
