@@ -83,7 +83,7 @@ export default function OngletCotisation({ type }) {
       setLoading(true);
       const params = new URLSearchParams({
         type,
-        nbMois: moisSelectionnes.length || (type === 'IRSA' ? 2 : 3),
+        nbMois: moisTries.length || (type === 'IRSA' ? 2 : 3),
         annee: filtreAnnee,
         ...(moisSelectionnes.length > 0 && { mois: moisSelectionnes.join(',') })
       });
@@ -215,7 +215,7 @@ export default function OngletCotisation({ type }) {
         : ''
     ];
 
-    const nbMoisAffiches = moisSelectionnes.length || 3;
+    const nbMoisAffiches = moisTries.length || 3;
     for (let i = 0; i < nbMoisAffiches; i++) {
       const m = moisDeColonne(d, i, moisTries);
       if (m) {
@@ -239,7 +239,7 @@ export default function OngletCotisation({ type }) {
     ws_data.push(ligne);
   });
 
-  const nbMoisAffiches = moisSelectionnes.length || 3;
+  const nbMoisAffiches = moisTries.length || 3;
 
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
@@ -266,7 +266,7 @@ export default function OngletCotisation({ type }) {
 
 } else if (type === 'OSTIE') {
   const ws_data = [];
-  const nbMoisAffiches = moisSelectionnes.length || 3;
+  const nbMoisAffiches = moisTries.length || 3;
   const PLAFOND_OSTIE = 2101440;
 
   // En-tête
@@ -395,7 +395,17 @@ ws['!cols'] = [
   }
 
   // Mois sélectionnés du plus ancien (M1) au plus récent (M3), quel que soit l'ordre des clics
-  const moisTries = trierMois(moisSelectionnes);
+  // Sans sélection : les mêmes mois pour tous les salariés (les plus récents présents dans les données),
+  // M1 = le plus ancien, dernier = le plus récent. Évite qu'un salarié n'ayant que le mois récent se retrouve en M1.
+  const moisTries = moisSelectionnes.length > 0
+    ? trierMois(moisSelectionnes)
+    : (() => {
+        const n = type === 'IRSA' ? 2 : 3;
+        const cle = p => { const [m, a] = String(p).split('/'); return Number(a) * 100 + moisListe.indexOf(m); };
+        const periodes = [...new Set(donnees.flatMap(d => d.mois.map(m => m.periode)))]
+          .filter(Boolean).sort((a, b) => cle(a) - cle(b)).slice(-n);
+        return periodes.map(p => String(p).split('/')[0]);
+      })();
 
   const titres = {
     IRSA: '💰 IRSA',
@@ -474,7 +484,7 @@ ws['!cols'] = [
                 <tr style={{ background: '#004d5a', color: 'white' }}>
                   <th style={{ padding: '12px', textAlign: 'left' }}>Matricule</th>
                   <th style={{ padding: '12px', textAlign: 'left' }}>Nom</th>
-                  {Array.from({ length: moisSelectionnes.length || (type === 'IRSA' ? 2 : 3) }, (_, i) => (
+                  {Array.from({ length: moisTries.length || (type === 'IRSA' ? 2 : 3) }, (_, i) => (
                     type === 'IRSA' ? (
                       <React.Fragment key={i}>
                         <th style={{ padding: '12px', textAlign: 'center' }}>
@@ -512,7 +522,7 @@ ws['!cols'] = [
                       {d.matricule}
                     </td>
                     <td style={{ padding: '10px', fontSize: '13px' }}>{d.nom}</td>
-                    {Array.from({ length: moisSelectionnes.length || (type === 'IRSA' ? 2 : 3) }, (_, j) => {
+                    {Array.from({ length: moisTries.length || (type === 'IRSA' ? 2 : 3) }, (_, j) => {
                       const m = moisDeColonne(d, j, moisTries);
                       if (!m) return type === 'IRSA'
                         ? <React.Fragment key={j}>
@@ -572,7 +582,7 @@ ws['!cols'] = [
               <tfoot>
                 <tr style={{ background: '#004d5a', color: 'white' }}>
                   <td colSpan={2} style={{ padding: '12px', fontWeight: 'bold' }}>TOTAL</td>
-                  {Array.from({ length: moisSelectionnes.length || (type === 'IRSA' ? 2 : 3) }, (_, j) => (
+                  {Array.from({ length: moisTries.length || (type === 'IRSA' ? 2 : 3) }, (_, j) => (
                     type === 'IRSA'
                       ? <React.Fragment key={j}><td colSpan={3}></td></React.Fragment>
                       : <React.Fragment key={j}><td colSpan={4}></td></React.Fragment>
