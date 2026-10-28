@@ -242,9 +242,9 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
               required
             >
               <option value="">Sélectionner un client</option>
-              {clients.filter(c => c.actif === 'OUI').map(c => (
+              {clients.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.nom} {c.societe ? `(${c.societe})` : ''}
+                  {c.nom} {c.societe ? `(${c.societe})` : ''}{c.actif === 'NON' ? ' — inactif' : ''}
                 </option>
               ))}
             </select>
