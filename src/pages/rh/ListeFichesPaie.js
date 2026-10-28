@@ -291,6 +291,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
   const { entreprise } = useAuth();
   const modeEdition = !!ficheInitiale;
   const [retenues, setRetenues] = useState({});
+  const [soldeSuggere, setSoldeSuggere] = useState(null); // solde restant de la fiche du mois précédent
   const anneeActuelle = new Date().getFullYear();
   const [enCours, setEnCours] = useState(false);
   const [form, setForm] = useState({
@@ -323,6 +324,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
     avantage_nature_vehicule: 0,
     avantage_nature_autre: 0,
     solde_conge_precedent: 0,
+    solde_conge_manuel: false, // true dès que l'utilisateur saisit lui-même le solde
     ...(ficheInitiale ? {
       salarie_id: ficheInitiale.salarie_id,
       mois: ficheInitiale.mois,
@@ -370,6 +372,23 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
     setForm(f => ({ ...f, avance_sur_salaire: retenues[f.salarie_id]?.montant || 0 }));
   }, [retenues, form.salarie_id]);
 
+  // Création : le solde de départ proposé est le solde restant de la fiche du mois précédent (modifiable)
+  useEffect(() => {
+    if (modeEdition || !form.salarie_id) { setSoldeSuggere(null); return undefined; }
+    let actif = true;
+    fetch(`${API_URL}/api/rh/solde-conge/${entreprise.id}/${form.salarie_id}?mois=${encodeURIComponent(form.mois)}&annee=${form.annee}`,
+      { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (!actif || !d.success) return;
+        const valeur = d.data?.solde_precedent;
+        setSoldeSuggere(valeur);
+        setForm(f => (f.solde_conge_manuel ? f : { ...f, solde_conge_precedent: valeur ?? 0 }));
+      })
+      .catch(() => {});
+    return () => { actif = false; };
+  }, [form.salarie_id, form.mois, form.annee]);
+
   const salarieSelectionne = salaries.find(s => s.id === form.salarie_id);
   const estStage = salarieSelectionne?.type_contrat === 'STAGE';
 
@@ -384,6 +403,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
       ...form,
       salarie_id: e.target.value,
       nb_jours_travailles: s?.nb_jours_mois || 30,
+      solde_conge_manuel: false, // nouveau salarié : on repart du solde proposé
       ...defautsCadre
     });
   }
@@ -483,10 +503,14 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
             <>
               <div>
                 <label style={styles.label}>Solde congé précédent (jours)</label>
-                <input style={styles.input} type="number" step="0.5" value={form.solde_conge_precedent}
-                  onChange={e => setForm({ ...form, solde_conge_precedent: Number(e.target.value) })} />
+                <input style={styles.input} type="number" step="0.01" value={form.solde_conge_precedent}
+                  onChange={e => setForm({ ...form, solde_conge_precedent: Number(e.target.value), solde_conge_manuel: true })} />
                 <span style={{ fontSize: '11px', color: '#666' }}>
-                  Laisser à 0 si l'historique existe déjà sur la plateforme
+                  {modeEdition
+                    ? 'Modifiable : le solde restant est recalculé (précédent − congés pris + 2,5 j).'
+                    : soldeSuggere !== null
+                      ? `Repris du solde restant du mois précédent (${soldeSuggere} j). Modifiable.`
+                      : 'Aucune fiche précédente : saisis le solde de départ du salarié.'}
                 </span>
               </div>
               <div>
