@@ -782,6 +782,9 @@ export default function ListeFichesPaie() {
   const [loading, setLoading] = useState(true);
   const [filtreMois, setFiltreMois] = useState('');
   const [filtreAnnee, setFiltreAnnee] = useState(new Date().getFullYear());
+  const [recherche, setRecherche] = useState('');
+  const [filtreSalarie, setFiltreSalarie] = useState('');
+  const [filtreStatut, setFiltreStatut] = useState('TOUS');
   const [selection, setSelection] = useState([]);
   const [tri, setTri] = useState({ cle: null, sens: 'asc' });
   const [modalOuvert, setModalOuvert] = useState(null);
@@ -1112,7 +1115,12 @@ export default function ListeFichesPaie() {
   const fichesFiltrees = fiches.filter(f => {
     const matchMois = !filtreMois || f.mois === filtreMois;
     const matchAnnee = !filtreAnnee || f.annee === filtreAnnee;
-    return matchMois && matchAnnee;
+    const matchStatut = filtreStatut === 'TOUS' || f.statut === filtreStatut;
+    const matchSalarie = !filtreSalarie || f.salarie_id === filtreSalarie;
+    const q = recherche.trim().toLowerCase();
+    const matchRecherche = !q || [f.matricule, f.nom_salarie, f.prenom_salarie, f.fonction]
+      .some(v => String(v || '').toLowerCase().includes(q));
+    return matchMois && matchAnnee && matchStatut && matchSalarie && matchRecherche;
   });
   const COLONNES_TRI = {
     'Matricule': f => String(f.matricule || ''),
@@ -1253,13 +1261,38 @@ export default function ListeFichesPaie() {
         </div>
       </div>
 
-      {/* Filtres */}
+      {/* Filtres (même présentation que la liste des factures clients) */}
       <div style={styles.card}>
         <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <div>
+            <label style={styles.label}>Rechercher</label>
+            <input
+              style={{ ...styles.input, width: '250px' }}
+              placeholder="Matricule, nom du salarié..."
+              value={recherche}
+              onChange={e => setRecherche(e.target.value)}
+            />
+          </div>
+          <div>
+            <label style={styles.label}>Salarié</label>
+            <select
+              style={{ ...styles.input, width: '200px' }}
+              value={filtreSalarie}
+              onChange={e => setFiltreSalarie(e.target.value)}
+            >
+              <option value="">Tous les salariés</option>
+              {salaries.map(sa => (
+                <option key={sa.id} value={sa.id}>{sa.nom} {sa.prenom || ''}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label style={styles.label}>Mois</label>
-            <select style={{ ...styles.input, width: '150px' }} value={filtreMois}
-              onChange={e => setFiltreMois(e.target.value)}>
+            <select
+              style={{ ...styles.input, width: '150px' }}
+              value={filtreMois}
+              onChange={e => setFiltreMois(e.target.value)}
+            >
               <option value="">Tous les mois</option>
               {moisListe.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -1270,6 +1303,31 @@ export default function ListeFichesPaie() {
               value={filtreAnnee}
               onChange={e => setFiltreAnnee(Number(e.target.value))} />
           </div>
+        </div>
+
+        {/* Filtres statut */}
+        <div style={{ display: 'flex', gap: '8px', marginTop: '15px', flexWrap: 'wrap' }}>
+          {['TOUS', 'BROUILLON', 'VALIDEE', 'PAYEE', 'ANNULEE'].map(st => {
+            const info = couleurStatut(st);
+            return (
+              <button
+                key={st}
+                onClick={() => setFiltreStatut(st)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: filtreStatut === st ? '#004d5a' : '#e0e0e0',
+                  color: filtreStatut === st ? 'white' : '#333',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                {st === 'TOUS' ? 'Toutes' : info.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
