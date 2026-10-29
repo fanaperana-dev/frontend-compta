@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import useSoumission from '../../hooks/useSoumission';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -301,6 +302,7 @@ function FormulaireSalarie({ salarie, cadre, onSave, onCancel }) {
 }
 
 function ModalStatut({ salarie, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     statut_emploi: salarie.statut_emploi || 'EN_POSTE',
     date_sortie: new Date().toISOString().split('T')[0],
@@ -348,8 +350,8 @@ function ModalStatut({ salarie, onSave, onCancel }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            Confirmer
+          <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }} onClick={() => soumettre(() => onSave(form))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : 'Confirmer'}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import useSoumission from '../hooks/useSoumission';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -36,6 +37,7 @@ const journaux = [
 ];
 
 function OngletJournal({ typeJournal }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const { entreprise } = useAuth();
   const [operations, setOperations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -238,10 +240,10 @@ async function sauvegarderSoldesOuverture() {
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
             <button style={styles.boutonSecondaire}
               onClick={() => setModalSoldesOuverture(false)}>Annuler</button>
-            <button style={styles.boutonPrimaire}
-              onClick={sauvegarderSoldesOuverture}>
-              💾 Enregistrer et recalculer
-            </button>
+            <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
+              onClick={() => soumettre(sauvegarderSoldesOuverture)} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : '💾 Enregistrer et recalculer'}
+          </button>
           </div>
          </div>
       </div>

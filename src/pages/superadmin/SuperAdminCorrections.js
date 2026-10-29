@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { entrepriseService, correctionService } from '../../services/api';
+import useSoumission from '../../hooks/useSoumission';
 
 const styles = {
   boutonPrimaire: {
@@ -47,6 +48,7 @@ const onglets = [
 
 // Modal édition générique
 function ModalEdition({ titre, donnee, champs, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState(() => {
     const init = {};
     champs.forEach(c => { init[c.key] = donnee[c.key] ?? ''; });
@@ -95,8 +97,8 @@ function ModalEdition({ titre, donnee, champs, onSave, onCancel }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            💾 Corriger
+          <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }} onClick={() => soumettre(() => onSave(form))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : '💾 Corriger'}
           </button>
         </div>
       </div>

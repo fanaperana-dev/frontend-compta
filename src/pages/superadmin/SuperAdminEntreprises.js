@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { entrepriseService } from '../../services/api';
+import useSoumission from '../../hooks/useSoumission';
 
 const styles = {
   boutonPrimaire: {
@@ -47,6 +48,7 @@ function couleurStatut(statut) {
 
 // Formulaire création/modification entreprise
 function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     nom: entreprise?.nom || '',
     email: entreprise?.email || '',
@@ -202,8 +204,8 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            {entreprise ? 'Modifier' : 'Créer'}
+          <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }} onClick={() => soumettre(() => onSave(form))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : entreprise ? 'Modifier' : 'Créer'}
           </button>
         </div>
       </div>

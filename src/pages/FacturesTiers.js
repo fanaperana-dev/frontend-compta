@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { tiersService, tiersListeService } from '../services/api';
+import useSoumission from '../hooks/useSoumission';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -679,6 +680,7 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
 
 
 export default function FacturesTiers() {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const { entreprise } = useAuth();
   const [factures, setFactures] = useState([]);
   const [tiers, setTiers] = useState([]);
@@ -882,8 +884,8 @@ export default function FacturesTiers() {
                 onClick={() => { setModalPaiement(null); setMontantPaiement(''); }}>
                 Annuler
               </button>
-              <button style={styles.boutonPrimaire}
-                onClick={async () => {
+              <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
+                onClick={() => soumettre(async () => {
                   if (!montantPaiement || Number(montantPaiement) <= 0) {
                     toast.error('Montant invalide.');
                     return;
@@ -901,9 +903,9 @@ export default function FacturesTiers() {
                   } catch (err) {
                     toast.error('Erreur enregistrement paiement.');
                   }
-                }}>
-                💾 Enregistrer
-              </button>
+                })} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : '💾 Enregistrer'}
+          </button>
             </div>
           </div>
         </div>

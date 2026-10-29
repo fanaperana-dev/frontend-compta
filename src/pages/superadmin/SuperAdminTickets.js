@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { ticketService } from '../../services/api';
+import useSoumission from '../../hooks/useSoumission';
 
 const styles = {
   boutonPrimaire: {
@@ -55,6 +56,7 @@ function labelCategorie(cat) {
 }
 
 function ModalTraiterTicket({ ticket, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [statut, setStatut] = useState(ticket.statut === 'OUVERT' ? 'EN_COURS' : ticket.statut);
   const [reponse, setReponse] = useState(ticket.reponse_admin || '');
 
@@ -94,8 +96,8 @@ function ModalTraiterTicket({ ticket, onSave, onCancel }) {
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(statut, reponse)}>
-            Enregistrer et envoyer
+          <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }} onClick={() => soumettre(() => onSave(statut, reponse))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : 'Enregistrer et envoyer'}
           </button>
         </div>
       </div>

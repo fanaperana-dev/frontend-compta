@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { clientService } from '../services/api';
+import useSoumission from '../hooks/useSoumission';
 
 const styles = {
   boutonPrimaire: {
@@ -54,6 +55,7 @@ const styles = {
 
 // Formulaire client
 function FormulaireClient({ client, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     nom: client?.nom || '',
     societe: client?.societe || '',
@@ -254,10 +256,9 @@ function FormulaireClient({ client, onSave, onCancel }) {
             Annuler
           </button>
           <button
-            style={styles.boutonPrimaire}
-            onClick={() => onSave(form)}
-          >
-            {client ? 'Modifier' : 'Créer'}
+            style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
+            onClick={() => soumettre(() => onSave(form))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : client ? 'Modifier' : 'Créer'}
           </button>
         </div>
       </div>

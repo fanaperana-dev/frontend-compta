@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { immobilisationService } from '../services/api';
 import * as XLSX from 'xlsx';
+import useSoumission from '../hooks/useSoumission';
 
 const styles = {
   boutonPrimaire: {
@@ -242,6 +243,7 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
 }
 
 function ModalSortie({ immo, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     date_cession: new Date().toISOString().split('T')[0],
     valeur_cession: 0,
@@ -275,8 +277,8 @@ function ModalSortie({ immo, onSave, onCancel }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonDanger} onClick={() => onSave(form)}>
-            Confirmer la sortie
+          <button style={{ ...styles.boutonDanger, opacity: envoiEnCours ? 0.6 : 1 }} onClick={() => soumettre(() => onSave(form))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : 'Confirmer la sortie'}
           </button>
         </div>
       </div>

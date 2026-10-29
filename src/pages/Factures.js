@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { factureService, clientService, mailService, paiementService } from '../services/api';
+import useSoumission from '../hooks/useSoumission';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -446,6 +447,7 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
 
 // Modal paiement
 function FormulairePaiement({ facture, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     montant: facture.solde || 0,
     type_paiement: 'TOTAL',
@@ -611,15 +613,14 @@ function FormulairePaiement({ facture, onSave, onCancel }) {
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
           <button
-            style={styles.boutonPrimaire}
-            onClick={() => onSave({
+            style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
+            onClick={() => soumettre(() => onSave({
              ...form,
              facture_id: facture.id,
              entreprise_id: facture.entreprise_id,
              fichier_justificatif: fichierJustificatif
-           })}
-          >
-            Enregistrer paiement
+           }))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : 'Enregistrer paiement'}
           </button>
         </div>
       </div>
@@ -629,6 +630,7 @@ function FormulairePaiement({ facture, onSave, onCancel }) {
 
 // Modal annulation
 function FormulaireAnnulation({ facture, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [motif, setMotif] = useState('');
 
   return (
@@ -650,11 +652,11 @@ function FormulaireAnnulation({ facture, onSave, onCancel }) {
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Retour</button>
           <button
-            style={{ ...styles.boutonPrimaire, color: '#c62828', borderColor: '#c62828' }}
-            onClick={() => onSave(facture.id, motif)}
-            disabled={!motif.trim()}
+            style={{ ...styles.boutonPrimaire, color: '#c62828', borderColor: '#c62828', opacity: envoiEnCours ? 0.6 : 1 }}
+            onClick={() => soumettre(() => onSave(facture.id, motif))}
+            disabled={envoiEnCours || (!motif.trim())}
           >
-            Confirmer annulation
+            {envoiEnCours ? '⏳ Patientez...' : 'Confirmer annulation'}
           </button>
         </div>
       </div>
@@ -765,6 +767,7 @@ function FormulaireFactureMasse({ onSave, onCancel, noteDefaut }) {
 
 // Modal modification facture
 function FormulaireModificationFacture({ facture, lignes, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     lignes: lignes.length > 0 ? lignes.map(l => ({
       id: l.id,
@@ -889,10 +892,9 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel }) {
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
           <button
-            style={styles.boutonPrimaire}
-            onClick={() => onSave(facture.id, form.lignes)}
-          >
-            Enregistrer modifications
+            style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
+            onClick={() => soumettre(() => onSave(facture.id, form.lignes))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : 'Enregistrer modifications'}
           </button>
         </div>
       </div>
@@ -901,6 +903,7 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel }) {
 }
 // Page principale Factures
 export default function Factures() {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const { entreprise } = useAuth();
   const [factures, setFactures] = useState([]);
   const [clients, setClients] = useState([]);
@@ -1406,10 +1409,9 @@ function exporterCSV() {
          {selection.length > 0 && (
           <>
           <button
-                style={{ ...styles.boutonSecondaire, color: '#1565c0', borderColor: '#1565c0' }}
-                onClick={envoyerSelectionMasse}
-        >
-               📧 Envoyer ({selection.length})
+                style={{ ...styles.boutonSecondaire, color: '#1565c0', borderColor: '#1565c0', opacity: envoiEnCours ? 0.6 : 1 }}
+                onClick={() => soumettre(envoyerSelectionMasse)} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : '📧 Envoyer ({selection.length})'}
           </button>
           <button
                style={{ ...styles.boutonSecondaire, color: '#2e7d32', borderColor: '#2e7d32' }}

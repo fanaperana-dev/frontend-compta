@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { tiersListeService } from '../services/api';
+import useSoumission from '../hooks/useSoumission';
 
 const styles = {
   boutonPrimaire: {
@@ -42,6 +43,7 @@ const styles = {
 };
 
 function FormulaireTiers({ tiers, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     nom: tiers?.nom || '',
     adresse: tiers?.adresse || '',
@@ -118,8 +120,8 @@ function FormulaireTiers({ tiers, onSave, onCancel }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            {tiers ? 'Modifier' : 'Créer'}
+          <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }} onClick={() => soumettre(() => onSave(form))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : tiers ? 'Modifier' : 'Créer'}
           </button>
         </div>
       </div>

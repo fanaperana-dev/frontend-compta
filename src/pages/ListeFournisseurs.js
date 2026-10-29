@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { fournisseurListeService } from '../services/api';
+import useSoumission from '../hooks/useSoumission';
 
 const styles = {
   boutonPrimaire: {
@@ -72,6 +73,7 @@ const styles = {
 
 // Formulaire fournisseur
 function FormulaireFournisseur({ fournisseur, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     nom: fournisseur?.nom || '',
     adresse: fournisseur?.adresse || '',
@@ -189,10 +191,9 @@ function FormulaireFournisseur({ fournisseur, onSave, onCancel }) {
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
           <button
-            style={styles.boutonPrimaire}
-            onClick={() => onSave(form)}
-          >
-            {fournisseur ? 'Modifier' : 'Créer'}
+            style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
+            onClick={() => soumettre(() => onSave(form))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : fournisseur ? 'Modifier' : 'Créer'}
           </button>
         </div>
       </div>

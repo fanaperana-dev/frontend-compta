@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { profilService, ticketService } from '../services/api';
+import useSoumission from '../hooks/useSoumission';
 
 
 const styles = {
@@ -38,6 +39,7 @@ function couleurStatutTicket(statut) {
 }
 
 export default function ProfilPage() {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const { entreprise } = useAuth();
   const [profil, setProfil] = useState(null);
   const [tickets, setTickets] = useState([]);
@@ -273,9 +275,9 @@ export default function ProfilPage() {
         </button>
       </div>
     </div>
-    <button style={styles.boutonPrimaire} onClick={changerMotDePasse}>
-      Modifier le mot de passe
-    </button>
+    <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }} onClick={() => soumettre(changerMotDePasse)} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : 'Modifier le mot de passe'}
+          </button>
   </div>
 </div>
 

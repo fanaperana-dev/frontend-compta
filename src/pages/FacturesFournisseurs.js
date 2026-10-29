@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { fournisseurService, fournisseurListeService } from '../services/api';
+import useSoumission from '../hooks/useSoumission';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -656,6 +657,7 @@ function ModalAjouterPJ({ facture, onClose, onUpload }) {
 }
 // Page principale Factures Fournisseurs
 export default function FacturesFournisseurs() {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const { entreprise } = useAuth();
   const [factures, setFactures] = useState([]);
   const [fournisseurs, setFournisseurs] = useState([]);
@@ -854,8 +856,8 @@ export default function FacturesFournisseurs() {
                 onClick={() => { setModalPaiement(null); setMontantPaiement(''); }}>
                 Annuler
               </button>
-              <button style={styles.boutonPrimaire}
-                onClick={async () => {
+              <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
+                onClick={() => soumettre(async () => {
                   if (!montantPaiement || Number(montantPaiement) <= 0) {
                     toast.error('Montant invalide.');
                     return;
@@ -871,9 +873,9 @@ export default function FacturesFournisseurs() {
                   } catch (err) {
                     toast.error('Erreur enregistrement paiement.');
                   }
-                }}>
-                💾 Enregistrer
-              </button>
+                })} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : '💾 Enregistrer'}
+          </button>
             </div>
           </div>
         </div>

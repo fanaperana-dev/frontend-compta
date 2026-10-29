@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { stockService } from '../services/api';
+import useSoumission from '../hooks/useSoumission';
 
 const styles = {
   boutonPrimaire: {
@@ -170,6 +171,7 @@ function FormulaireArticle({ article, onSave, onCancel }) {
 
 // Formulaire mouvement
 function FormulaireMouvement({ articles, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     article_id: '',
     type_mouvement: 'ENTREE_ACHAT',
@@ -274,8 +276,8 @@ function FormulaireMouvement({ articles, onSave, onCancel }) {
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button style={styles.boutonPrimaire} onClick={() => onSave(form)}>
-            Enregistrer
+          <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }} onClick={() => soumettre(() => onSave(form))} disabled={envoiEnCours}>
+            {envoiEnCours ? '⏳ Patientez...' : 'Enregistrer'}
           </button>
         </div>
       </div>
