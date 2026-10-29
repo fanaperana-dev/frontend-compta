@@ -447,7 +447,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
       const rows = [];
       rows.push([titre]);
       rows.push([
-        'Désignation', 'Val. Acquisition', 'Acquisition', 'Fin amort.', 'Cessions',
+        'Désignation', 'Val. Acquisition', 'Début amort.', 'Fin amort.', 'Cessions',
         'Valeur Brute', 'Amort. Antérieurs', 'Amort. Exercice',
         'Amort. Cumulé', 'Valeur Résiduelle'
       ]);
@@ -455,7 +455,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
         rows.push([
           d.immobilisations?.designation,
           d.immobilisations?.valeur_acquisition,
-          formaterDate(d.immobilisations?.date_acquisition),
+          formaterDate(d.immobilisations?.date_debut_amortissement),
           formaterDate(d.immobilisations?.date_fin_amortissement),
           d.immobilisations?.cessions_exercice,
           d.valeur_brute,
@@ -702,7 +702,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                       <tr style={{ background: '#004d5a', color: 'white' }}>
                         <th style={{ padding: '8px', textAlign: 'left' }}>Désignation</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Val. Acq.</th>
-                        <th style={{ padding: '8px', textAlign: 'right' }}>Acquisition</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Début amort.</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Fin amort.</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Cessions</th>
                         <th style={{ padding: '8px', textAlign: 'right', background: '#003d47' }}>Val. Brute</th>
@@ -723,7 +723,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                             {Number(d.immobilisations?.valeur_acquisition).toLocaleString('fr-FR')}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                            {formaterDate(d.immobilisations?.date_acquisition)}
+                            {formaterDate(d.immobilisations?.date_debut_amortissement)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                             {formaterDate(d.immobilisations?.date_fin_amortissement)}
