@@ -343,6 +343,13 @@ function ModalDotation({ dotation, onSave, onCancel }) {
     </div>
   );
 }
+// jj/mm/aaaa (ou tiret si pas de date)
+function formaterDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return isNaN(dt) ? '—' : dt.toLocaleDateString('fr-FR');
+}
+
 export default function ImmobilisationsPage() {
   const { entreprise } = useAuth();
   const [onglet, setOnglet] = useState('liste');
@@ -440,7 +447,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
       const rows = [];
       rows.push([titre]);
       rows.push([
-        'Désignation', 'Val. Acquisition', 'Acquisitions', 'Cessions',
+        'Désignation', 'Val. Acquisition', 'Acquisition', 'Fin amort.', 'Cessions',
         'Valeur Brute', 'Amort. Antérieurs', 'Amort. Exercice',
         'Amort. Cumulé', 'Valeur Résiduelle'
       ]);
@@ -448,7 +455,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
         rows.push([
           d.immobilisations?.designation,
           d.immobilisations?.valeur_acquisition,
-          d.immobilisations?.acquisitions_exercice,
+          formaterDate(d.immobilisations?.date_acquisition),
+          formaterDate(d.immobilisations?.date_fin_amortissement),
           d.immobilisations?.cessions_exercice,
           d.valeur_brute,
           d.amortissement_anterieur,
@@ -465,27 +473,27 @@ const [loadingTableau, setLoadingTableau] = useState(false);
       [],
       ...lignesTableau(tableau.incorporelles.lignes, 'IMMOBILISATIONS INCORPORELLES'),
       ['TOTAL INCORPORELLES', tableau.incorporelles.total.valeur_acquisition,
-        tableau.incorporelles.total.acquisitions, tableau.incorporelles.total.cessions,
+        '', '', tableau.incorporelles.total.cessions,
         tableau.incorporelles.total.valeur_brute, tableau.incorporelles.total.amortissement_anterieur,
         tableau.incorporelles.total.dotation_exercice, tableau.incorporelles.total.amortissement_cumule,
         tableau.incorporelles.total.valeur_nette_comptable],
       [],
       ...lignesTableau(tableau.corporelles.lignes, 'IMMOBILISATIONS CORPORELLES'),
       ['TOTAL CORPORELLES', tableau.corporelles.total.valeur_acquisition,
-        tableau.corporelles.total.acquisitions, tableau.corporelles.total.cessions,
+        '', '', tableau.corporelles.total.cessions,
         tableau.corporelles.total.valeur_brute, tableau.corporelles.total.amortissement_anterieur,
         tableau.corporelles.total.dotation_exercice, tableau.corporelles.total.amortissement_cumule,
         tableau.corporelles.total.valeur_nette_comptable],
       [],
       ['TOTAL GÉNÉRAL', tableau.total_general.valeur_acquisition,
-        tableau.total_general.acquisitions, tableau.total_general.cessions,
+        '', '', tableau.total_general.cessions,
         tableau.total_general.valeur_brute, tableau.total_general.amortissement_anterieur,
         tableau.total_general.dotation_exercice, tableau.total_general.amortissement_cumule,
         tableau.total_general.valeur_nette_comptable]
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!cols'] = Array(9).fill({ wch: 20 });
+    ws['!cols'] = Array(10).fill({ wch: 20 });
     XLSX.utils.book_append_sheet(wb, ws, `Amortissement ${anneeTableau}`);
     XLSX.writeFile(wb, `Tableau_Amortissement_${anneeTableau}.xlsx`);
     toast.success('Export Excel généré !');
@@ -694,7 +702,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                       <tr style={{ background: '#004d5a', color: 'white' }}>
                         <th style={{ padding: '8px', textAlign: 'left' }}>Désignation</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Val. Acq.</th>
-                        <th style={{ padding: '8px', textAlign: 'right' }}>Acquisitions</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Acquisition</th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>Fin amort.</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Cessions</th>
                         <th style={{ padding: '8px', textAlign: 'right', background: '#003d47' }}>Val. Brute</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>Durée (j)</th>
@@ -713,8 +722,11 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                           <td style={{ padding: '8px', textAlign: 'right' }}>
                             {Number(d.immobilisations?.valeur_acquisition).toLocaleString('fr-FR')}
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {Number(d.immobilisations?.acquisitions_exercice || 0).toLocaleString('fr-FR')}
+                          <td style={{ padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            {formaterDate(d.immobilisations?.date_acquisition)}
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            {formaterDate(d.immobilisations?.date_fin_amortissement)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
                             {Number(d.immobilisations?.cessions_exercice || 0).toLocaleString('fr-FR')}
@@ -758,9 +770,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                         <td style={{ padding: '8px', textAlign: 'right' }}>
                           {Number(section.total.valeur_acquisition).toLocaleString('fr-FR')}
                         </td>
-                        <td style={{ padding: '8px', textAlign: 'right' }}>
-                          {Number(section.total.acquisitions).toLocaleString('fr-FR')}
-                        </td>
+                        <td style={{ padding: '8px' }}></td>
+                        <td style={{ padding: '8px' }}></td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
                           {Number(section.total.cessions).toLocaleString('fr-FR')}
                         </td>
@@ -787,15 +798,14 @@ const [loadingTableau, setLoadingTableau] = useState(false);
 
               {/* Total général */}
               <div style={{ background: '#004d5a', color: 'white', borderRadius: '8px', padding: '12px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '10px',
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '10px',
                   fontSize: '12px', fontWeight: 'bold' }}>
                   <span>TOTAL GÉNÉRAL</span>
                   <span style={{ textAlign: 'right' }}>
                     {Number(tableau.total_general.valeur_acquisition).toLocaleString('fr-FR')}
                   </span>
-                  <span style={{ textAlign: 'right' }}>
-                    {Number(tableau.total_general.acquisitions).toLocaleString('fr-FR')}
-                  </span>
+                  <span></span>
+                  <span></span>
                   <span style={{ textAlign: 'right' }}>
                     {Number(tableau.total_general.cessions).toLocaleString('fr-FR')}
                   </span>
