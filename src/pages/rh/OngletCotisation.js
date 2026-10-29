@@ -24,7 +24,7 @@ const styles = {
 const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
-const PLAFOND_CNAPS = 2101440;
+const PLAFOND_CNAPS = 2400000;
 
 // Mois sélectionnés rangés dans l'ordre du calendrier : M1 = le plus ancien, M3 = le plus récent
 // Salaire brut hors avantages en nature : les avantages (cadres) ont leur propre colonne dans les déclarations,
@@ -267,7 +267,7 @@ export default function OngletCotisation({ type }) {
 } else if (type === 'OSTIE') {
   const ws_data = [];
   const nbMoisAffiches = moisTries.length || 3;
-  const PLAFOND_OSTIE = 2101440;
+  const PLAFOND_OSTIE = 2400000;
 
   // En-tête
   
