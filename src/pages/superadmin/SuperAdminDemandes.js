@@ -6,12 +6,12 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 const styles = {
   boutonPrimaire: {
-    background: 'white', color: '#2e7d32', border: '2px solid #2e7d32',
+    background: 'white', color: '#004d5a', border: '2px solid #004d5a',
     padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
     fontSize: '12px', fontWeight: 'normal'
   },
   boutonSucces: {
-    background: 'white', color: '#2e7d32', border: '2px solid #2e7d32',
+    background: 'white', color: '#004d5a', border: '2px solid #004d5a',
     padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'
   },
   boutonDanger: {
