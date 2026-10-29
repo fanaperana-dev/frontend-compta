@@ -344,6 +344,17 @@ function ModalDotation({ dotation, onSave, onCancel }) {
   );
 }
 // jj/mm/aaaa (ou tiret si pas de date)
+// Largeurs fixes partagées par tous les tableaux d'amortissement et la ligne Total général (alignement des colonnes)
+const LARGEURS_AMORT = [15, 8, 7, 7, 6, 8, 6, 8, 8, 7, 8, 8, 4];
+const stylesTableAmort = { width: '100%', minWidth: '1150px', tableLayout: 'fixed', borderCollapse: 'collapse', fontSize: '12px' };
+function ColGroupAmort() {
+  return (
+    <colgroup>
+      {LARGEURS_AMORT.map((l, i) => <col key={i} style={{ width: `${l}%` }} />)}
+    </colgroup>
+  );
+}
+
 function formaterDate(d) {
   if (!d) return '—';
   const dt = new Date(d);
@@ -712,6 +723,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                 Tableau d'amortissement au 31/12/{anneeTableau}
               </h3>
 
+              <div style={{ overflowX: 'auto' }}>
               {/* Table helper */}
               {[
                 { titre: 'IMMOBILISATIONS INCORPORELLES', lignes: tableau.incorporelles.lignes, total: tableau.incorporelles.total },
@@ -721,7 +733,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
               ].filter(s => s.lignes.length > 0).map(section => (
                 <div key={section.titre} style={{ marginBottom: '30px' }}>
                   <h4 style={{ color: '#004d5a', marginBottom: '10px' }}>{section.titre}</h4>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <table style={stylesTableAmort}>
+                    <ColGroupAmort />
                     <thead>
                       <tr style={{ background: '#004d5a', color: 'white' }}>
                         <th style={{ padding: '8px', textAlign: 'left' }}>Désignation</th>
@@ -823,37 +836,27 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                 </div>
               ))}
 
-              {/* Total général */}
-              <div style={{ background: '#004d5a', color: 'white', borderRadius: '8px', padding: '12px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '10px',
-                  fontSize: '12px', fontWeight: 'bold' }}>
-                  <span>TOTAL GÉNÉRAL</span>
-                  <span style={{ textAlign: 'right' }}>
-                    {Number(tableau.total_general.valeur_acquisition).toLocaleString('fr-FR')}
-                  </span>
-                  <span></span>
-                  <span></span>
-                  <span style={{ textAlign: 'right' }}>
-                    {Number(tableau.total_general.cessions).toLocaleString('fr-FR')}
-                  </span>
-                  <span style={{ textAlign: 'right' }}>
-                    {Number(tableau.total_general.valeur_brute).toLocaleString('fr-FR')}
-                  </span>
-                  <span></span>
-                  <span></span>
-                  <span style={{ textAlign: 'right' }}>
-                    {Number(tableau.total_general.amortissement_anterieur).toLocaleString('fr-FR')}
-                  </span>
-                  <span style={{ textAlign: 'right' }}>
-                    {Number(tableau.total_general.dotation_exercice).toLocaleString('fr-FR')}
-                  </span>
-                  <span style={{ textAlign: 'right' }}>
-                    {Number(tableau.total_general.amortissement_cumule).toLocaleString('fr-FR')}
-                  </span>
-                  <span style={{ textAlign: 'right' }}>
-                    {Number(tableau.total_general.valeur_nette_comptable).toLocaleString('fr-FR')}
-                  </span>
-                </div>
+              {/* Total général : même grille de colonnes que les tableaux */}
+              <table style={{ ...stylesTableAmort, background: '#004d5a', color: 'white', borderRadius: '8px', fontWeight: 'bold' }}>
+                <ColGroupAmort />
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '12px 8px' }}>TOTAL GÉNÉRAL</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_acquisition).toLocaleString('fr-FR')}</td>
+                    <td></td>
+                    <td></td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.cessions).toLocaleString('fr-FR')}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_brute).toLocaleString('fr-FR')}</td>
+                    <td></td>
+                    <td></td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.amortissement_anterieur).toLocaleString('fr-FR')}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.dotation_exercice).toLocaleString('fr-FR')}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.amortissement_cumule).toLocaleString('fr-FR')}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_nette_comptable).toLocaleString('fr-FR')}</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
               </div>
             </div>
           )}
