@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { immobilisationService } from '../services/api';
 import * as XLSX from 'xlsx';
 
+// Tous les montants affichés avec 2 décimales
+const FMT2 = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+
 const styles = {
   boutonPrimaire: {
     background: 'white', color: '#004d5a', border: '2px solid #004d5a',
@@ -192,7 +195,7 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
               borderRadius: '8px', padding: '12px' }}>
               <div style={{ display: 'flex', gap: '30px', fontSize: '13px' }}>
                 <span><strong>Durée :</strong> {dureeJours} jours</span>
-                <span><strong>Taux journalier :</strong> {Number(tauxJournalier).toLocaleString('fr-FR')} Ar/jour</span>
+                <span><strong>Taux journalier :</strong> {Number(tauxJournalier).toLocaleString('fr-FR', FMT2)} Ar/jour</span>
               </div>
             </div>
           )}
@@ -653,7 +656,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                     {new Date(immo.date_acquisition).toLocaleDateString('fr-FR')}
                   </td>
                   <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>
-                    {Number(immo.valeur_acquisition).toLocaleString('fr-FR')} Ar
+                    {Number(immo.valeur_acquisition).toLocaleString('fr-FR', FMT2)} Ar
                   </td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>
                     {new Date(immo.date_debut_amortissement).toLocaleDateString('fr-FR')}
@@ -663,7 +666,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                   </td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>{immo.duree_jours} j</td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>
-                    {Number(immo.taux_journalier).toLocaleString('fr-FR', { maximumFractionDigits: 4 })} Ar
+                    {Number(immo.taux_journalier).toLocaleString('fr-FR', FMT2)} Ar
                   </td>
                   <td style={{ padding: '10px' }}>
                     <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px',
@@ -757,7 +760,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                           borderBottom: '1px solid #e0e0e0' }}>
                           <td style={{ padding: '8px' }}>{d.immobilisations?.designation}</td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {Number(d.immobilisations?.valeur_acquisition).toLocaleString('fr-FR')}
+                            {Number(d.immobilisations?.valeur_acquisition).toLocaleString('fr-FR', FMT2)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                             {formaterDate(d.immobilisations?.date_debut_amortissement)}
@@ -766,28 +769,28 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                             {formaterDate(d.immobilisations?.date_fin_amortissement)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {Number(d.immobilisations?.cessions_exercice || 0).toLocaleString('fr-FR')}
+                            {Number(d.immobilisations?.cessions_exercice || 0).toLocaleString('fr-FR', FMT2)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
-                            {Number(d.valeur_brute).toLocaleString('fr-FR')}
+                            {Number(d.valeur_brute).toLocaleString('fr-FR', FMT2)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
                             {d.immobilisations?.duree_jours} j
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {Number(d.immobilisations?.taux_journalier).toLocaleString('fr-FR', { maximumFractionDigits: 4 })} Ar
+                            {Number(d.immobilisations?.taux_journalier).toLocaleString('fr-FR', FMT2)} Ar
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {Number(d.amortissement_anterieur).toLocaleString('fr-FR')}
+                            {Number(d.amortissement_anterieur).toLocaleString('fr-FR', FMT2)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {Number(d.dotation_exercice).toLocaleString('fr-FR')}
+                            {Number(d.dotation_exercice).toLocaleString('fr-FR', FMT2)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
-                            {Number(d.amortissement_cumule).toLocaleString('fr-FR')}
+                            {Number(d.amortissement_cumule).toLocaleString('fr-FR', FMT2)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: '#2e7d32' }}>
-                            {Number(d.valeur_nette_comptable).toLocaleString('fr-FR')}
+                            {Number(d.valeur_nette_comptable).toLocaleString('fr-FR', FMT2)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
                             <button style={{ ...styles.boutonSecondaire, fontSize: '11px', padding: '2px 6px' }}
@@ -805,29 +808,29 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                       <tr style={{ background: '#e8f5e9', fontWeight: 'bold', borderTop: '2px solid #004d5a' }}>
                         <td style={{ padding: '8px' }}>TOTAL {section.titre}</td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
-                          {Number(section.total.valeur_acquisition).toLocaleString('fr-FR')}
+                          {Number(section.total.valeur_acquisition).toLocaleString('fr-FR', FMT2)}
                         </td>
                         <td style={{ padding: '8px' }}></td>
                         <td style={{ padding: '8px' }}></td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
-                          {Number(section.total.cessions).toLocaleString('fr-FR')}
+                          {Number(section.total.cessions).toLocaleString('fr-FR', FMT2)}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
-                          {Number(section.total.valeur_brute).toLocaleString('fr-FR')}
+                          {Number(section.total.valeur_brute).toLocaleString('fr-FR', FMT2)}
                         </td>
                         <td style={{ padding: '8px' }}></td>
                         <td style={{ padding: '8px' }}></td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
-                          {Number(section.total.amortissement_anterieur).toLocaleString('fr-FR')}
+                          {Number(section.total.amortissement_anterieur).toLocaleString('fr-FR', FMT2)}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
-                          {Number(section.total.dotation_exercice).toLocaleString('fr-FR')}
+                          {Number(section.total.dotation_exercice).toLocaleString('fr-FR', FMT2)}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
-                          {Number(section.total.amortissement_cumule).toLocaleString('fr-FR')}
+                          {Number(section.total.amortissement_cumule).toLocaleString('fr-FR', FMT2)}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right', color: '#2e7d32' }}>
-                          {Number(section.total.valeur_nette_comptable).toLocaleString('fr-FR')}
+                          {Number(section.total.valeur_nette_comptable).toLocaleString('fr-FR', FMT2)}
                         </td>
                       <td style={{ padding: '8px' }}></td>
                       </tr>
@@ -842,17 +845,17 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                 <tbody>
                   <tr>
                     <td style={{ padding: '12px 8px' }}>TOTAL GÉNÉRAL</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_acquisition).toLocaleString('fr-FR')}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_acquisition).toLocaleString('fr-FR', FMT2)}</td>
                     <td></td>
                     <td></td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.cessions).toLocaleString('fr-FR')}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_brute).toLocaleString('fr-FR')}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.cessions).toLocaleString('fr-FR', FMT2)}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_brute).toLocaleString('fr-FR', FMT2)}</td>
                     <td></td>
                     <td></td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.amortissement_anterieur).toLocaleString('fr-FR')}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.dotation_exercice).toLocaleString('fr-FR')}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.amortissement_cumule).toLocaleString('fr-FR')}</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_nette_comptable).toLocaleString('fr-FR')}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.amortissement_anterieur).toLocaleString('fr-FR', FMT2)}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.dotation_exercice).toLocaleString('fr-FR', FMT2)}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.amortissement_cumule).toLocaleString('fr-FR', FMT2)}</td>
+                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>{Number(tableau.total_general.valeur_nette_comptable).toLocaleString('fr-FR', FMT2)}</td>
                     <td></td>
                   </tr>
                 </tbody>
@@ -903,7 +906,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                     <td style={{ padding: '10px', color: '#666' }}>{x.motif}</td>
                     <td style={{ padding: '10px', textAlign: 'right', whiteSpace: 'nowrap' }}>{formaterDate(x.date)}</td>
                     <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>
-                      {Number(x.valeur).toLocaleString('fr-FR')} Ar
+                      {Number(x.valeur).toLocaleString('fr-FR', FMT2)} Ar
                     </td>
                   </tr>
                 ))}
