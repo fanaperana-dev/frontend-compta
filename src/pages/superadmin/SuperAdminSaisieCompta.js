@@ -303,7 +303,7 @@ export default function SaisieComptableAdmin() {
                   {enCours ? '⏳ Calcul…' : '🔄 Recalculer maintenant'}
                 </button>
                 {clos && (
-                  <button style={{ ...styles.boutonPrimaire, background: '#c62828' }} disabled={enCours} onClick={rouvrir}>
+                  <button style={{ ...styles.boutonPrimaire, color: '#c62828', borderColor: '#c62828' }} disabled={enCours} onClick={rouvrir}>
                     🔓 Rouvrir l'exercice {annee}
                   </button>
                 )}

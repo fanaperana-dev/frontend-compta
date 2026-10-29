@@ -5,14 +5,9 @@ import { factureService, clientService, mailService, paiementService } from '../
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
-    background: '#004d5a',
-    color: 'white',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 'bold'
+    background: 'white', color: '#2e7d32', border: '2px solid #2e7d32',
+    padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
+    fontSize: '12px', fontWeight: 'normal'
   },
   boutonSecondaire: {
     background: 'white',
@@ -655,7 +650,7 @@ function FormulaireAnnulation({ facture, onSave, onCancel }) {
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Retour</button>
           <button
-            style={{ ...styles.boutonPrimaire, background: '#c62828' }}
+            style={{ ...styles.boutonPrimaire, color: '#c62828', borderColor: '#c62828' }}
             onClick={() => onSave(facture.id, motif)}
             disabled={!motif.trim()}
           >

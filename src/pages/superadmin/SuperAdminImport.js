@@ -6,17 +6,17 @@ import api from '../../services/api';
 
 const styles = {
   boutonPrimaire: {
-    background: '#004d5a', color: 'white', border: 'none',
-    padding: '10px 20px', borderRadius: '8px', cursor: 'pointer',
-    fontSize: '14px', fontWeight: 'bold'
+    background: 'white', color: '#2e7d32', border: '2px solid #2e7d32',
+    padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
+    fontSize: '12px', fontWeight: 'normal'
   },
   boutonSecondaire: {
     background: 'white', color: '#004d5a', border: '2px solid #004d5a',
     padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'
   },
   boutonVert: {
-    background: '#2e7d32', color: 'white', border: 'none',
-    padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px'
+    background: 'white', color: '#2e7d32', border: '2px solid #2e7d32',
+    padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px'
   },
   input: {
     width: '100%', padding: '10px', border: '2px solid #e0e0e0',

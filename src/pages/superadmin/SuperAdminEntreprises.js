@@ -4,9 +4,9 @@ import { entrepriseService } from '../../services/api';
 
 const styles = {
   boutonPrimaire: {
-    background: '#004d5a', color: 'white', border: 'none',
-    padding: '10px 20px', borderRadius: '8px', cursor: 'pointer',
-    fontSize: '14px', fontWeight: 'bold'
+    background: 'white', color: '#2e7d32', border: '2px solid #2e7d32',
+    padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
+    fontSize: '12px', fontWeight: 'normal'
   },
   boutonSecondaire: {
     background: 'white', color: '#004d5a', border: '2px solid #004d5a',
@@ -254,7 +254,7 @@ function ModalDetailEntreprise({ entreprise, forfaits, onClose, onModifier, onCh
               placeholder="Ex : Facture impayée, désabonnement..." />
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px', justifyContent: 'flex-end' }}>
               <button style={styles.boutonSecondaire} onClick={() => setModalSuspension(false)}>Annuler</button>
-              <button style={{ ...styles.boutonPrimaire, background: '#c62828' }}
+              <button style={{ ...styles.boutonPrimaire, color: '#c62828', borderColor: '#c62828' }}
                 onClick={() => { onChangerStatut(entreprise.id, 'SUSPENDU', motifSuspension); setModalSuspension(false); }}>
                 Confirmer suspension
               </button>
