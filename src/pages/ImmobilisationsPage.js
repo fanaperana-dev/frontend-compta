@@ -802,6 +802,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                         <td style={{ padding: '8px', textAlign: 'right' }}>
                           {Number(section.total.valeur_brute).toLocaleString('fr-FR')}
                         </td>
+                        <td style={{ padding: '8px' }}></td>
+                        <td style={{ padding: '8px' }}></td>
                         <td style={{ padding: '8px', textAlign: 'right' }}>
                           {Number(section.total.amortissement_anterieur).toLocaleString('fr-FR')}
                         </td>
@@ -814,6 +816,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                         <td style={{ padding: '8px', textAlign: 'right', color: '#2e7d32' }}>
                           {Number(section.total.valeur_nette_comptable).toLocaleString('fr-FR')}
                         </td>
+                      <td style={{ padding: '8px' }}></td>
                       </tr>
                     </tbody>
                   </table>
@@ -822,7 +825,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
 
               {/* Total général */}
               <div style={{ background: '#004d5a', color: 'white', borderRadius: '8px', padding: '12px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '10px',
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '10px',
                   fontSize: '12px', fontWeight: 'bold' }}>
                   <span>TOTAL GÉNÉRAL</span>
                   <span style={{ textAlign: 'right' }}>
@@ -836,6 +839,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                   <span style={{ textAlign: 'right' }}>
                     {Number(tableau.total_general.valeur_brute).toLocaleString('fr-FR')}
                   </span>
+                  <span></span>
+                  <span></span>
                   <span style={{ textAlign: 'right' }}>
                     {Number(tableau.total_general.amortissement_anterieur).toLocaleString('fr-FR')}
                   </span>
