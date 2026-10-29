@@ -503,7 +503,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
 
   // Immobilisations sorties durant N-1 et N-2 : fin d'amortissement (valeur de sortie 0) ou cession / vente
   // (date et valeur de sortie saisies). Tri par date de sortie, du plus récent au plus ancien.
-  const anneeCourante = new Date().getFullYear();
+  // N = année choisie (même sélecteur que le tableau d'amortissement). Celles qui se terminent en N restent dans le tableau d'amortissement.
+  const anneeCourante = anneeTableau;
   const sorties = immobilisations
     .map(i => {
       const cede = i.actif === false && i.date_cession;
@@ -857,11 +858,21 @@ const [loadingTableau, setLoadingTableau] = useState(false);
       {/* Onglet Sorties N-1 / N-2 */}
       {onglet === 'sorties' && (
         <div style={styles.card}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={styles.label}>Année N</label>
+            <select style={{ ...styles.input, width: '150px' }}
+              value={anneeTableau}
+              onChange={e => setAnneeTableau(Number(e.target.value))}>
+              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
           <h3 style={{ margin: '0 0 5px 0', color: '#004d5a' }}>
             Immobilisations sorties en {anneeCourante - 1} et {anneeCourante - 2}
           </h3>
           <p style={{ margin: '0 0 15px 0', color: '#666', fontSize: '13px' }}>
-            Fin d'amortissement (valeur de sortie 0) ou cession / vente. Du plus récent au plus ancien.
+            Fin d'amortissement (valeur de sortie 0) ou cession / vente, du plus récent au plus ancien. Celles qui se terminent en {anneeCourante} figurent dans le tableau d'amortissement {anneeCourante}, pas ici.
           </p>
           {sorties.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
