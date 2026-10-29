@@ -1,3 +1,4 @@
+import { formater2Decimales } from '../utils/excel2Decimales';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
@@ -169,6 +170,8 @@ async function sauvegarderSoldesOuverture() {
     });
 
     const ws = XLSX.utils.json_to_sheet(donnees);
+
+    formater2Decimales(ws);
     ws['!cols'] = [
       { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 35 },
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }

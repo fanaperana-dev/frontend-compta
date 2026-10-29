@@ -1,3 +1,4 @@
+import { formater2Decimales } from '../../utils/excel2Decimales';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -497,6 +498,7 @@ export default function ListeSalaries({ cadre = false }) {
       'Actif': s.actif ? 'Oui' : 'Non'
     }));
     const ws = XLSX.utils.json_to_sheet(donnees);
+    formater2Decimales(ws);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, cadre ? 'Cadres' : 'Salariés');
     XLSX.writeFile(wb, `${cadre ? 'Cadres' : 'Salaries'}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`);

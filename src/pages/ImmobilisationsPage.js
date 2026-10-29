@@ -1,3 +1,4 @@
+import { formater2Decimales } from '../utils/excel2Decimales';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
@@ -507,6 +508,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(data);
+
+    formater2Decimales(ws, { tout: true });
     ws['!cols'] = Array(10).fill({ wch: 20 });
     XLSX.utils.book_append_sheet(wb, ws, `Amortissement ${anneeTableau}`);
     XLSX.writeFile(wb, `Tableau_Amortissement_${anneeTableau}.xlsx`);

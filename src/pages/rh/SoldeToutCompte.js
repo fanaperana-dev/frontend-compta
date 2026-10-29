@@ -1,3 +1,4 @@
+import { formater2Decimales } from '../../utils/excel2Decimales';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -109,6 +110,7 @@ export default function SoldeToutCompte() {
       'NET STC': resultat.net_stc
     }];
     const ws = XLSX.utils.json_to_sheet(donnees);
+    formater2Decimales(ws);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'STC');
     XLSX.writeFile(wb, `STC_${resultat.matricule}_${resultat.date_sortie}.xlsx`);

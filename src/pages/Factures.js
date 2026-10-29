@@ -1,3 +1,4 @@
+import { formater2Decimales } from '../utils/excel2Decimales';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
@@ -1266,6 +1267,8 @@ function exporterExcel() {
   }));
 
   const ws = XLSX.utils.json_to_sheet(donnees);
+
+  formater2Decimales(ws);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Factures');
 
@@ -1295,6 +1298,8 @@ function exporterCSV() {
   }));
 
   const ws = XLSX.utils.json_to_sheet(donnees);
+
+  formater2Decimales(ws);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Factures');
   XLSX.writeFile(wb, `Factures_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.csv`);

@@ -1,3 +1,4 @@
+import { formater2Decimales } from '../../utils/excel2Decimales';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -159,6 +160,8 @@ export default function OngletCotisation({ type }) {
       }
 
       const ws = XLSX.utils.json_to_sheet(donnees_export);
+
+      formater2Decimales(ws);
       ws['!cols'] = [
         { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
         { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
@@ -242,6 +245,8 @@ export default function OngletCotisation({ type }) {
   const nbMoisAffiches = moisTries.length || 3;
 
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+  formater2Decimales(ws, { lignesEntete: 2 });
 
   // Fusionner cellules en-tête M1/M2/M3
   ws['!merges'] = [];
@@ -376,6 +381,7 @@ ligneTotal.push(
 
 ws_data.push(ligneTotal);
 const ws = XLSX.utils.aoa_to_sheet(ws_data);
+formater2Decimales(ws);
 
 // Largeurs colonnes
 ws['!cols'] = [
