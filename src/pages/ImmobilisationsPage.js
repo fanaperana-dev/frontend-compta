@@ -652,7 +652,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                   </td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>{immo.duree_jours} j</td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>
-                    {Number(immo.taux_journalier).toLocaleString('fr-FR')} Ar
+                    {Number(immo.taux_journalier).toLocaleString('fr-FR', { maximumFractionDigits: 4 })} Ar
                   </td>
                   <td style={{ padding: '10px' }}>
                     <span style={{ padding: '3px 8px', borderRadius: '12px', fontSize: '11px',
@@ -762,7 +762,7 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                             {d.immobilisations?.duree_jours} j
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {Number(d.immobilisations?.taux_journalier).toLocaleString('fr-FR')} Ar
+                            {Number(d.immobilisations?.taux_journalier).toLocaleString('fr-FR', { maximumFractionDigits: 4 })} Ar
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
                             {Number(d.amortissement_anterieur).toLocaleString('fr-FR')}
