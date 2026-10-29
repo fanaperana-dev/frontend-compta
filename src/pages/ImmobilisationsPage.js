@@ -501,6 +501,28 @@ const [loadingTableau, setLoadingTableau] = useState(false);
 
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>;
 
+  // Immobilisations sorties durant N-1 et N-2 : fin d'amortissement (valeur de sortie 0) ou cession / vente
+  // (date et valeur de sortie saisies). Tri par date de sortie, du plus récent au plus ancien.
+  const anneeCourante = new Date().getFullYear();
+  const sorties = immobilisations
+    .map(i => {
+      const cede = i.actif === false && i.date_cession;
+      return {
+        id: i.id,
+        designation: i.designation,
+        reference: i.reference,
+        date: cede ? i.date_cession : i.date_fin_amortissement,
+        valeur: cede ? Number(i.valeur_cession || 0) : 0,
+        motif: cede ? 'Cession / vente' : 'Fin d\'amortissement'
+      };
+    })
+    .filter(x => {
+      if (!x.date) return false;
+      const a = new Date(x.date).getFullYear();
+      return a === anneeCourante - 1 || a === anneeCourante - 2;
+    })
+    .sort((x, y) => new Date(y.date) - new Date(x.date));
+
   const incorporelles = immobilisations.filter(i => i.type_immobilisation === 'INCORPORELLE');
   const corporelles = immobilisations.filter(i => i.type_immobilisation === 'CORPORELLE');
 
@@ -565,7 +587,8 @@ const [loadingTableau, setLoadingTableau] = useState(false);
       <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '2px solid #e0e0e0' }}>
         {[
           { key: 'liste', label: '📋 Liste' },
-          { key: 'tableau', label: '📊 Tableau d\'amortissement' }
+          { key: 'tableau', label: '📊 Tableau d\'amortissement' },
+          { key: 'sorties', label: '📤 Sorties N-1 / N-2' }
         ].map(o => (
           <button key={o.key} onClick={() => setOnglet(o.key)}
             style={{
@@ -827,6 +850,46 @@ const [loadingTableau, setLoadingTableau] = useState(false);
                 </div>
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Onglet Sorties N-1 / N-2 */}
+      {onglet === 'sorties' && (
+        <div style={styles.card}>
+          <h3 style={{ margin: '0 0 5px 0', color: '#004d5a' }}>
+            Immobilisations sorties en {anneeCourante - 1} et {anneeCourante - 2}
+          </h3>
+          <p style={{ margin: '0 0 15px 0', color: '#666', fontSize: '13px' }}>
+            Fin d'amortissement (valeur de sortie 0) ou cession / vente. Du plus récent au plus ancien.
+          </p>
+          {sorties.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              Aucune immobilisation sortie en {anneeCourante - 1} ou {anneeCourante - 2}.
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: '#f5f5f5' }}>
+                  <th style={{ padding: '10px', textAlign: 'left' }}>Désignation</th>
+                  <th style={{ padding: '10px', textAlign: 'left' }}>Motif</th>
+                  <th style={{ padding: '10px', textAlign: 'right' }}>Date de sortie d'amortissement</th>
+                  <th style={{ padding: '10px', textAlign: 'right' }}>Valeur de sortie</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorties.map((x, i) => (
+                  <tr key={x.id} style={{ background: i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #e0e0e0' }}>
+                    <td style={{ padding: '10px' }}>{x.designation}</td>
+                    <td style={{ padding: '10px', color: '#666' }}>{x.motif}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', whiteSpace: 'nowrap' }}>{formaterDate(x.date)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>
+                      {Number(x.valeur).toLocaleString('fr-FR')} Ar
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       )}
