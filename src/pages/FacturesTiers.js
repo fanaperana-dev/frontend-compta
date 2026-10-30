@@ -946,7 +946,7 @@ export default function FacturesTiers() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
-          <h2 style={{ margin: 0, color: '#004d5a' }}>📄 Factures tiers</h2>
+          <h2 style={{ margin: 0, color: '#004d5a' }}>📄 Factures divers</h2>
           <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '14px' }}>
             {factures.length} facture(s) au total
           </p>
