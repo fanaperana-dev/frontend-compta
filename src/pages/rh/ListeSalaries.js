@@ -88,6 +88,7 @@ function FormulaireSalarie({ salarie, cadre, onSave, onCancel }) {
     type_contrat: salarie?.type_contrat || 'CDI',
     occasionnel: salarie?.occasionnel || 'N',
     date_embauche: salarie?.date_embauche || '',
+    date_sortie: salarie?.date_sortie || '',
     salaire_base: salarie?.salaire_base || 0,
     nb_jours_mois: salarie?.nb_jours_mois || 30,
     nb_heures_mois: salarie?.nb_heures_mois || 173.33,
@@ -202,6 +203,16 @@ function FormulaireSalarie({ salarie, cadre, onSave, onCancel }) {
             <label style={styles.label}>Date d'embauche</label>
             <input style={styles.input} type="date" value={form.date_embauche}
               onChange={e => setForm({ ...form, date_embauche: e.target.value })} />
+          </div>
+          <div>
+            <label style={styles.label}>Date de débauche</label>
+            <input style={styles.input} type="date" value={form.date_sortie}
+              onChange={e => setForm({ ...form, date_sortie: e.target.value })} />
+            {form.date_sortie && (
+              <div style={{ fontSize: '11px', color: '#c62828', marginTop: '4px' }}>
+                Le salarié passera automatiquement en « Sorti » : il n'apparaîtra plus dans la fiche de paie en masse.
+              </div>
+            )}
           </div>
           <div>
             <label style={styles.label}>Salaire de base (Ar) *</label>
