@@ -2,6 +2,8 @@ import { formater2Decimales } from '../../utils/excel2Decimales';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import useSoumission from '../../hooks/useSoumission';
+import { tiersService } from '../../services/api';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonSecondaire: {
@@ -57,12 +59,148 @@ function moisDeColonne(d, i, moisTries) {
   return d.mois[i];
 }
 
+// ───────────── Paiement de la CNAPS / OSTIE / IRSA ─────────────
+const MODES_PAIEMENT = ['Virement bancaire', 'Carte bancaire', 'Chèque', 'Espèces', 'Airtel money', 'Orange money', 'Mvola', 'Associé', 'Autre'];
+// moyen de paiement -> compte de trésorerie de la dépense (mêmes valeurs que le formulaire Tiers)
+const DEPENSE_PAR_MODE = {
+  'Virement bancaire': 'Dépenses banque', 'Carte bancaire': 'Dépenses banque', 'Chèque': 'Dépenses banque', 'Autre': 'Dépenses banque',
+  'Espèces': 'Dépenses caisse', 'Mvola': 'Dépenses Mvola', 'Orange money': 'Dépenses Orange money',
+  'Airtel money': 'Dépenses Airtel money', 'Associé': 'Dépense associé'
+};
+// onglet -> tiers, nature imposée côté back (compte 431 ou 447) et libellé du compte
+const PAIEMENT_PAR_TYPE = {
+  CNAPS: { tiers: 'CNAPS', nature: 'CNAPS_OSTIE', compte: '431 – Organismes sociaux', nom: 'CNAPS' },
+  OSTIE: { tiers: 'OSTIE', nature: 'CNAPS_OSTIE', compte: '431 – Organismes sociaux', nom: 'OSTIE' },
+  IRSA: { tiers: 'Direction Générale des Impôts (IRSA)', nature: 'IRSA', compte: '447 – État, autres impôts et versements (IRSA)', nom: 'IRSA' }
+};
+
+function ModalPaiementCotisation({ type, moisSelectionnes, montantInitial, detailMontant, entrepriseId, onClose }) {
+  const cfg = PAIEMENT_PAR_TYPE[type];
+  const { enCours, soumettre } = useSoumission();
+  const moisTexte = trierMois(moisSelectionnes).map(m => m.toLowerCase()).join(' - ');
+  const [form, setForm] = useState({
+    intitule: `Paiement ${cfg.nom}${moisTexte ? ' ' + moisTexte : ''}`,
+    date: new Date().toLocaleDateString('en-CA'),
+    montant: montantInitial,
+    mode_paiement: ''
+  });
+  const [fichiers, setFichiers] = useState([]);
+
+  const convertirBase64 = (fichier) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(fichier);
+  });
+
+  async function enregistrer() {
+    if (!(Number(form.montant) > 0)) return toast.error('Montant invalide.');
+    if (!form.mode_paiement) return toast.error('Choisis le moyen de paiement.');
+    if (!form.date) return toast.error('Choisis la date de paiement.');
+    try {
+      const res = await tiersService.creer({
+        entreprise_id: entrepriseId,
+        tiers: cfg.tiers,
+        categorie: '', sous_categorie: '',
+        depense: DEPENSE_PAR_MODE[form.mode_paiement] || 'Dépenses banque',
+        recette: '',
+        montant: Number(form.montant),
+        montant_paye: Number(form.montant),
+        mode_paiement: form.mode_paiement,
+        date_facture: form.date,
+        commentaire: form.intitule,
+        nature_depense: cfg.nature,
+        statut: 'PAYEE'
+      });
+      const factureId = res.data.data.id;
+      for (let i = 0; i < fichiers.length; i++) {
+        const base64 = await convertirBase64(fichiers[i]);
+        await fetch(`${API_URL}/api/tiers/${factureId}/upload-justificatif`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+          body: JSON.stringify({ fichier_base64: base64, nom_fichier: fichiers[i].name, type_mime: fichiers[i].type, index: i + 1 })
+        });
+      }
+      toast.success(`Paiement ${cfg.nom} enregistré (compte ${cfg.compte.split(' ')[0]}).`);
+      onClose();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur enregistrement du paiement.');
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div style={{ background: 'white', borderRadius: '12px', padding: '25px', width: '480px', maxWidth: '92vw',
+        maxHeight: '90vh', overflowY: 'auto' }}>
+        <h3 style={{ color: '#004d5a', marginTop: 0 }}>💳 Payer – {cfg.nom}</h3>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={styles.label}>Intitulé</label>
+          <input style={styles.input} value={form.intitule}
+            onChange={e => setForm({ ...form, intitule: e.target.value })} />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+          <div>
+            <label style={styles.label}>Date de paiement</label>
+            <input style={styles.input} type="date" value={form.date}
+              onChange={e => setForm({ ...form, date: e.target.value })} />
+          </div>
+          <div>
+            <label style={styles.label}>Montant (Ar)</label>
+            <input style={styles.input} type="number" step="0.01" value={form.montant}
+              onChange={e => setForm({ ...form, montant: e.target.value })} />
+          </div>
+        </div>
+        {detailMontant && (
+          <div style={{ fontSize: '11px', color: '#666', marginTop: '-8px', marginBottom: '14px' }}>{detailMontant}</div>
+        )}
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={styles.label}>Compte comptable</label>
+          <input style={{ ...styles.input, background: '#f5f5f5' }} value={cfg.compte} readOnly />
+        </div>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={styles.label}>Moyen de paiement</label>
+          <select style={styles.input} value={form.mode_paiement}
+            onChange={e => setForm({ ...form, mode_paiement: e.target.value })}>
+            <option value="">Sélectionner</option>
+            {MODES_PAIEMENT.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={styles.label}>Pièce jointe</label>
+          <input type="file" multiple accept=".pdf,image/*"
+            onChange={e => setFichiers(Array.from(e.target.files || []))} />
+          {fichiers.length > 0 && (
+            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+              {fichiers.map(f => f.name).join(', ')}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button style={styles.boutonSecondaire} onClick={onClose} disabled={enCours}>Annuler</button>
+          <button style={{ ...styles.boutonSecondaire, opacity: enCours ? 0.6 : 1 }}
+            onClick={() => soumettre(enregistrer)} disabled={enCours}>
+            {enCours ? '⏳ Patientez...' : 'Enregistrer le paiement'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function OngletCotisation({ type }) {
   const { entreprise } = useAuth();
   const [donnees, setDonnees] = useState([]);
   const [numeroCnapsEmployeur, setNumeroCnapsEmployeur] = useState('');
   const [loading, setLoading] = useState(true);
   const [moisSelectionnes, setMoisSelectionnes] = useState([]);
+  const [modalPaiement, setModalPaiement] = useState(false);
   const [filtreAnnee, setFiltreAnnee] = useState(new Date().getFullYear());
 
   useEffect(() => { chargerDonnees(); }, [type, moisSelectionnes, filtreAnnee]);
@@ -426,9 +564,30 @@ ws['!cols'] = [
       {/* En-tête */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: 0, color: '#004d5a' }}>{titres[type]}</h2>
-        <button style={{ ...styles.boutonSecondaire, color: '#2e7d32', borderColor: '#2e7d32' }}
-          onClick={exporterExcel}>📊 Excel</button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button style={{ ...styles.boutonSecondaire, color: '#2e7d32', borderColor: '#2e7d32' }}
+            onClick={exporterExcel}>📊 Excel</button>
+          <button style={styles.boutonSecondaire}
+            onClick={() => setModalPaiement(true)}>💳 Payer</button>
+        </div>
       </div>
+      {modalPaiement && (() => {
+        // montant pré-rempli = total de la dernière ligne : IRSA = Total IRSA ; CNAPS / OSTIE = Total sal. + Total pat.
+        const totSal = donnees.reduce((t, d) => t + Number(type === 'IRSA' ? d.total_irsa : d.total_salarial || 0), 0);
+        const totPat = type === 'IRSA' ? 0 : donnees.reduce((t, d) => t + Number(d.total_patronal || 0), 0);
+        const arr = x => Math.round((x + Number.EPSILON) * 100) / 100;
+        const fmt = x => Number(x).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return (
+          <ModalPaiementCotisation
+            type={type}
+            moisSelectionnes={moisSelectionnes}
+            montantInitial={arr(totSal + totPat)}
+            detailMontant={type === 'IRSA' ? '' : `Part salariale ${fmt(totSal)} + part patronale ${fmt(totPat)}`}
+            entrepriseId={entreprise.id}
+            onClose={() => setModalPaiement(false)}
+          />
+        );
+      })()}
 
       {/* Filtres */}
       <div style={styles.card}>
