@@ -6,7 +6,7 @@ import ArivotekIcon from './ArivotekIcon';
 const menuItems = [
   { path: '/dashboard', icon: '📈', label: 'Dashboard', module: 'dashboard' },
   { path: '/clients', icon: '🧑‍💼', label: 'Clients', module: 'factures' },
-  { path: '/paiements', icon: '💵', label: 'Tiers', module: 'factures' },
+  { path: '/paiements', icon: '💵', label: 'Divers', module: 'factures' },
   { path: '/fournisseurs', icon: '🏢', label: 'Fournisseurs', module: 'fournisseurs' },
   { path: '/comptabilite/compte-courant', icon: '🤝', label: 'Compte courant associés', module: 'comptabilite' },
   { path: '/stocks', icon: '📦', label: 'Stocks', module: 'stocks' },

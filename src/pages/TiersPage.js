@@ -14,8 +14,8 @@ export default function TiersPage() {
         borderBottom: '2px solid #e0e0e0'
       }}>
         {[
-          { id: 'liste', label: '🏢 Liste tiers' },
-          { id: 'factures', label: '📄 Factures tiers' }
+          { id: 'liste', label: '🏢 Liste divers' },
+          { id: 'factures', label: '📄 Factures divers' }
         ].map(onglet => (
           <button
             key={onglet.id}
