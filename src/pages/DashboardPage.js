@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, PieChart, Pie, Cell, ResponsiveContainer
+  Legend, ResponsiveContainer
 } from 'recharts';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
@@ -19,8 +19,6 @@ const styles = {
 const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
-const COULEURS = ['#004d5a','#2e7d32','#c62828','#e65100','#1565c0',
-  '#6a1b9a','#00838f','#558b2f','#d84315','#0277bd'];
 
 const alertesFiscales = [
   { code: 'CNAPS_T1', debut: { mois: 3, jour: 1 }, fin: { mois: 3, jour: 30 },
@@ -121,15 +119,62 @@ function CarteChiffre({ titre, valeur, couleur, sousTitre }) {
   );
 }
 
+
+// Répartition par catégorie : barres horizontales classées (lisible même avec beaucoup de catégories).
+// Les catégories au-delà des 10 premières sont regroupées dans « Autres » ; le détail complet reste dans le tableau.
+function GraphiqueCategories({ data, couleur }) {
+  const tri = [...data].sort((a, b) => b.value - a.value);
+  const total = tri.reduce((s, d) => s + d.value, 0);
+  const MAX = 10;
+  const barres = tri.length <= MAX + 1 ? tri : [
+    ...tri.slice(0, MAX),
+    { name: `Autres (${tri.length - MAX})`, value: tri.slice(MAX).reduce((s, d) => s + d.value, 0) }
+  ];
+  const court = n => (n.length > 24 ? `${n.substring(0, 23)}…` : n);
+  const pct = v => (total > 0 ? ((v / total) * 100).toFixed(1) : '0.0');
+  return (
+    <>
+      <ResponsiveContainer width="100%" height={Math.max(160, barres.length * 34 + 30)}>
+        <BarChart data={barres} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+          <XAxis type="number" tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} fontSize={10} />
+          <YAxis type="category" dataKey="name" width={150} tickFormatter={court} fontSize={10} interval={0} />
+          <Tooltip formatter={v => [`${Number(v).toLocaleString('fr-FR')} Ar (${pct(v)} %)`]} />
+          <Bar dataKey="value" fill={couleur} radius={[0, 4, 4, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+      <div style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '10px' }}>
+        <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
+          <tbody>
+            {tri.map((d, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                <td style={{ padding: '4px' }}>{d.name}</td>
+                <td style={{ padding: '4px', textAlign: 'right', color: '#666' }}>{pct(d.value)} %</td>
+                <td style={{ padding: '4px', textAlign: 'right', fontWeight: 'bold', color: couleur }}>
+                  {Number(d.value).toLocaleString('fr-FR')} Ar
+                </td>
+              </tr>
+            ))}
+            <tr style={{ background: '#f5f5f5' }}>
+              <td style={{ padding: '4px', fontWeight: 'bold' }}>Total</td>
+              <td></td>
+              <td style={{ padding: '4px', textAlign: 'right', fontWeight: 'bold' }}>{total.toLocaleString('fr-FR')} Ar</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
 export default function DashboardPage() {
   const { entreprise } = useAuth();
-  const [ongletActif, setOngletActif] = useState('tresorerie');
+  const [ongletActif, setOngletActif] = useState('alertes');
   const [donnees, setDonnees] = useState(null);
   const [loading, setLoading] = useState(true);
   const [moisSelectionnes, setMoisSelectionnes] = useState([]);
   const [annee, setAnnee] = useState(new Date().getFullYear());
   const [categoriesActives, setCategoriesActives] = useState([]);
-  const [filtreStatutTresorerie, setFiltreStatutTresorerie] = useState('TOUS');
   const [alertesFermees, setAlertesFermees] = useState([]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -215,10 +260,10 @@ export default function DashboardPage() {
   }
 
   const onglets = [
+    { id: 'alertes', label: '⚠️ Alertes' },
     { id: 'tresorerie', label: '💰 Trésorerie' },
     { id: 'chiffres', label: '📊 Chiffres clés' },
-    { id: 'categories', label: '📈 Par catégorie' },
-    { id: 'alertes', label: '⚠️ Alertes' }
+    { id: 'categories', label: '📈 Par catégorie' }
   ];
 
   if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>;
@@ -243,313 +288,10 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ONGLET 1 — Trésorerie */}
-      {ongletActif === 'tresorerie' && (
-        <div>
-          <div style={styles.card}>
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Mois :</span>
-                <FiltresMois moisSelectionnes={moisSelectionnes} onToggle={toggleMois} onReset={() => setMoisSelectionnes([])} />
-              </div>
-              <div>
-                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Statut :</span>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {['TOUS', 'CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE', 'ARCHIVEE'].map(s => (
-                    <button key={s} onClick={() => setFiltreStatutTresorerie(s)}
-                      style={{
-                        padding: '4px 10px', borderRadius: '15px', border: 'none',
-                        cursor: 'pointer', fontSize: '11px', fontWeight: 'bold',
-                        background: filtreStatutTresorerie === s ? '#004d5a' : '#e0e0e0',
-                        color: filtreStatutTresorerie === s ? 'white' : '#333'
-                      }}>
-                      {s === 'TOUS' ? 'Tous' : s === 'CREE' ? '📝 Créée' : s === 'ENVOYEE' ? ' 📧 Envoyée' : s === 'PAIEMENT_PARTIEL' ? ' 💰 Paiement partiel' : s === 'PAYEE' ? '✅ Payée' : s === 'EN_RETARD' ? '⚠️ En retard' : s === 'ANNULEE' ? '❌ Annulée' : '📦 Archivée'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {(() => {
-            const facturesFiltrees = (donnees.toutesFacturesClients || []).filter(f => {
-              const matchStatut = filtreStatutTresorerie === 'TOUS' || f.statut === filtreStatutTresorerie;
-              const matchMois = moisSelectionnes.length === 0 || (() => {
-                const date = f.statut === 'PAYEE' ? (f.date_paiement || f.date_facture) : f.date_facture;
-                if (!date) return false;
-                const d = new Date(date);
-                const m = d.toLocaleString('fr-FR', { month: 'long' });
-                const moisNorm = m.charAt(0).toUpperCase() + m.slice(1);
-                return moisSelectionnes.includes(moisNorm);
-              })();
-              return matchStatut && matchMois;
-            });
-
-            const total = facturesFiltrees.reduce((s, f) => s + Number(f.montant_total || 0), 0);
-            const couleur = filtreStatutTresorerie === 'PAYEE' ? '#2e7d32'
-               : filtreStatutTresorerie === 'EN_RETARD' ? '#c62828'
-               : filtreStatutTresorerie === 'ANNULEE' ? '#9e9e9e'
-               : filtreStatutTresorerie === 'CREE' ? '#616161'
-               : filtreStatutTresorerie === 'ENVOYEE' ? '#1565c0'
-               : filtreStatutTresorerie === 'PAIEMENT_PARTIEL' ? '#e65100'
-               : filtreStatutTresorerie === 'ARCHIVEE' ? '#6a1b9a'
-               : '#004d5a';
-
-            return (
-              <>
-                <div style={{ marginBottom: '20px' }}>
-                  <CarteChiffre
-                    titre={`💰 Total factures clients — ${filtreStatutTresorerie === 'TOUS' ? 'Tous statuts' : filtreStatutTresorerie}`}
-                    valeur={total} couleur={couleur}
-                    sousTitre={`${facturesFiltrees.length} facture(s)`}
-                  />
-                </div>
-                <div style={styles.card}>
-                  <h3 style={{ color: '#004d5a', marginTop: 0 }}>📋 Factures clients — {facturesFiltrees.length} résultat(s)</h3>
-                  {facturesFiltrees.length === 0 ? (
-                    <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>Aucune facture trouvée.</p>
-                  ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                      <thead>
-                        <tr style={{ background: '#f5f5f5' }}>
-                          {['N° Facture', 'Client', 'Date', 'Échéance', 'Montant', 'Statut'].map(h => (
-                            <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '12px',
-                              color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {facturesFiltrees.map((f, i) => {
-                          const cs = f.statut === 'PAYEE' ? { bg: '#e8f5e9', color: '#2e7d32', label: '✅ Payée' }
-                            : f.statut === 'EN_RETARD' ? { bg: '#ffebee', color: '#c62828', label: '⚠️ En retard' }
-                            : f.statut === 'CREE' ? { bg: '#f5f5f5', color: '#616161', label: '📝 Créée' }
-                            : f.statut === 'ENVOYEE' ? { bg: '#e3f2fd', color: '#1565c0', label: '📧 Envoyée' }
-                            : f.statut === 'PAIEMENT_PARTIEL' ? { bg: '#fff3e0', color: '#e65100', label: '💰 Partiel' }
-                            : f.statut === 'ANNULEE' ? { bg: '#fafafa', color: '#9e9e9e', label: '❌ Annulée' }
-                            : { bg: '#f3e5f5', color: '#6a1b9a', label: '📦 Archivée' };
-                          return (
-                            <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
-                              <td style={{ padding: '10px', fontWeight: 'bold', color: '#004d5a' }}>{f.numero_facture}</td>
-                              <td style={{ padding: '10px' }}>{f.nom_client}</td>
-                              <td style={{ padding: '10px', color: '#666' }}>
-                                {f.date_facture ? new Date(f.date_facture).toLocaleDateString('fr-FR') : '—'}
-                              </td>
-                              <td style={{ padding: '10px', color: '#666' }}>
-                                {f.date_limite ? new Date(f.date_limite).toLocaleDateString('fr-FR') : '—'}
-                              </td>
-                              <td style={{ padding: '10px', fontWeight: 'bold' }}>
-                                {Number(f.montant_total || 0).toLocaleString('fr-FR')} Ar
-                              </td>
-                              <td style={{ padding: '10px' }}>
-                                <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px',
-                                  fontWeight: 'bold', background: cs.bg, color: cs.color }}>{cs.label}</span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                      <tfoot>
-                        <tr style={{ background: '#004d5a', color: 'white' }}>
-                          <td colSpan={4} style={{ padding: '10px', fontWeight: 'bold' }}>TOTAL</td>
-                          <td style={{ padding: '10px', fontWeight: 'bold' }}>{total.toLocaleString('fr-FR')} Ar</td>
-                          <td></td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  )}
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* ONGLET 2 — Chiffres clés */}
-      {ongletActif === 'chiffres' && (
-        <div>
-          <div style={styles.card}>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Année :</span>
-                <input type="number" value={annee} onChange={e => setAnnee(Number(e.target.value))}
-                  style={{ width: '80px', padding: '6px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '13px' }} />
-              </div>
-              <div>
-                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Mois :</span>
-                <FiltresMois moisSelectionnes={moisSelectionnes} onToggle={toggleMois} onReset={() => setMoisSelectionnes([])} />
-              </div>
-            </div>
-          </div>
-
-          {(() => {
-            const graph = donnees.graphiqueParMois.filter(m =>
-              moisSelectionnes.length === 0 || moisSelectionnes.includes(m.mois)
-            );
-            const totalRecettes = graph.reduce((s, m) => s + Number(m.recettes || 0), 0);
-            const totalDepenses = graph.reduce((s, m) => s + Number(m.depenses || 0), 0);
-            const soldeGlobal = graph.reduce((s, m) => s + Number(m.solde || 0), 0);
-            const masseNet = graph.reduce((s, m) => s + Number(m.masseNet || 0), 0);
-            const massePatronale = graph.reduce((s, m) => s + Number(m.massePatronale || 0), 0);
-            const resultatNet = totalRecettes - totalDepenses;
-
-            return (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                  <CarteChiffre titre="💰 Chiffre d'affaires" valeur={totalRecettes} couleur="#2e7d32" />
-                  <CarteChiffre titre="💸 Total dépenses" valeur={totalDepenses} couleur="#c62828" />
-                  <CarteChiffre titre="📊 Solde global" valeur={soldeGlobal}
-                    couleur={soldeGlobal >= 0 ? '#2149fa' : '#c62828'} />
-                  <CarteChiffre titre="👥 Masse salariale nette" valeur={masseNet}
-                    couleur="#1565c0" sousTitre="Salaires nets versés" />
-                  <CarteChiffre titre="🏛️ Charges patronales" valeur={massePatronale}
-                    couleur="#e65100" sousTitre="CNAPS + OSTIE patronal" />
-                  <CarteChiffre titre="📈 Résultat net" valeur={resultatNet}
-                    couleur={resultatNet >= 0 ? '#2e7d32' : '#c62828'} sousTitre="CA - Dépenses totales" />
-                </div>
-                <div style={styles.card}>
-                  <h3 style={{ color: '#004d5a', marginTop: 0, marginBottom: '20px' }}>
-                    📈 Recettes vs Dépenses — {annee}
-                  </h3>
-                  <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={donnees.graphiqueParMois} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mois" tickFormatter={m => m.substring(0, 3)} fontSize={11} />
-                      <YAxis tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} fontSize={11} />
-                      <Tooltip
-                        formatter={(value, name) => [`${Number(value).toLocaleString('fr-FR')} Ar`,
-                          name === 'recettes' ? 'Recettes' : name === 'depenses' ? 'Dépenses' : 'Solde']}
-                        labelFormatter={l => `Mois : ${l}`}
-                      />
-                      <Legend formatter={name => name === 'recettes' ? 'Recettes' : name === 'depenses' ? 'Dépenses' : 'Solde'} />
-                      <Bar dataKey="recettes" fill="#2e7d32" radius={[4,4,0,0]} />
-                      <Bar dataKey="depenses" fill="#c62828" radius={[4,4,0,0]} />
-                      <Bar dataKey="solde" fill="#2149fa" radius={[4,4,0,0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      )}
-
-      {/* ONGLET 3 — Par catégorie */}
-      {ongletActif === 'categories' && (
-        <div>
-          <div style={styles.card}>
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              <div>
-                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Mois :</span>
-                <FiltresMois moisSelectionnes={moisSelectionnes} onToggle={toggleMois} onReset={() => setMoisSelectionnes([])} />
-              </div>
-            </div>
-            <div style={{ marginTop: '15px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333' }}>Catégories :</span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-                {donnees.repartitionCategories.map(c => (
-                  <button key={c.categorie}
-                    onClick={() => setCategoriesActives(prev =>
-                      prev.includes(c.categorie) ? prev.filter(x => x !== c.categorie) : [...prev, c.categorie]
-                    )}
-                    style={{
-                      padding: '4px 10px', borderRadius: '15px', border: 'none',
-                      cursor: 'pointer', fontSize: '11px',
-                      background: categoriesActives.includes(c.categorie) ? '#004d5a' : '#e0e0e0',
-                      color: categoriesActives.includes(c.categorie) ? 'white' : '#333'
-                    }}>
-                    {c.categorie}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div style={styles.card}>
-              <h3 style={{ color: '#c62828', marginTop: 0 }}>💸 Dépenses par catégorie</h3>
-              {(() => {
-                const dataDepenses = donnees.repartitionCategories
-                  .filter(c => categoriesActives.includes(c.categorie) && c.debit > 0)
-                  .map(c => ({ name: c.categorie, value: c.debit }));
-                if (dataDepenses.length === 0) return <p style={{ color: '#666', textAlign: 'center' }}>Aucune donnée.</p>;
-                return (
-                  <>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie data={dataDepenses} dataKey="value" nameKey="name"
-                          cx="50%" cy="50%" outerRadius={80}
-                          label={({ name, percent }) => `${name.substring(0, 15)} (${(percent * 100).toFixed(0)}%)`}
-                          labelLine={false} fontSize={10}>
-                          {dataDepenses.map((_, i) => <Cell key={i} fill={COULEURS[i % COULEURS.length]} />)}
-                        </Pie>
-                        <Tooltip formatter={v => [`${Number(v).toLocaleString('fr-FR')} Ar`]} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
-                      {dataDepenses.map((d, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                          <td style={{ padding: '4px' }}>
-                            <span style={{ display: 'inline-block', width: '10px', height: '10px',
-                              background: COULEURS[i % COULEURS.length], borderRadius: '50%', marginRight: '6px' }}></span>
-                            {d.name}
-                          </td>
-                          <td style={{ padding: '4px', textAlign: 'right', fontWeight: 'bold', color: '#c62828' }}>
-                            {Number(d.value).toLocaleString('fr-FR')} Ar
-                          </td>
-                        </tr>
-                      ))}
-                    </table>
-                  </>
-                );
-              })()}
-            </div>
-
-            <div style={styles.card}>
-              <h3 style={{ color: '#2e7d32', marginTop: 0 }}>💰 Recettes par catégorie</h3>
-              {(() => {
-                const dataRecettes = donnees.repartitionCategories
-                  .filter(c => categoriesActives.includes(c.categorie) && c.credit > 0)
-                  .map(c => ({ name: c.categorie, value: c.credit }));
-                if (dataRecettes.length === 0) return <p style={{ color: '#666', textAlign: 'center' }}>Aucune donnée.</p>;
-                return (
-                  <>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart>
-                        <Pie data={dataRecettes} dataKey="value" nameKey="name"
-                          cx="50%" cy="50%" outerRadius={80}
-                          label={({ name, percent }) => `${name.substring(0, 15)} (${(percent * 100).toFixed(0)}%)`}
-                          labelLine={false} fontSize={10}>
-                          {dataRecettes.map((_, i) => <Cell key={i} fill={COULEURS[i % COULEURS.length]} />)}
-                        </Pie>
-                        <Tooltip formatter={v => [`${Number(v).toLocaleString('fr-FR')} Ar`]} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
-                      {dataRecettes.map((d, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                          <td style={{ padding: '4px' }}>
-                            <span style={{ display: 'inline-block', width: '10px', height: '10px',
-                              background: COULEURS[i % COULEURS.length], borderRadius: '50%', marginRight: '6px' }}></span>
-                            {d.name}
-                          </td>
-                          <td style={{ padding: '4px', textAlign: 'right', fontWeight: 'bold', color: '#2e7d32' }}>
-                            {Number(d.value).toLocaleString('fr-FR')} Ar
-                          </td>
-                        </tr>
-                      ))}
-                    </table>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ONGLET 4 — Alertes */}
+      {/* ONGLET 1 — Alertes (obligations fiscales) */}
       {ongletActif === 'alertes' && (
         <div>
-          {/* Alertes fiscales */}
+          
           {getAlertesFiscalesActives().length > 0 && (
             <div style={styles.card}>
               <h3 style={{ color: '#004d5a', marginTop: 0 }}>
@@ -583,6 +325,18 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {getAlertesFiscalesActives().length === 0 && (
+            <div style={styles.card}>
+              <h3 style={{ color: '#004d5a', marginTop: 0 }}>📅 Obligations fiscales</h3>
+              <p style={{ color: '#2e7d32', margin: 0 }}>✅ Aucune obligation fiscale en cours.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ONGLET — Trésorerie : factures en retard, fournisseurs / tiers en attente, salariés sans fiche */}
+      {ongletActif === 'tresorerie' && (
+        <div>
           {/* Factures clients en retard */}
           <div style={styles.card}>
             <h3 style={{ color: '#c62828', marginTop: 0 }}>
@@ -714,6 +468,136 @@ export default function DashboardPage() {
                 </tbody>
               </table>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ONGLET 2 — Chiffres clés */}
+      {ongletActif === 'chiffres' && (
+        <div>
+          <div style={styles.card}>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Année :</span>
+                <input type="number" value={annee} onChange={e => setAnnee(Number(e.target.value))}
+                  style={{ width: '80px', padding: '6px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '13px' }} />
+              </div>
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Mois :</span>
+                <FiltresMois moisSelectionnes={moisSelectionnes} onToggle={toggleMois} onReset={() => setMoisSelectionnes([])} />
+              </div>
+            </div>
+          </div>
+
+          {(() => {
+            const graph = donnees.graphiqueParMois.filter(m =>
+              moisSelectionnes.length === 0 || moisSelectionnes.includes(m.mois)
+            );
+            const totalRecettes = graph.reduce((s, m) => s + Number(m.recettes || 0), 0);
+            const totalDepenses = graph.reduce((s, m) => s + Number(m.depenses || 0), 0);
+            const soldeGlobal = graph.reduce((s, m) => s + Number(m.solde || 0), 0);
+            const masseNet = graph.reduce((s, m) => s + Number(m.masseNet || 0), 0);
+            const massePatronale = graph.reduce((s, m) => s + Number(m.massePatronale || 0), 0);
+            const resultatNet = totalRecettes - totalDepenses;
+
+            return (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                  <CarteChiffre titre="💰 Chiffre d'affaires" valeur={totalRecettes} couleur="#2e7d32" />
+                  <CarteChiffre titre="💸 Total dépenses" valeur={totalDepenses} couleur="#c62828" />
+                  <CarteChiffre titre="📊 Solde global" valeur={soldeGlobal}
+                    couleur={soldeGlobal >= 0 ? '#2149fa' : '#c62828'} />
+                  <CarteChiffre titre="👥 Masse salariale nette" valeur={masseNet}
+                    couleur="#1565c0" sousTitre="Salaires nets versés" />
+                  <CarteChiffre titre="🏛️ Charges patronales" valeur={massePatronale}
+                    couleur="#e65100" sousTitre="CNAPS + OSTIE patronal" />
+                  <CarteChiffre titre="📈 Résultat net" valeur={resultatNet}
+                    couleur={resultatNet >= 0 ? '#2e7d32' : '#c62828'} sousTitre="CA - Dépenses totales" />
+                </div>
+                <div style={styles.card}>
+                  <h3 style={{ color: '#004d5a', marginTop: 0, marginBottom: '20px' }}>
+                    📈 Recettes vs Dépenses — {annee}
+                  </h3>
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={donnees.graphiqueParMois} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="mois" tickFormatter={m => m.substring(0, 3)} fontSize={11} />
+                      <YAxis tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} fontSize={11} />
+                      <Tooltip
+                        formatter={(value, name) => [`${Number(value).toLocaleString('fr-FR')} Ar`,
+                          name === 'recettes' ? 'Recettes' : name === 'depenses' ? 'Dépenses' : 'Solde']}
+                        labelFormatter={l => `Mois : ${l}`}
+                      />
+                      <Legend formatter={name => name === 'recettes' ? 'Recettes' : name === 'depenses' ? 'Dépenses' : 'Solde'} />
+                      <Bar dataKey="recettes" fill="#2e7d32" radius={[4,4,0,0]} />
+                      <Bar dataKey="depenses" fill="#c62828" radius={[4,4,0,0]} />
+                      <Bar dataKey="solde" fill="#2149fa" radius={[4,4,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ONGLET 3 — Par catégorie */}
+      {ongletActif === 'categories' && (
+        <div>
+          <div style={styles.card}>
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Mois :</span>
+                <FiltresMois moisSelectionnes={moisSelectionnes} onToggle={toggleMois} onReset={() => setMoisSelectionnes([])} />
+              </div>
+            </div>
+            <div style={{ marginTop: '15px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333' }}>Catégories :</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                {donnees.repartitionCategories.map(c => (
+                  <button key={c.categorie}
+                    onClick={() => setCategoriesActives(prev =>
+                      prev.includes(c.categorie) ? prev.filter(x => x !== c.categorie) : [...prev, c.categorie]
+                    )}
+                    style={{
+                      padding: '4px 10px', borderRadius: '15px', border: 'none',
+                      cursor: 'pointer', fontSize: '11px',
+                      background: categoriesActives.includes(c.categorie) ? '#004d5a' : '#e0e0e0',
+                      color: categoriesActives.includes(c.categorie) ? 'white' : '#333'
+                    }}>
+                    {c.categorie}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div style={styles.card}>
+              <h3 style={{ color: '#c62828', marginTop: 0 }}>💸 Dépenses par catégorie</h3>
+              {(() => {
+                const dataDepenses = donnees.repartitionCategories
+                  .filter(c => categoriesActives.includes(c.categorie) && c.debit > 0)
+                  .map(c => ({ name: c.categorie, value: c.debit }));
+                if (dataDepenses.length === 0) return <p style={{ color: '#666', textAlign: 'center' }}>Aucune donnée.</p>;
+                return (
+                  <GraphiqueCategories data={dataDepenses} couleur='#c62828' />
+                );
+              })()}
+            </div>
+
+            <div style={styles.card}>
+              <h3 style={{ color: '#2e7d32', marginTop: 0 }}>💰 Recettes par catégorie</h3>
+              {(() => {
+                const dataRecettes = donnees.repartitionCategories
+                  .filter(c => categoriesActives.includes(c.categorie) && c.credit > 0)
+                  .map(c => ({ name: c.categorie, value: c.credit }));
+                if (dataRecettes.length === 0) return <p style={{ color: '#666', textAlign: 'center' }}>Aucune donnée.</p>;
+                return (
+                  <GraphiqueCategories data={dataRecettes} couleur='#2e7d32' />
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}
