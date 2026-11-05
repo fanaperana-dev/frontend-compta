@@ -331,7 +331,13 @@ export default function DashboardPage() {
               <p style={{ color: '#2e7d32', margin: 0 }}>✅ Aucune obligation fiscale en cours.</p>
             </div>
           )}
+        </div>
+      )}
 
+
+      {/* ONGLET — Trésorerie : retards et paiements en attente, fiches de paie manquantes */}
+      {ongletActif === 'tresorerie' && (
+        <div>
           {/* Factures clients en retard */}
           <div style={styles.card}>
             <h3 style={{ color: '#c62828', marginTop: 0 }}>
@@ -434,11 +440,11 @@ export default function DashboardPage() {
           {/* Salariés sans fiche de paie */}
           <div style={styles.card}>
             <h3 style={{ color: '#6a1b9a', marginTop: 0 }}>
-              👥 Salariés sans fiche de paie ce mois ({donnees.alertes.salariesSansFiche.length})
+              👥 Salariés sans fiche de paie — {donnees.alertes.moisConcerne || 'mois précédent'} {donnees.alertes.anneeConcernee || ''} ({donnees.alertes.salariesSansFiche.length})
             </h3>
-            {donnees.alertes.jourActuel < 26 ? (
+            {donnees.alertes.jourActuel < 5 ? (
               <p style={{ color: '#666', fontSize: '13px' }}>
-                ℹ️ Alerte active à partir du 26 du mois.
+                ℹ️ Alerte active à partir du 5 du mois (fiches du mois précédent).
                 Aujourd'hui : {donnees.alertes.jourActuel}/{new Date().toLocaleString('fr-FR', { month: 'long' })}.
               </p>
             ) : donnees.alertes.salariesSansFiche.length === 0 ? (
@@ -464,14 +470,6 @@ export default function DashboardPage() {
               </table>
             )}
           </div>
-        </div>
-      )}
-
-      {/* ONGLET — Trésorerie (vide pour le moment : contenu à venir) */}
-      {ongletActif === 'tresorerie' && (
-        <div style={styles.card}>
-          <h3 style={{ color: '#004d5a', marginTop: 0 }}>💰 Trésorerie</h3>
-          <p style={{ color: '#666', margin: 0 }}>Cette section sera complétée prochainement.</p>
         </div>
       )}
 
