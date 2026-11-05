@@ -331,12 +331,7 @@ export default function DashboardPage() {
               <p style={{ color: '#2e7d32', margin: 0 }}>✅ Aucune obligation fiscale en cours.</p>
             </div>
           )}
-        </div>
-      )}
 
-      {/* ONGLET — Trésorerie : factures en retard, fournisseurs / tiers en attente, salariés sans fiche */}
-      {ongletActif === 'tresorerie' && (
-        <div>
           {/* Factures clients en retard */}
           <div style={styles.card}>
             <h3 style={{ color: '#c62828', marginTop: 0 }}>
@@ -472,6 +467,14 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ONGLET — Trésorerie (vide pour le moment : contenu à venir) */}
+      {ongletActif === 'tresorerie' && (
+        <div style={styles.card}>
+          <h3 style={{ color: '#004d5a', marginTop: 0 }}>💰 Trésorerie</h3>
+          <p style={{ color: '#666', margin: 0 }}>Cette section sera complétée prochainement.</p>
+        </div>
+      )}
+
       {/* ONGLET 2 — Chiffres clés */}
       {ongletActif === 'chiffres' && (
         <div>
@@ -503,8 +506,10 @@ export default function DashboardPage() {
             return (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                  <CarteChiffre titre="💰 Chiffre d'affaires" valeur={totalRecettes} couleur="#2e7d32" />
-                  <CarteChiffre titre="💸 Total dépenses" valeur={totalDepenses} couleur="#c62828" />
+                  <CarteChiffre titre="💰 Chiffre d'affaires" valeur={totalRecettes} couleur="#2e7d32"
+                    sousTitre="Encaissements clients (payées, archivées, partielles) + recettes tiers" />
+                  <CarteChiffre titre="💸 Total dépenses" valeur={totalDepenses} couleur="#c62828"
+                    sousTitre="Achats, immobilisations, dépenses tiers + salaires bruts et charges patronales" />
                   <CarteChiffre titre="📊 Solde global" valeur={soldeGlobal}
                     couleur={soldeGlobal >= 0 ? '#2149fa' : '#c62828'} />
                   <CarteChiffre titre="👥 Masse salariale nette" valeur={masseNet}
