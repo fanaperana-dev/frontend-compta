@@ -24,6 +24,9 @@ const styles = {
   }
 };
 
+// Remise d'IRSA par enfant à charge (Ar) — doit rester identique au back (services/constantesPaie.js)
+const REMISE_IRSA_PAR_ENFANT = 2000;
+
 const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
@@ -256,7 +259,7 @@ export default function OngletCotisation({ type }) {
         const total_brut_imposable = d.mois.reduce((s, m) => s + Number(m.brut_imposable || 0), 0);
         const total_irsa = d.mois.reduce((s, m) => s + Number(m.irsa || 0), 0);
         const nb_enfants = d.mois[d.mois.length - 1]?.nb_enfants || 0; // situation du mois le plus récent
-        const reduction = nb_enfants * 3000 * d.mois.length;
+        const reduction = nb_enfants * REMISE_IRSA_PAR_ENFANT * d.mois.length;
         const periodes = d.mois.map(m => m.periode).join(', ');
 
         donnees_export.push({
