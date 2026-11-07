@@ -257,7 +257,7 @@ export default function OngletCotisation({ type }) {
       );
       const data = await res.json();
       // CNAPS et OSTIE : par matricule, du plus ancien au plus récent (écran et export Excel)
-      setDonnees(type === 'IRSA' ? (data.data || []) : (type === 'CNAPS' || type === 'OSTIE') ? trierParEmbauche(data.data || []) : trierParMatricule(data.data || []));
+      setDonnees(type === 'OSTIE' || type === 'CNAPS' || type === 'IRSA' ? trierParEmbauche(data.data || []) : trierParMatricule(data.data || []));
       setNumeroCnapsEmployeur(data.employeur?.numero_cnaps || entreprise?.numero_cnaps || '');
       setEmployeur(data.employeur || {});
     } catch (err) {
@@ -271,68 +271,73 @@ export default function OngletCotisation({ type }) {
     const XLSX = require('xlsx');
     const wb = XLSX.utils.book_new();
     let nomFichierExport = null;
+    let formatExport = 'xlsx';
 
     if (type === 'IRSA') {
-      const donnees_export = [];
+      // Canevas IRSA de l'administration fiscale : intitulés repris tels quels, une ligne par travailleur
+      const entetes = [
+        "NOM ET PRÉNOM DU TRAVAILLEUR (ANARANA SY FANAMPIN'ANARAN'NY MPIASA)",
+        'FONCTION (ASANY)',
+        "NUMÉRO CARTE D'IDENTITÉ NATIONALE OU DE RÉSIDENT (LAHARAN'NY KARAPANONDROM-PIRENENA NA KARA-BAHINY)",
+        "NUMÉRO D'IDENTIFICATION À LA CNAPS (LAHARAM-PAMANTARANA CNAPS)",
+        'RÉMUNÉRATION BRUTE EN NUMÉRAIRE (KARAMA TSY AFA-KARATSAKA RAISINA LELAVOLA) ( B )',
+        "VALEUR DES AVANTAGES EN NATURE IMPOSABLES (SANDAN'NY TOMBOTSOA TSY ARA-BOLA IHARAN'NY HETRA) ( C )",
+        "RETENUE ET VERSEMENT EN VUE DE LA CONSTITUTION DE PENSION OU DE RETRAITE (LATSAKEMBOKA ESORINA HO AN'NY FISOTROAN-DRONONO) ( D )",
+        "RETENUE AU TITRE DE COTISATION OUVRIÈRE DUE À UNE ORGANISATION SANITAIRE (LATSAKEMBOKA HO AN'NY FAHASALAMAN'NY MPIASA) ( E )",
+        'REVENUS NETS IMPOSABLES (KARAMA SY NY TOA AZY AFA-KARATSAKA AMERANA NY HETRA) ( F = B + C - D - E )',
+        "IMPÔT BRUT CORRESPONDANT (HETRA TANDRIFIN'IZANY) ( G )",
+        "NOMBRE DE PERSONNES À CHARGE (ISAN'OLONA IADIDIANA)",
+        "RÉDUCTION POUR PERSONNES À CHARGE (FAMPIHENAN-KETRA NOHO NY OLONA IADIDIANA) ( H )",
+        'IMPÔT NET RETENU (HETRA ALOA AFA-KARATSAKA) ( I = G - H )'
+      ];
+      const lignes = [entetes];
+      const somme = (d, f) => d.mois.reduce((t, m) => t + Number(f(m) || 0), 0);
 
       donnees.forEach(d => {
-        const total_salaire_brut = d.mois.reduce((s, m) => s + brutHorsAvantages(m), 0);
-        const total_avantages_nature = d.mois.reduce((s, m) => s + Number(m.total_avantages_nature || 0), 0);
-        const total_cnaps = d.mois.reduce((s, m) => s + Number(m.cnaps_salarial || 0), 0);
-        const total_ostie = d.mois.reduce((s, m) => s + Number(m.ostie_salarial || 0), 0);
-        const total_brut_imposable = d.mois.reduce((s, m) => s + Number(m.brut_imposable || 0), 0);
-        const total_irsa = d.mois.reduce((s, m) => s + Number(m.irsa || 0), 0);
-        const nb_enfants = d.mois[d.mois.length - 1]?.nb_enfants || 0; // situation du mois le plus récent
-        const reduction = nb_enfants * 3000 * d.mois.length;
-        const periodes = d.mois.map(m => m.periode).join(', ');
-
-        donnees_export.push({
-          'Période': periodes,
-          'Nom et Prénom': d.nom,
-          'Fonction': d.fonction || '',
-          'N° CIN': d.cin || '',
-          'N° CNAPS': d.numero_cnaps || '',
-          'Salaire brut': total_salaire_brut,
-          'Montant avantages en nature imposables': total_avantages_nature,
-          'Montant CNAPS': total_cnaps,
-          'Montant OSTIE': total_ostie,
-          'Salaire net imposable': total_brut_imposable,
-          'IRSA': total_irsa,
-          'Nombre de personnes à charge': nb_enfants,
-          'Réduction pour personnes à charge': reduction,
-          'Impôt net (min 3 000 Ar)': total_irsa
-        });
+        const impotBrut = somme(d, m => m.irsa_brut);
+        const impotNet = somme(d, m => m.irsa);
+        lignes.push([
+          [d.nom, d.prenom].filter(Boolean).join(' '),
+          d.fonction || '',
+          String(d.cin || ''),
+          String(d.numero_cnaps || ''),
+          somme(d, brutHorsAvantages),
+          somme(d, m => m.total_avantages_nature),
+          somme(d, m => m.cnaps_salarial),
+          somme(d, m => m.ostie_salarial),
+          somme(d, m => m.brut_imposable),
+          impotBrut,
+          d.mois[d.mois.length - 1]?.nb_enfants || 0, // situation du mois le plus récent
+          Math.max(0, impotBrut - impotNet),           // réduction effectivement appliquée sur les fiches
+          impotNet
+        ]);
       });
 
-      // Ligne total
-      if (donnees_export.length > 0) {
-        donnees_export.push({
-          'Période': 'TOTAL',
-          'Nom et Prénom': '',
-          'Fonction': '',
-          'N° CIN': '',
-          'N° CNAPS': '',
-          'Salaire brut': donnees_export.reduce((s, r) => s + Number(r['Salaire brut'] || 0), 0),
-          'Montant avantages en nature imposables': donnees_export.reduce((s, r) => s + Number(r['Montant avantages en nature imposables'] || 0), 0),
-          'Montant CNAPS': donnees_export.reduce((s, r) => s + Number(r['Montant CNAPS'] || 0), 0),
-          'Montant OSTIE': donnees_export.reduce((s, r) => s + Number(r['Montant OSTIE'] || 0), 0),
-          'Salaire net imposable': donnees_export.reduce((s, r) => s + Number(r['Salaire net imposable'] || 0), 0),
-          'IRSA': donnees_export.reduce((s, r) => s + Number(r['IRSA'] || 0), 0),
-          'Nombre de personnes à charge': '',
-          'Réduction pour personnes à charge': donnees_export.reduce((s, r) => s + Number(r['Réduction pour personnes à charge'] || 0), 0),
-          'Impôt net (min 3 000 Ar)': donnees_export.reduce((s, r) => s + Number(r['Impôt net (min 3 000 Ar)'] || 0), 0)
-        });
-      }
-
-      const ws = XLSX.utils.json_to_sheet(donnees_export);
-
-      formater2Decimales(ws);
+      const ws = XLSX.utils.aoa_to_sheet(lignes);
+      Object.keys(ws).forEach(adr => {
+        if (adr[0] === '!') return;
+        const { r, c } = XLSX.utils.decode_cell(adr);
+        if (r > 0 && c >= 4 && c !== 10 && ws[adr].t === 'n') ws[adr].z = '0.00';
+      });
       ws['!cols'] = [
-        { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
-        { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
-        { wch: 12 }, { wch: 20 }, { wch: 25 }, { wch: 20 }
+        { wch: 34 }, { wch: 40 }, { wch: 18 }, { wch: 18 },
+        ...Array(9).fill({ wch: 22 })
       ];
-      XLSX.utils.book_append_sheet(wb, ws, 'IRSA');
+
+      // Feuille nommée d'après les mois du bimestre (ex. « mai-juin 2026 »)
+      const moisIrsa = moisTries.length > 0
+        ? moisTries
+        : [...new Set(donnees.flatMap(d => d.mois.map(m => String(m.periode || '').split('/')[0])))];
+      const nomFeuille = `${moisIrsa.map(m => m.toLowerCase()).join('-')} ${filtreAnnee}`.trim().slice(0, 31) || 'IRSA';
+      XLSX.utils.book_append_sheet(wb, ws, nomFeuille);
+
+      // Fichier : Canevas_IRSA_<n>eme_bimestre_<année>.xls (1er bimestre = janvier-février)
+      const idxFin = moisIrsa.length > 0
+        ? Math.max(...moisIrsa.map(m => moisListe.findIndex(x => x.toLowerCase() === String(m).toLowerCase())))
+        : new Date().getMonth();
+      const numBimestre = Math.floor(Math.max(idxFin, 0) / 2) + 1;
+      nomFichierExport = `Canevas_IRSA_${numBimestre === 1 ? '1er' : `${numBimestre}eme`}_bimestre_${filtreAnnee}.xls`;
+      formatExport = 'xls';
 
     } else if (type === 'CNAPS') {
   // Format de la déclaration nominative CNAPS (modèle DNWEB) : M1 / M2 / M3
@@ -602,7 +607,7 @@ export default function OngletCotisation({ type }) {
   nomFichierExport = `${[codeAdherent, sigle].filter(Boolean).join(' ')} ${trimestre}T${filtreAnnee}.xlsx`;
 }
 
-    XLSX.writeFile(wb, nomFichierExport || `${type}_${filtreAnnee}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`);
+    XLSX.writeFile(wb, nomFichierExport || `${type}_${filtreAnnee}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`, { bookType: formatExport });
     toast.success('Export Excel téléchargé !');
   }
 
