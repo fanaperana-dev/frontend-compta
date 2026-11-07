@@ -29,6 +29,20 @@ const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
 
 const PLAFOND_CNAPS = 2400000;
 
+// Trimestre civil (T1 = janvier-février-mars, etc.) du dernier mois affiché
+function infosTrimestre(moisAffiches) {
+  const idx = (moisAffiches || [])
+    .map(m => moisListe.findIndex(x => x.toLowerCase() === String(m).toLowerCase()))
+    .filter(i => i >= 0);
+  const dernier = idx.length > 0 ? Math.max(...idx) : new Date().getMonth();
+  const trimestre = Math.floor(dernier / 3) + 1;
+  return {
+    trimestre,
+    moisFin: trimestre * 3,
+    noms: moisListe.slice((trimestre - 1) * 3, trimestre * 3).map(m => m.toLowerCase())
+  };
+}
+
 // Mois sélectionnés rangés dans l'ordre du calendrier : M1 = le plus ancien, M3 = le plus récent
 // Salaire brut hors avantages en nature : les avantages (cadres) ont leur propre colonne dans les déclarations,
 // le brut des fiches les contient déjà. Pour un salarié sans avantage, rien ne change.
@@ -208,6 +222,7 @@ export default function OngletCotisation({ type }) {
   const { entreprise } = useAuth();
   const [donnees, setDonnees] = useState([]);
   const [numeroCnapsEmployeur, setNumeroCnapsEmployeur] = useState('');
+  const [employeur, setEmployeur] = useState({});
   const [loading, setLoading] = useState(true);
   const [moisSelectionnes, setMoisSelectionnes] = useState([]);
   const [modalPaiement, setModalPaiement] = useState(false);
@@ -242,8 +257,9 @@ export default function OngletCotisation({ type }) {
       );
       const data = await res.json();
       // CNAPS et OSTIE : par matricule, du plus ancien au plus récent (écran et export Excel)
-      setDonnees(type === 'IRSA' ? (data.data || []) : type === 'CNAPS' ? trierParEmbauche(data.data || []) : trierParMatricule(data.data || []));
+      setDonnees(type === 'IRSA' ? (data.data || []) : (type === 'CNAPS' || type === 'OSTIE') ? trierParEmbauche(data.data || []) : trierParMatricule(data.data || []));
       setNumeroCnapsEmployeur(data.employeur?.numero_cnaps || entreprise?.numero_cnaps || '');
+      setEmployeur(data.employeur || {});
     } catch (err) {
       toast.error('Erreur chargement.');
     } finally {
@@ -398,140 +414,186 @@ export default function OngletCotisation({ type }) {
   XLSX.utils.book_append_sheet(wb, ws, nomFeuille);
 
   // Nom de fichier : DNWEB-<référence employeur>-<AAAAMM du dernier mois du trimestre>
-  const moisPresents = moisTries.length > 0
-    ? moisTries
-    : donnees.flatMap(d => d.mois.map(m => String(m.periode || '').split('/')[0])).filter(Boolean);
-  const moisFin = moisPresents.length > 0
-    ? moisPresents.slice().sort()[moisPresents.length - 1]
-    : String(new Date().getMonth() + 1).padStart(2, '0');
+  const { moisFin } = infosTrimestre(moisTries.length > 0 ? moisTries : donnees.flatMap(d => d.mois.map(m => String(m.periode || '').split('/')[0])));
   nomFichierExport = `DNWEB-${numeroCnapsEmployeur || 'CNAPS'}-${filtreAnnee}${String(moisFin).padStart(2, '0')}.xlsx`;
 
 
 } else if (type === 'OSTIE') {
-  const ws_data = [];
-  const nbMoisAffiches = moisTries.length || 3;
-  const PLAFOND_OSTIE = 2400000;
+  // Déclaration nominative OSTIE : même modèle que le fichier de l'OSTIE (onglets DNS et RECAP COTISATION)
+  const SME = 300000;
+  const PLAFOND_OSTIE = SME * 8; // plafond par travailleur et par mois (8 × salaire minimum d'embauche)
+  const TAUX_EMPLOYEUR = 0.05;
+  const TAUX_TRAVAILLEUR = 0.01;
+  const nbMoisAffiches = 3;
+  const periodesAffichees = moisTries.length > 0
+    ? moisTries
+    : donnees.flatMap(d => d.mois.map(m => String(m.periode || '').split('/')[0]));
+  const { trimestre, noms: moisConcernes } = infosTrimestre(periodesAffichees);
+  const codeAdherent = String(employeur.code_adherent_ostie || '');
+  const formaterDate = v => (v ? new Date(v).toLocaleDateString('fr-FR') : '');
+  const lettre = c => XLSX.utils.encode_col(c);
 
-  // En-tête
-  
-const header = [
-  'N°',
-  'Matricule',
-  'Nom du travailleur',
-  'Prénoms du travailleur',
-  'Sexe',
-  'Date de naissance',
-  'Date d\'embauche',
-  'Date de débauche',
-  'Fonction',
-  'N° CNAPS',
-  'N° CIN',
-];
+  // ───── Onglet DNS ─────
+  const ws = {};
+  const merges = [];
+  const texte = (r, c, v) => { if (v !== '' && v != null) ws[XLSX.utils.encode_cell({ r: r - 1, c })] = { t: 's', v: String(v) }; };
+  const nombre = (r, c, v, f) => {
+    ws[XLSX.utils.encode_cell({ r: r - 1, c })] = { t: 'n', v: Number(v) || 0, z: '0.00', ...(f ? { f } : {}) };
+  };
+  const fusion = (r1, c1, r2, c2) => merges.push({ s: { r: r1 - 1, c: c1 }, e: { r: r2 - 1, c: c2 } });
 
-// Colonnes salaire par mois
-for (let i = 0; i < nbMoisAffiches; i++) {
-  const labelMois = moisTries[i]
-    ? `Salaire - ${moisTries[i]}`
-    : i === 0 ? 'Salaire 1er mois'
-    : i === 1 ? 'Salaire 2ème mois'
-    : 'Salaire 3ème mois';
-  header.push(labelMois);
-}
+  texte(1, 0, 'ORGANISATION SANITAIRE TANANARIVIENNE INTER-ENTREPRISES'); fusion(1, 0, 1, 4);
+  texte(1, 6, 'DECLARATION NOMINATIVE DES SALAIRES VERSES AU TITRE DU '); fusion(1, 6, 1, 13);
+  texte(1, 14, trimestre === 1 ? '1er' : `${trimestre}ème`);
+  texte(1, 15, 'TRIMESTRE');
+  ws[XLSX.utils.encode_cell({ r: 0, c: 16 })] = { t: 'n', v: Number(filtreAnnee), z: '0' };
+  texte(2, 0, 'O.S.T.I.E.'); fusion(2, 0, 2, 4);
+  texte(3, 0, 'Rue Dr Zamenhof Behoririka 101 ANTANANARIVO'); fusion(3, 0, 3, 4);
+  texte(4, 0, 'Tél.: 22 265 78 / 22 274 76 / 22 251 42  FAX : 22 265 66'); fusion(4, 0, 4, 4);
+  texte(5, 0, 'BP : 165 Antananarivo '); fusion(5, 0, 5, 4);
+  texte(6, 0, 'e-mail : sadhostie@moov.mg         site web : www.ostie.mg'); fusion(6, 0, 6, 4);
+  texte(7, 0, 'BOA Andravoahangy   00009 05600 10762050010 23');
+  texte(8, 0, 'BNI-CL Analakely  00005 00001 01232020200 71');
+  texte(9, 0, 'BFV-SG  Antaninarenina  00008 00005 21000155438 43');
+  texte(10, 0, 'BMOI Analamahitsy 00004 00003 01500800184 32');
+  texte(11, 0, 'ACCES BANQUE Antaninandro  00011 00003 24100035111 77');
+  texte(12, 0, 'ORANGE MONEY  032 24 704 67  - MVOLA 034 31 564 90');
 
-header.push(
-  'Totaux salaires non plafonnés',
-  'Totaux salaires plafonnés',
-  'Part employeur 5%',
-  'Part travailleur 1%'
-);
+  texte(3, 6, 'CODE ADHERENT :'); fusion(3, 6, 3, 7); texte(3, 8, codeAdherent);
+  texte(3, 12, 'FOLIO :'); nombre(3, 13, 1);
+  texte(3, 14, 'Plafond par travailleur et par mois :'); fusion(3, 14, 3, 15); nombre(3, 16, PLAFOND_OSTIE, '+Q4*8');
+  texte(4, 6, 'Raison Sociale        :'); fusion(4, 6, 4, 7); texte(4, 8, employeur.nom || '');
+  texte(4, 14, "Salaire Minimum d'Embauche :"); fusion(4, 14, 4, 15); nombre(4, 16, SME);
+  texte(5, 6, 'Adresse       :'); fusion(5, 6, 5, 7); texte(5, 8, employeur.adresse || ''); fusion(5, 8, 5, 11);
+  texte(6, 6, 'Tél :'); fusion(6, 6, 6, 7); texte(6, 8, employeur.telephone || '');
+  texte(6, 9, 'eMail :'); texte(6, 10, employeur.email || '');
+  texte(7, 6, 'STAT :'); fusion(7, 7, 7, 8); texte(7, 7, employeur.stat || '');
+  texte(7, 9, 'NIF :'); texte(7, 10, employeur.nif || '');
+  texte(8, 6, 'ACTIVITE :'); fusion(8, 7, 8, 8); texte(8, 7, employeur.activite || '');
+  texte(8, 11, 'REGIME :'); texte(8, 12, 'GENERAL');
+  texte(9, 6, 'Taux Employeur : '); fusion(9, 6, 9, 7); nombre(9, 8, TAUX_EMPLOYEUR);
+  texte(9, 9, 'Travailleur :'); nombre(9, 11, TAUX_TRAVAILLEUR);
+  texte(10, 6, 'N° Cnaps Employeur :'); fusion(10, 6, 10, 7); texte(10, 8, numeroCnapsEmployeur);
 
-ws_data.push(header);
+  const ligneEntete = 14;
+  [
+    'N°', 'MATRICULE', 'NOM DU TRAVAILLEUR', 'PRENOMS DU TRAVAILLEUR', 'SEXE', 'DATE DE NAISSANCE',
+    "DATE D'EMBAUCHE", 'DATE DE DEBAUCHE', 'FONCTION', 'N°CNAPS', 'N°CIN',
+    'SALAIRE 1er MOIS', 'SALAIRE 2ème MOIS', 'SALAIRE 3ème MOIS',
+    'TOTAUX SALAIRES NON PLAFONNES', 'TOTAUX SALAIRES PLAFONNES',
+    'PART EMPLOYEUR 5%', 'PART TRAVAILLEUR 1%'
+  ].forEach((h, c) => texte(ligneEntete, c, h));
 
-// Données
-donnees.forEach((d, index) => {
-  const ligne = [
-    index + 1,  // N°
-    d.matricule,
-    d.nom,
-    d.prenom || '',
-    d.sexe || '',
-    d.date_naissance
-      ? new Date(d.date_naissance).toLocaleDateString('fr-FR')
-      : '',
-    d.date_embauche
-      ? new Date(d.date_embauche).toLocaleDateString('fr-FR')
-      : '',
-    d.date_sortie
-      ? new Date(d.date_sortie).toLocaleDateString('fr-FR')
-      : '',
-    d.fonction || '',
-    d.numero_cnaps || '',
-    d.cin || ''
-  ];
+  const premiere = ligneEntete + 1;
+  const totaux = [0, 0, 0, 0, 0, 0, 0];
+  donnees.forEach((d, index) => {
+    const r = premiere + index;
+    const sexe = String(d.sexe || '').trim().charAt(0).toUpperCase();
+    nombre(r, 0, index + 1); ws[XLSX.utils.encode_cell({ r: r - 1, c: 0 })].z = '0';
+    texte(r, 1, d.matricule || '');
+    texte(r, 2, String(d.nom || '').toUpperCase());
+    texte(r, 3, d.prenom || '');
+    texte(r, 4, sexe === 'M' || sexe === 'F' ? sexe : '');
+    texte(r, 5, formaterDate(d.date_naissance));
+    texte(r, 6, formaterDate(d.date_embauche));
+    texte(r, 7, formaterDate(d.date_sortie)); // vide tant que le salarié n'est pas sorti
+    texte(r, 8, d.fonction || '');
+    texte(r, 9, String(d.numero_cnaps || ''));
+    texte(r, 10, String(d.cin || ''));
 
-  let total_salaire_non_plafonne = 0;
-  for (let i = 0; i < nbMoisAffiches; i++) {
-    const salaire = Number(moisDeColonne(d, i, moisTries)?.salaire_brut || 0);
-    total_salaire_non_plafonne += salaire;
-    ligne.push(salaire);
+    // Salaires hors avantages en nature ; le plafond s'applique mois par mois
+    const sal = [0, 1, 2].map(i => {
+      const m = moisDeColonne(d, i, moisTries);
+      return m ? brutHorsAvantages(m) : 0;
+    });
+    sal.forEach((v, i) => nombre(r, 11 + i, v));
+    const nonPlafonne = sal.reduce((s, v) => s + v, 0);
+    const plafonne = sal.reduce((s, v) => s + Math.min(v, PLAFOND_OSTIE), 0);
+    nombre(r, 14, nonPlafonne, `SUM(L${r}:N${r})`);
+    nombre(r, 15, plafonne, `MIN(L${r},$Q$3)+MIN(M${r},$Q$3)+MIN(N${r},$Q$3)`);
+    nombre(r, 16, plafonne * TAUX_EMPLOYEUR, `P${r}*$I$9`);
+    nombre(r, 17, plafonne * TAUX_TRAVAILLEUR, `P${r}*$L$9`);
+    [...sal, nonPlafonne, plafonne, plafonne * TAUX_EMPLOYEUR, plafonne * TAUX_TRAVAILLEUR].forEach((v, i) => { totaux[i] = (totaux[i] || 0) + v; });
+  });
+
+  const derniere = premiere + donnees.length - 1;
+  const ligneTotaux = derniere + 1;
+  texte(ligneTotaux, 9, 'TOTAUX');
+  for (let c = 11; c <= 17; c++) {
+    nombre(ligneTotaux, c, totaux[c - 11] || 0, donnees.length > 0 ? `SUM(${lettre(c)}${premiere}:${lettre(c)}${derniere})` : undefined);
   }
+  ws['!ref'] = `A1:R${ligneTotaux}`;
+  ws['!merges'] = merges;
+  ws['!cols'] = [
+    { wch: 5 }, { wch: 12 }, { wch: 22 }, { wch: 24 }, { wch: 6 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
+    { wch: 40 }, { wch: 16 }, { wch: 16 },
+    { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, 'DNS');
 
-  const total_salaire_plafonne = Math.min(
-    total_salaire_non_plafonne,
-    PLAFOND_OSTIE * nbMoisAffiches
-  );
-  const part_employeur = total_salaire_plafonne * 0.05;
-  const part_travailleur = total_salaire_plafonne * 0.01;
+  // ───── Onglet RECAP COTISATION ─────
+  const rc = {};
+  const rt = (r, c, v) => { if (v !== '' && v != null) rc[XLSX.utils.encode_cell({ r: r - 1, c })] = { t: 's', v: String(v) }; };
+  const rn = (r, c, v, f) => { rc[XLSX.utils.encode_cell({ r: r - 1, c })] = { t: 'n', v: Number(v) || 0, z: '#,##0.00', ...(f ? { f } : {}) }; };
+  const rmerges = [];
+  rt(1, 0, 'ETAT RECAPITULATIF DES DECLARATIONS NOMINATIVES DE SALAIRES');
+  rt(3, 1, 'CODE ADHERENT'); rt(3, 2, codeAdherent);
+  rt(4, 1, 'RAISON SOCIALE'); rt(4, 2, employeur.nom || '');
+  rt(5, 1, 'N° Téléphone'); rt(5, 2, employeur.telephone || '');
+  rt(6, 1, 'ADRESSE'); rt(6, 2, employeur.adresse || '');
+  rt(7, 1, 'Adresse mail'); rt(7, 2, employeur.email || '');
+  for (let r = 3; r <= 7; r++) rmerges.push({ s: { r: r - 1, c: 2 }, e: { r: r - 1, c: 5 } });
+  rt(9, 0, 'COTISATIONS :');
+  rt(10, 1, 'TRIMESTRE'); rc[XLSX.utils.encode_cell({ r: 9, c: 2 })] = { t: 'n', v: trimestre, z: '0' };
+  rt(11, 1, 'ANNEE'); rc[XLSX.utils.encode_cell({ r: 10, c: 2 })] = { t: 'n', v: Number(filtreAnnee), z: '0' };
+  rt(12, 1, 'MODE DE PAIEMENT'); // laissé vide : à compléter à la main
+  rt(13, 1, 'REFERENCE'); rt(13, 2, codeAdherent);
+  rt(14, 1, 'Taux Employeur'); rn(14, 2, TAUX_EMPLOYEUR); rc[XLSX.utils.encode_cell({ r: 13, c: 2 })].z = '0.00';
+  rt(15, 1, 'Taux Travailleur'); rn(15, 2, TAUX_TRAVAILLEUR); rc[XLSX.utils.encode_cell({ r: 14, c: 2 })].z = '0.00';
+  rt(16, 1, 'Montant Plafonnement'); rn(16, 2, PLAFOND_OSTIE, 'DNS!Q3');
+  rt(17, 1, 'Montant SME'); rn(17, 2, SME, 'DNS!Q4');
+  rt(20, 0, 'MOIS CONCERNES :');
+  moisConcernes.forEach((m, i) => rt(20, 2 + i, m));
+  rt(22, 0, 'RECAPITULATION :');
+  ['Mois 1', 'Mois 2', 'Mois 3'].forEach((m, i) => rt(22, 2 + i, m));
+  rt(23, 1, 'Effectif mensuel (OBLIGATOIRE)'); rt(23, 5, 'TOTAUX'); // effectif laissé vide
+  const colsMois = ['L', 'M', 'N'];
+  const refPlafond = 'DNS!$Q$3';
+  const sommePlafonnee = c => `SUMPRODUCT((DNS!${c}${premiere}:${c}${Math.max(derniere, premiere)}>${refPlafond})*${refPlafond}+(DNS!${c}${premiere}:${c}${Math.max(derniere, premiere)}<=${refPlafond})*DNS!${c}${premiere}:${c}${Math.max(derniere, premiere)})`;
+  rt(24, 1, 'Totaux Salaires non plafonnés');
+  rt(25, 1, 'Totaux Salaires plafonnés');
+  rt(26, 1, 'Cotisations Employeur (A)');
+  rt(27, 1, 'Cotisations travailleurs (B)');
+  rt(28, 1, 'Total cotisations A+B'); rmerges.push({ s: { r: 27, c: 1 }, e: { r: 27, c: 4 } });
+  rt(29, 1, 'Majoration de retard 10%'); rmerges.push({ s: { r: 28, c: 1 }, e: { r: 28, c: 4 } });
+  rt(30, 1, 'Trop perçu antérieur à déduire'); rmerges.push({ s: { r: 29, c: 1 }, e: { r: 29, c: 4 } });
+  rt(31, 1, 'COTISATIONS NET A PAYER'); rmerges.push({ s: { r: 30, c: 1 }, e: { r: 30, c: 4 } });
+  colsMois.forEach((c, i) => {
+    const col = 2 + i;
+    const L = lettre(col);
+    const nonPl = totaux[i] || 0;
+    const pl = donnees.reduce((s, d) => {
+      const m = moisDeColonne(d, i, moisTries);
+      return s + Math.min(m ? brutHorsAvantages(m) : 0, PLAFOND_OSTIE);
+    }, 0);
+    rn(24, col, nonPl, `DNS!${c}${ligneTotaux}`);
+    rn(25, col, pl, sommePlafonnee(c));
+    rn(26, col, pl * TAUX_EMPLOYEUR, `${L}25*$C$14`);
+    rn(27, col, pl * TAUX_TRAVAILLEUR, `${L}25*$C$15`);
+  });
+  const somme = (r) => [2, 3, 4].reduce((s, c) => s + (rc[XLSX.utils.encode_cell({ r: r - 1, c })]?.v || 0), 0);
+  [24, 25, 26, 27].forEach(r => rn(r, 5, somme(r), `SUM(C${r}:E${r})`));
+  rn(28, 5, somme(26) + somme(27), 'F26+F27');
+  rn(31, 5, somme(26) + somme(27), 'F28+F29-F30');
+  rc['!ref'] = 'A1:F31';
+  rc['!merges'] = rmerges;
+  rc['!cols'] = [{ wch: 18 }, { wch: 36 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(wb, rc, 'RECAP COTISATION');
 
-  ligne.push(
-    total_salaire_non_plafonne,
-    total_salaire_plafonne,
-    part_employeur,
-    part_travailleur
-  );
-
-  ws_data.push(ligne);
-});
-
-// Ligne total
-const ligneTotal = ['', 'TOTAL', '', '', '', '', '', '', '', '', ''];
-for (let i = 0; i < nbMoisAffiches; i++) {
-  ligneTotal.push(
-    donnees.reduce((s, d) => s + Number(moisDeColonne(d, i, moisTries)?.salaire_brut || 0), 0)
-  );
-}
-
-const total_non_plafonne = donnees.reduce((s, d) => {
-  return s + d.mois.reduce((ms, m) => ms + Number(m?.salaire_brut || 0), 0);
-}, 0);
-
-const total_plafonne = donnees.reduce((s, d) => {
-  const total = d.mois.reduce((ms, m) => ms + Number(m?.salaire_brut || 0), 0);
-  return s + Math.min(total, PLAFOND_OSTIE * nbMoisAffiches);
-}, 0);
-
-ligneTotal.push(
-  total_non_plafonne,
-  total_plafonne,
-  total_plafonne * 0.05,
-  total_plafonne * 0.01
-);
-
-ws_data.push(ligneTotal);
-const ws = XLSX.utils.aoa_to_sheet(ws_data);
-formater2Decimales(ws);
-
-// Largeurs colonnes
-ws['!cols'] = [
-  { wch: 5 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
-  { wch: 8 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
-  { wch: 20 }, { wch: 15 }, { wch: 15 },
-  ...Array(nbMoisAffiches).fill({ wch: 18 }),
-  { wch: 25 }, { wch: 22 }, { wch: 18 }, { wch: 18 }
-];
-
- 
-  XLSX.utils.book_append_sheet(wb, ws, 'OSTIE');
+  // Nom de fichier : Code adhérent + Sigle société + trimestre (ex : 012345 SOCIETE 1T2017)
+  const sigle = String(employeur.nom || entreprise?.nom || 'SOCIETE')
+    .replace(/\b(SARLU|SARL|SUARL|SASU|SAS|EURL|SA|SU)\b\.?/gi, '').replace(/[\\/?*[\]:]/g, '').trim() || 'SOCIETE';
+  nomFichierExport = `${[codeAdherent, sigle].filter(Boolean).join(' ')} ${trimestre}T${filtreAnnee}.xlsx`;
 }
 
     XLSX.writeFile(wb, nomFichierExport || `${type}_${filtreAnnee}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`);

@@ -63,6 +63,7 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
     statut_juridique: entreprise?.statut_juridique || '',
     activite: entreprise?.activite || '',
     numero_cnaps: entreprise?.numero_cnaps || '',
+    code_adherent_ostie: entreprise?.code_adherent_ostie || '',
     prefixe_facture: entreprise?.prefixe_facture || 'FAC-',
     delai_paiement_defaut: entreprise?.delai_paiement_defaut || 30,
     info_paiement: entreprise?.info_paiement || '',
@@ -164,6 +165,11 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
             <label style={styles.label}>N° CNAPS entreprise</label>
             <input style={styles.input} value={form.numero_cnaps}
               onChange={e => setForm({ ...form, numero_cnaps: e.target.value })} />
+          </div>
+          <div>
+            <label style={styles.label}>Code adhérent OSTIE</label>
+            <input style={styles.input} value={form.code_adherent_ostie}
+              onChange={e => setForm({ ...form, code_adherent_ostie: e.target.value })} />
           </div>
           <div>
             <label style={styles.label}>Préfixe facture</label>
