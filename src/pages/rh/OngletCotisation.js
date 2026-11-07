@@ -24,6 +24,9 @@ const styles = {
   }
 };
 
+// Remise d'IRSA par enfant à charge (Ar) — doit rester identique au back (services/constantesPaie.js)
+const REMISE_IRSA_PAR_ENFANT = 2000;
+
 const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
