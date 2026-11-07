@@ -36,6 +36,16 @@ function brutHorsAvantages(m) {
   return Number(m?.salaire_brut || 0) - Number(m?.total_avantages_nature || 0);
 }
 
+// Salariés du plus ancien au plus récent (date d'embauche, puis matricule) : ordre de la déclaration CNAPS
+function trierParEmbauche(liste) {
+  return [...liste].sort((a, b) => {
+    const da = a.date_embauche ? new Date(a.date_embauche).getTime() : Infinity;
+    const db = b.date_embauche ? new Date(b.date_embauche).getTime() : Infinity;
+    if (da !== db) return da - db;
+    return String(a.matricule || '').localeCompare(String(b.matricule || ''), 'fr', { numeric: true });
+  });
+}
+
 // Salariés triés par matricule, du plus ancien (EMP-001) au plus récent (EMP-002 avant EMP-010) ; sans matricule en dernier
 function trierParMatricule(liste) {
   return [...liste].sort((a, b) => {
@@ -232,7 +242,7 @@ export default function OngletCotisation({ type }) {
       );
       const data = await res.json();
       // CNAPS et OSTIE : par matricule, du plus ancien au plus récent (écran et export Excel)
-      setDonnees(type === 'IRSA' ? (data.data || []) : trierParMatricule(data.data || []));
+      setDonnees(type === 'IRSA' ? (data.data || []) : type === 'CNAPS' ? trierParEmbauche(data.data || []) : trierParMatricule(data.data || []));
       setNumeroCnapsEmployeur(data.employeur?.numero_cnaps || entreprise?.numero_cnaps || '');
     } catch (err) {
       toast.error('Erreur chargement.');
