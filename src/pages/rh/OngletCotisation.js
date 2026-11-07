@@ -516,11 +516,17 @@ export default function OngletCotisation({ type }) {
     [...sal, nonPlafonne, plafonne, plafonne * TAUX_EMPLOYEUR, plafonne * TAUX_TRAVAILLEUR].forEach((v, i) => { totaux[i] = (totaux[i] || 0) + v; });
   });
 
-  const derniere = premiere + donnees.length - 1;
+  // Comme dans le modèle de l'OSTIE : 9 lignes numérotées au minimum, les lignes sans salarié restent vides
+  const nbLignes = Math.max(9, donnees.length);
+  for (let index = donnees.length; index < nbLignes; index++) {
+    nombre(premiere + index, 0, index + 1);
+    ws[XLSX.utils.encode_cell({ r: premiere + index - 1, c: 0 })].z = '0';
+  }
+  const derniere = premiere + nbLignes - 1;
   const ligneTotaux = derniere + 1;
   texte(ligneTotaux, 9, 'TOTAUX');
   for (let c = 11; c <= 17; c++) {
-    nombre(ligneTotaux, c, totaux[c - 11] || 0, donnees.length > 0 ? `SUM(${lettre(c)}${premiere}:${lettre(c)}${derniere})` : undefined);
+    nombre(ligneTotaux, c, totaux[c - 11] || 0, `SUM(${lettre(c)}${premiere}:${lettre(c)}${derniere})`);
   }
   ws['!ref'] = `A1:R${ligneTotaux}`;
   ws['!merges'] = merges;
