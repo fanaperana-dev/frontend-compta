@@ -244,6 +244,7 @@ export default function OngletCotisation({ type }) {
   function exporterExcel() {
     const XLSX = require('xlsx');
     const wb = XLSX.utils.book_new();
+    let nomFichierExport = null;
 
     if (type === 'IRSA') {
       const donnees_export = [];
@@ -308,55 +309,42 @@ export default function OngletCotisation({ type }) {
       XLSX.utils.book_append_sheet(wb, ws, 'IRSA');
 
     } else if (type === 'CNAPS') {
+  // Format de la déclaration nominative CNAPS (modèle DNWEB) : M1 / M2 / M3
   const ws_data = [];
-
-  // En-tête ligne 1
-  const moisHeaders = moisTries.length > 0
-    ? moisTries
-    : ['M1', 'M2', 'M3'];
+  const nbMoisAffiches = 3;
+  const moisHeaders = ['M1', 'M2', 'M3'];
 
   const header1 = [
-    'N° CNAPS travailleur',
+    'Matricule travailleur',
     'N° CIN',
     'Nom',
-    'Prénom',
-    'N° CNAPS employeur',
+    'Prénom (s)',
+    'Référence Employeur',
     'Date Embauche',
     'Date Débauche'
   ];
-
-  moisHeaders.forEach((m, i) => {
-    header1.push(`M${i+1} - ${m}`, '', '', '');
-  });
-
-  header1.push('Occasionnel', 'Téléphone', 'Email');
+  moisHeaders.forEach(m => header1.push(m, '', '', ''));
+  header1.push('Occasionnel (O/N) O(oui) et N(non)', 'N° Téléphone', 'Adresse mail');
   ws_data.push(header1);
 
-  // En-tête ligne 2 (sous-colonnes)
   const header2 = ['', '', '', '', '', '', ''];
-  moisHeaders.forEach(() => {
-    header2.push('Salaire', 'Avantage', 'Nb Heures', 'Plafond');
-  });
+  moisHeaders.forEach(() => header2.push('Salaire', 'Avantage', 'TP (Numérique)', 'Plafond'));
   header2.push('', '', '');
   ws_data.push(header2);
 
-  // Données
+  const formaterDate = v => (v ? new Date(v).toLocaleDateString('fr-FR') : '');
+
   donnees.forEach(d => {
     const ligne = [
-      d.numero_cnaps || '',
-      d.cin || '',
+      String(d.numero_cnaps || ''),
+      String(d.cin || ''),
       d.nom,
       d.prenom || '',
-      numeroCnapsEmployeur, // N° CNAPS de l'employeur (renseigné à l'inscription)
-      d.date_embauche
-        ? new Date(d.date_embauche).toLocaleDateString('fr-FR')
-        : '',
-      d.date_sortie
-        ? new Date(d.date_sortie).toLocaleDateString('fr-FR')
-        : ''
+      numeroCnapsEmployeur, // Référence employeur (renseignée à l'inscription)
+      formaterDate(d.date_embauche),
+      formaterDate(d.date_sortie)
     ];
 
-    const nbMoisAffiches = moisTries.length || 3;
     for (let i = 0; i < nbMoisAffiches; i++) {
       const m = moisDeColonne(d, i, moisTries);
       if (m) {
@@ -367,44 +355,46 @@ export default function OngletCotisation({ type }) {
           PLAFOND_CNAPS
         );
       } else {
-        ligne.push('', '', d.nb_heures_mois || 173.33, PLAFOND_CNAPS);
+        // Salarié absent ce mois-là : cases laissées vides
+        ligne.push('', '', '', '');
       }
     }
 
-    ligne.push(
-      d.occasionnel || 'N',
-      d.telephone || '',
-      d.email || ''
-    );
-
+    ligne.push(d.occasionnel || 'N', String(d.telephone || ''), d.email || '');
     ws_data.push(ligne);
   });
 
-  const nbMoisAffiches = moisTries.length || 3;
-
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
-
   formater2Decimales(ws, { lignesEntete: 2 });
 
-  // Fusionner cellules en-tête M1/M2/M3
+  // Fusions : colonnes A à G et T à V sur 2 lignes ; M1, M2, M3 sur 4 colonnes
   ws['!merges'] = [];
+  for (let c = 0; c <= 6; c++) ws['!merges'].push({ s: { r: 0, c }, e: { r: 1, c } });
   moisHeaders.forEach((_, i) => {
     const col = 7 + (i * 4);
-    ws['!merges'].push({
-      s: { r: 0, c: col },
-      e: { r: 0, c: col + 3 }
-    });
+    ws['!merges'].push({ s: { r: 0, c: col }, e: { r: 0, c: col + 3 } });
   });
+  for (let c = 19; c <= 21; c++) ws['!merges'].push({ s: { r: 0, c }, e: { r: 1, c } });
 
-  // Largeurs colonnes
   ws['!cols'] = [
     { wch: 18 }, { wch: 15 }, { wch: 20 }, { wch: 15 },
     { wch: 18 }, { wch: 15 }, { wch: 15 },
-    ...Array(nbMoisAffiches * 4).fill({ wch: 12 }),
-    { wch: 12 }, { wch: 15 }, { wch: 25 }
+    ...Array(nbMoisAffiches * 4).fill({ wch: 14 }),
+    { wch: 30 }, { wch: 15 }, { wch: 28 }
   ];
 
-  XLSX.utils.book_append_sheet(wb, ws, 'CNAPS');
+  // La feuille porte le nom de la référence employeur
+  const nomFeuille = String(numeroCnapsEmployeur || 'CNAPS').replace(/[\\/?*[\]:]/g, '').slice(0, 31) || 'CNAPS';
+  XLSX.utils.book_append_sheet(wb, ws, nomFeuille);
+
+  // Nom de fichier : DNWEB-<référence employeur>-<AAAAMM du dernier mois du trimestre>
+  const moisPresents = moisTries.length > 0
+    ? moisTries
+    : donnees.flatMap(d => d.mois.map(m => String(m.periode || '').split('/')[0])).filter(Boolean);
+  const moisFin = moisPresents.length > 0
+    ? moisPresents.slice().sort()[moisPresents.length - 1]
+    : String(new Date().getMonth() + 1).padStart(2, '0');
+  nomFichierExport = `DNWEB-${numeroCnapsEmployeur || 'CNAPS'}-${filtreAnnee}${String(moisFin).padStart(2, '0')}.xlsx`;
 
 
 } else if (type === 'OSTIE') {
@@ -534,7 +524,7 @@ ws['!cols'] = [
   XLSX.utils.book_append_sheet(wb, ws, 'OSTIE');
 }
 
-    XLSX.writeFile(wb, `${type}_${filtreAnnee}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`);
+    XLSX.writeFile(wb, nomFichierExport || `${type}_${filtreAnnee}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.xlsx`);
     toast.success('Export Excel téléchargé !');
   }
 
