@@ -311,7 +311,7 @@ export default function OngletCotisation({ type }) {
           somme(d, m => m.brut_imposable),
           impotBrut,
           d.mois[d.mois.length - 1]?.nb_enfants || 0, // situation du mois le plus récent
-          Math.max(0, impotBrut - impotNet),           // réduction effectivement appliquée sur les fiches
+          (d.mois[d.mois.length - 1]?.nb_enfants || 0) * REMISE_IRSA_PAR_ENFANT * d.mois.length, // calcul habituel : 2 000 Ar par personne à charge et par mois
           impotNet
         ]);
       });
