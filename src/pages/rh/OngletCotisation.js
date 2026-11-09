@@ -536,7 +536,65 @@ export default function OngletCotisation({ type }) {
   for (let c = 11; c <= 17; c++) {
     nombre(ligneTotaux, c, totaux[c - 11] || 0, `SUM(${lettre(c)}${premiere}:${lettre(c)}${derniere})`);
   }
-  ws['!ref'] = `A1:R${ligneTotaux}`;
+  fusion(ligneTotaux, 9, ligneTotaux, 10); // « TOTAUX » fusionné sur J:K comme dans le modèle
+
+  // Textes fixes du modèle de l'OSTIE (identiques pour toutes les entreprises) :
+  // explication des colonnes et recommandations, placés 2 lignes sous la ligne TOTAUX
+  const decal = ligneTotaux - 24; // dans le modèle, la ligne TOTAUX est la ligne 24
+  const serie = (j, m, a) => (Date.UTC(a, m - 1, j) - Date.UTC(1899, 11, 30)) / 86400000;
+  const fixe = (r, c, v) => {
+    const adr = XLSX.utils.encode_cell({ r: r + decal - 1, c });
+    ws[adr] = typeof v === 'number' ? { t: 'n', v } : { t: 's', v };
+  };
+  const date = (r, c, j, m, a) => {
+    ws[XLSX.utils.encode_cell({ r: r + decal - 1, c })] = { t: 'n', v: serie(j, m, a), z: 'dd/mm/yyyy' };
+  };
+  [
+    [26, 1, 'EXPLICATION DES CONTENUS DES COLONNES '],
+    [26, 10, 'RECOMMANDATIONS :'],
+    [28, 1, 'COLONNE'], [28, 2, 'DESCRIPTION'], [28, 7, 'EXEMPLE'], [28, 8, ' -'],
+    [28, 9, 'Toutes les colonnes doivent être remplies'],
+    [29, 1, 'A'], [29, 2, 'Numéro chronologique'],
+    [29, 9, "Dans le cas contraire, le fichier sera retourné à l'employeur."],
+    [30, 1, 'B'], [30, 2, "N° matricule du travailleur chez l'employeur"],
+    [31, 1, 'C'], [31, 2, 'Nom du travailleur : Toujours à renseigner, ne pas intervertir avec les prénoms'],
+    [31, 8, '-'], [31, 9, "Ne jamais insérer ni supprimer d'autres lignes à l'en-tête (ligne 1 à 14)"],
+    [32, 1, 'D'], [32, 2, 'Prénoms du travailleur : A renseigner si existant, ne pas intervertir avec le nom'],
+    [33, 1, 'E'], [33, 2, 'Sexe : Masculin ou Féminin'], [33, 7, 'M ou F'], [33, 8, '-'],
+    [33, 9, "Insérer des lignes selon nombre d'effectif."],
+    [34, 1, 'F'], [34, 2, 'Date de naissance obligatoire. Mettre au format date JJ/MM/AAAA'],
+    [34, 9, "Un travailleur ne doit occuper qu'une seule ligne"],
+    [35, 1, 'G'], [35, 2, "Date d'embauche : mettre au format date JJ/MM/AAAA"],
+    [36, 1, 'H'], [36, 2, 'Date de départ : A renseigner uniquement si le travailleur a été débauché au cours de ce'],
+    [36, 8, ' -'], [36, 9, "Ne jamais insérer d'autres colonnes"],
+    [37, 2, 'trimestre. Mettre au format date JJ/MM/AAAA'],
+    [38, 1, 'I'], [38, 2, 'Fonction'], [38, 8, ' -'], [38, 9, 'Ne pas intervertir les colonnes'],
+    [39, 1, 'J'], [39, 2, "N° CNaPS : N° d'affiliation du travailleur. Si le numéro comporte des zéros devant,"],
+    [39, 7, '033546'],
+    [40, 2, "tapez ces zéros. Ce numéro doit être renseigné sauf si le travailleur a été embauché au"],
+    [40, 7, '12345678901K'], [40, 8, ' -'], [40, 9, 'Mettre au majuscule les noms et prénoms'],
+    [41, 2, "cours du trimestre, auquel cas, la date d'entrée et le n° CIN doivent être renseignés  "],
+    [41, 7, '564234'], [41, 9, 'ainsi que les fonctions'],
+    [42, 1, 'K'], [42, 2, "CIN : N° CIN du travailleur - N° passeport pour les expatriés"],
+    [43, 1, 'L,M,N'], [43, 2, 'Salaire du mois : Montant du salaire du mois, non plafonné, en format nombre sans '],
+    [43, 7, 1234567], [43, 8, ' -'], [43, 9, "Faire apparaitre dans l'objet du mail ainsi que dans le nom de fichier"],
+    [44, 2, 'séparation de milliers, donc cadré à droite'], [44, 9, 'le code Adhérent et le trimestre concerné'],
+    [45, 1, 'O'], [45, 2, 'Total non plafonné : Somme des colonnes L, M et N (format nombre)'],
+    [45, 9, 'Renommer le fichier : Code Adhérent + Sigle Société + trimestre (ex : 012345 SOCIETE 1T2017)'],
+    [46, 1, 'P'], [46, 2, 'Total plafonné : Si la valeur de L ou M ou N est supérieur au plafond règlementaire,  '],
+    [47, 2, 'faire la somme avec le plafond règlementaire, sinon mettre O (format nombre) '],
+    [47, 8, ' -'], [47, 9, "Ne pas oublier d'établir l'état récapitulatif (onglet RECAP COTISATION)"],
+    [48, 1, 'Q'], [48, 2, 'Cotisation part employeur : Valeur de P à multiplier par le taux employeur en vigueur '],
+    [49, 1, 'R'], [49, 2, 'Cotisation part travailleur : Valeur de P à multiplier par le taux travailleur en vigueur '],
+  ].forEach(([r, c, v]) => fixe(r, c, v));
+  date(34, 7, 2, 6, 1983);
+  date(35, 7, 4, 1, 2017);
+  date(37, 7, 4, 1, 2017);
+  [28, 29, 30, 31, 32, 33, 34, 35, 49].forEach(r => fusion(r + decal, 2, r + decal, 6));
+  fusion(33 + decal, 9, 33 + decal, 12);
+  fusion(34 + decal, 9, 34 + decal, 12);
+
+  ws['!ref'] = `A1:R${52 + decal}`;
   ws['!merges'] = merges;
   ws['!cols'] = [
     { wch: 5 }, { wch: 12 }, { wch: 22 }, { wch: 24 }, { wch: 6 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
