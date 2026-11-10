@@ -941,7 +941,10 @@ export default function Factures() {
     ]);
     
     setFactures(facturesRes.data.data || []);
-    setClients(clientsRes.data.data || []);
+    // Clients classés de A à Z (formulaire de facture et filtre « Tous les clients »)
+    setClients([...(clientsRes.data.data || [])].sort((a, b) =>
+      String(a.nom || '').localeCompare(String(b.nom || ''), 'fr', { sensitivity: 'base', numeric: true })
+    ));
     setNoteDefaut(entrepriseRes.data?.note_facture_defaut || '');
   } catch (err) {
     console.error('[FACTURES] Erreur lors du chargement:', err);
