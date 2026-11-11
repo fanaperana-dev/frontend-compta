@@ -71,13 +71,6 @@ function joursConge(debut, fin) {
   return n;
 }
 
-// Filtre d'une colonne : le texte saisi doit figurer dans la valeur
-function correspond(valeur, saisie) {
-  const t = String(saisie || '').trim().toLowerCase().replace(',', '.');
-  if (!t) return true;
-  return String(valeur).toLowerCase().replace(',', '.').includes(t);
-}
-
 function FormulaireDemande({ salaries, onSave, onCancel, entete, entrepriseId }) {
   const [form, setForm] = useState({
     salarie_id: '', date_debut: aujourdhui(), date_fin: aujourdhui(), nb_jours: 1, motif: '', statut: 'VALIDEE'
@@ -213,7 +206,6 @@ export default function OngletConges() {
   const [loading, setLoading] = useState(true);
   const [modalForm, setModalForm] = useState(false);
   const [recherche, setRecherche] = useState('');
-  const [filtres, setFiltres] = useState({});
   const [tri, setTri] = useState({ col: 'matricule', sens: 1 });
   const [filtreStatut, setFiltreStatut] = useState('');
 
@@ -299,12 +291,11 @@ export default function OngletConges() {
     const r = recherche.trim().toLowerCase();
     return tableau.lignes
       .filter(l => !r || `${l.matricule} ${l.nom} ${l.prenom}`.toLowerCase().includes(r))
-      .filter(l => colonnes.every(c => correspond(c.val(l), filtres[c.key])))
       .sort((a, b) => {
         const x = col.val(a); const y = col.val(b);
         return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'fr', { numeric: true })) * tri.sens;
       });
-  }, [tableau.lignes, colonnes, recherche, filtres, tri]);
+  }, [tableau.lignes, colonnes, recherche, tri]);
 
   const demandesFiltrees = demandes.filter(d => !filtreStatut || d.statut === filtreStatut);
   const nomSalarie = id => {
@@ -337,15 +328,7 @@ export default function OngletConges() {
                 {colonnes.map(c => (
                   <th key={c.key} style={styles.th}
                     onClick={() => setTri(t => ({ col: c.key, sens: t.col === c.key ? -t.sens : 1 }))}>
-                    {c.label}{tri.col === c.key ? (tri.sens === 1 ? ' ▲' : ' ▼') : ''}
-                  </th>
-                ))}
-              </tr>
-              <tr>
-                {colonnes.map(c => (
-                  <th key={c.key} style={{ padding: '4px', background: '#e8f1f3' }}>
-                    <input style={styles.filtre} placeholder="filtrer"
-                      value={filtres[c.key] || ''} onChange={e => setFiltres({ ...filtres, [c.key]: e.target.value })} />
+                    {c.label}<span style={{ opacity: tri.col === c.key ? 1 : 0.4 }}>{tri.col === c.key ? (tri.sens === 1 ? ' ▲' : ' ▼') : ' ↕'}</span>
                   </th>
                 ))}
               </tr>
@@ -371,7 +354,7 @@ export default function OngletConges() {
           </table>
         </div>
         <p style={{ fontSize: '11px', color: '#888', marginBottom: 0 }}>
-          Solde = jours de congé restants à la fin du mois précédent, sans les 2,5 j qui seront acquis sur le mois en cours.
+          Solde = jours de congé restants à la fin du mois précédent, sans les 2,5 j qui seront acquis sur le mois en cours. Clique sur le titre d'une colonne pour trier.
         </p>
       </div>
 
