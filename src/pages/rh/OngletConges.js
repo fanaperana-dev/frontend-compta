@@ -71,15 +71,10 @@ function joursConge(debut, fin) {
   return n;
 }
 
-// Filtre d'une colonne : texte (contient) ou, pour les nombres, ">2", "<1", ">=0,5", "=0"
+// Filtre d'une colonne : le texte saisi doit figurer dans la valeur
 function correspond(valeur, saisie) {
   const t = String(saisie || '').trim().toLowerCase().replace(',', '.');
   if (!t) return true;
-  const m = /^(>=|<=|>|<|=)\s*(-?\d+(?:\.\d+)?)$/.exec(t);
-  if (m && typeof valeur === 'number') {
-    const v = valeur; const x = Number(m[2]);
-    return { '>': v > x, '<': v < x, '>=': v >= x, '<=': v <= x, '=': v === x }[m[1]];
-  }
   return String(valeur).toLowerCase().replace(',', '.').includes(t);
 }
 
@@ -349,7 +344,7 @@ export default function OngletConges() {
               <tr>
                 {colonnes.map(c => (
                   <th key={c.key} style={{ padding: '4px', background: '#e8f1f3' }}>
-                    <input style={styles.filtre} placeholder={['solde', ...moisListe].includes(c.key) ? '>0' : 'filtrer'}
+                    <input style={styles.filtre} placeholder="filtrer"
                       value={filtres[c.key] || ''} onChange={e => setFiltres({ ...filtres, [c.key]: e.target.value })} />
                   </th>
                 ))}
@@ -376,7 +371,7 @@ export default function OngletConges() {
           </table>
         </div>
         <p style={{ fontSize: '11px', color: '#888', marginBottom: 0 }}>
-          Solde = jours de congé restants à la fin du mois précédent, sans les 2,5 j qui seront acquis sur le mois en cours. Filtres numériques : &gt;0, &lt;2, =0…
+          Solde = jours de congé restants à la fin du mois précédent, sans les 2,5 j qui seront acquis sur le mois en cours.
         </p>
       </div>
 

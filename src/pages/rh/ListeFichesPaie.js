@@ -323,6 +323,32 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
 }
 
 // Composant création fiche unique
+// Régulation : montant + sens (ajout / retenue) + motif affiché sur la fiche de paie.
+// La valeur stockée est signée : positive = ajoutée, négative = retirée.
+function LigneRegulation({ titre, aide, valeur, motif, onChange }) {
+  const [sens, setSens] = useState(Number(valeur) < 0 ? '-' : '+');
+  const montant = Math.abs(Number(valeur) || 0);
+  const emettre = (m, sg, mo) => onChange(sg === '-' ? -Math.abs(m) : Math.abs(m), mo);
+  return (
+    <div style={{ gridColumn: 'span 2', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '10px' }}>
+      <label style={styles.label}>{titre}</label>
+      <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 2fr', gap: '8px' }}>
+        <select style={styles.input} value={sens}
+          onChange={e => { setSens(e.target.value); emettre(montant, e.target.value, motif); }}>
+          <option value="+">+ Ajout</option>
+          <option value="-">− Retenue</option>
+        </select>
+        <input style={styles.input} type="number" min="0" placeholder="Montant (Ar)" value={montant || ''}
+          onChange={e => emettre(Number(e.target.value) || 0, sens, motif)} />
+        <input style={styles.input} type="text" maxLength={120}
+          placeholder="Motif (ex. jour férié, trop perçu, SME)" value={motif}
+          onChange={e => emettre(montant, sens, e.target.value)} />
+      </div>
+      <span style={{ fontSize: '11px', color: '#888' }}>{aide}</span>
+    </div>
+  );
+}
+
 function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInitiale }) {
   const { entreprise } = useAuth();
   const modeEdition = !!ficheInitiale;
@@ -351,6 +377,10 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
     avance_sur_salaire: 0,
     regulation_positive: 0,
     regulation_negative: 0,
+    regulation_brute: 0,
+    regulation_brute_motif: '',
+    regulation_nette: 0,
+    regulation_nette_motif: '',
     indemnite_logement: 0,
     indemnite_carburant: 0,
     indemnite_ecolage: 0,
@@ -381,8 +411,14 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
       acompte: Number(ficheInitiale.acompte) || 0,
       retenue: Number(ficheInitiale.retenue) || 0,
       avance_sur_salaire: Number(ficheInitiale.avance_sur_salaire) || 0,
-      regulation_positive: Number(ficheInitiale.regulation_positive) || 0,
-      regulation_negative: Number(ficheInitiale.regulation_negative) || 0,
+      // Anciennes régulations positive/négative : reprises comme régulation nette (± selon le signe)
+      regulation_positive: 0,
+      regulation_negative: 0,
+      regulation_brute: Number(ficheInitiale.regulation_brute) || 0,
+      regulation_brute_motif: ficheInitiale.regulation_brute_motif || '',
+      regulation_nette: (Number(ficheInitiale.regulation_nette) || 0)
+        + (Number(ficheInitiale.regulation_positive) || 0) - (Number(ficheInitiale.regulation_negative) || 0),
+      regulation_nette_motif: ficheInitiale.regulation_nette_motif || '',
       indemnite_logement: Number(ficheInitiale.indemnite_logement) || 0,
       indemnite_carburant: Number(ficheInitiale.indemnite_carburant) || 0,
       indemnite_ecolage: Number(ficheInitiale.indemnite_ecolage) || 0,
@@ -607,16 +643,14 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
                 <input style={styles.input} type="number" value={form.prime_exceptionnelle}
                   onChange={e => setForm({ ...form, prime_exceptionnelle: Number(e.target.value) })} />
               </div>
-              <div>
-                <label style={styles.label}>Régulation positive (Ar)</label>
-                <input style={styles.input} type="number" value={form.regulation_positive}
-                  onChange={e => setForm({ ...form, regulation_positive: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>Régulation négative (Ar)</label>
-                <input style={styles.input} type="number" value={form.regulation_negative}
-                  onChange={e => setForm({ ...form, regulation_negative: Number(e.target.value) })} />
-              </div>
+              <LigneRegulation titre="Régulation brute (avant impôts)"
+                aide="Entre dans le brut : CNaPS, OSTIE et IRSA sont recalculés."
+                valeur={form.regulation_brute} motif={form.regulation_brute_motif}
+                onChange={(v, m) => setForm({ ...form, regulation_brute: v, regulation_brute_motif: m })} />
+              <LigneRegulation titre="Régulation nette (après impôts)"
+                aide="Ajoutée ou retirée du net à payer, sans effet sur les cotisations ni l'IRSA."
+                valeur={form.regulation_nette} motif={form.regulation_nette_motif}
+                onChange={(v, m) => setForm({ ...form, regulation_nette: v, regulation_nette_motif: m })} />
 
               {/* Avantages cadres */}
               <div style={{ gridColumn: 'span 2' }}>
