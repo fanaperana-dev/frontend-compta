@@ -1,5 +1,5 @@
 import { formater2Decimales } from '../utils/excel2Decimales';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { factureService, clientService, mailService, paiementService } from '../services/api';
@@ -963,12 +963,32 @@ function changerTri(colonne) {
     setTriOrdre('asc');
   }
 }
+  // Le PDF est généré en arrière-plan après la création : on relit la liste toutes les 3 s
+  // jusqu'à ce que les factures créées aient leur PDF (au plus ~90 s), sans recharger la page.
+  const ecouteActive = useRef(true);
+  useEffect(() => () => { ecouteActive.current = false; }, []);
+  async function surveillerPdf(numeros) {
+    if (!numeros || numeros.length === 0) return;
+    for (let essai = 0; essai < 30 && ecouteActive.current; essai++) {
+      await new Promise(r => setTimeout(r, 3000));
+      try {
+        const res = await factureService.getAll(entreprise.id);
+        const liste = res.data.data || [];
+        if (!ecouteActive.current) return;
+        setFactures(liste);
+        const pretes = numeros.every(n => liste.find(f => f.numero_facture === n)?.pdf_url);
+        if (pretes) return;
+      } catch (e) { /* on réessaie au prochain tour */ }
+    }
+  }
+
   async function creerFacture(data) {
     try {
-      await factureService.creer(data);
+      const res = await factureService.creer(data);
       toast.success('Facture créée avec succès !');
       setModalOuvert(null);
       chargerDonnees();
+      surveillerPdf([res.data?.data?.numero_facture].filter(Boolean));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur création facture.');
     }
@@ -993,6 +1013,7 @@ function changerTri(colonne) {
     }
     setModalOuvert(null);
     chargerDonnees();
+    surveillerPdf((r.creees || []).map(c => c.numero));
   } catch (err) {
     toast.error('Erreur création en masse.');
   }
