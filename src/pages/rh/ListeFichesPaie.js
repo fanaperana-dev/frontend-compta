@@ -68,6 +68,20 @@ async function chargerRetenues(entrepriseId, mois, annee) {
   }
 }
 
+// Congés validés (onglet Congés) pour un mois : { [salarie_id]: nb de jours }
+async function chargerCongesValides(entrepriseId, mois, annee) {
+  try {
+    const res = await fetch(
+      `${API_URL}/api/conges/valides/${entrepriseId}?mois=${encodeURIComponent(mois)}&annee=${annee}`,
+      { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+    );
+    const data = await res.json();
+    return data.success ? (data.data || {}) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
 // Composant création en masse
 function FormulaireMasse({ salaries, onSave, onCancel }) {
   const { entreprise } = useAuth();
@@ -113,6 +127,22 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     chargerRetenues(entreprise.id, config.mois, config.annee).then(map => {
       if (!actif) return;
       setLignes(ls => ls.map(l => ({ ...l, avance_sur_salaire: map[l.salarie_id]?.montant || 0 })));
+    });
+    return () => { actif = false; };
+  }, [config.mois, config.annee]);
+
+  // Pré-remplit la colonne Congés avec les congés validés dans l'onglet Congés pour le mois choisi
+  useEffect(() => {
+    let actif = true;
+    chargerCongesValides(entreprise.id, config.mois, config.annee).then(map => {
+      if (!actif) return;
+      setLignes(ls => ls.map(l => {
+        const conge = Number(map[l.salarie_id]) || 0;
+        return {
+          ...l, nb_jours_conge: conge,
+          nb_jours_travailles: Math.max(0, (Number(l.nb_jours_mois) || 30) - conge - (Number(l.nb_jours_absence) || 0))
+        };
+      }));
     });
     return () => { actif = false; };
   }, [config.mois, config.annee]);
@@ -392,6 +422,24 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
         setForm(f => (f.solde_conge_manuel ? f : { ...f, solde_conge_precedent: valeur ?? 0 }));
       })
       .catch(() => {});
+    return () => { actif = false; };
+  }, [form.salarie_id, form.mois, form.annee]);
+
+  // Création : les congés validés dans l'onglet Congés pour ce mois sont repris automatiquement
+  useEffect(() => {
+    if (modeEdition || !form.salarie_id) return undefined;
+    let actif = true;
+    chargerCongesValides(entreprise.id, form.mois, form.annee).then(map => {
+      if (!actif) return;
+      const conge = Number(map[form.salarie_id]) || 0;
+      setForm(f => {
+        if (f.salarie_id !== form.salarie_id) return f;
+        const sal = salaries.find(x => x.id === f.salarie_id);
+        const jMois = Number(sal?.nb_jours_mois) || 30;
+        return { ...f, nb_jours_conge: conge,
+          nb_jours_travailles: Math.max(0, jMois - conge - (Number(f.nb_jours_absence) || 0)) };
+      });
+    });
     return () => { actif = false; };
   }, [form.salarie_id, form.mois, form.annee]);
 
