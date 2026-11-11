@@ -69,6 +69,7 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
     info_paiement: entreprise?.info_paiement || '',
     forfait_id: entreprise?.forfait_id || '',
     taux_majoration_ferie: entreprise?.taux_majoration_ferie || 1.50,
+    assujettie_tva: entreprise?.assujettie_tva === true,
   });
 
   return (
@@ -190,6 +191,14 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
               <option value={1.00}>100% (pas de majoration)</option>
               <option value={1.25}>125%</option>
               <option value={1.75}>175%</option>
+            </select>
+          </div>
+          <div>
+            <label style={styles.label}>Assujettie à la TVA</label>
+            <select style={styles.input} value={form.assujettie_tva ? 'oui' : 'non'}
+              onChange={e => setForm({ ...form, assujettie_tva: e.target.value === 'oui' })}>
+              <option value="non">Non – factures sans TVA</option>
+              <option value="oui">Oui – factures HT / TVA / TTC</option>
             </select>
           </div>
           <div>

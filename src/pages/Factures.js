@@ -87,7 +87,34 @@ function couleurStatut(statut) {
 }
 
 // Modal création facture
-function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefaut }) {
+// Totaux d'une facture en cours de saisie : entreprise assujettie à la TVA → HT / TVA / TTC ;
+// sinon le montant à payer directement, avec la mention « non assujettie ».
+function BlocTotauxFacture({ total, tva }) {
+  const fr = n => (Number(n) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+  const ligne = { display: 'flex', justifyContent: 'flex-end', gap: '30px' };
+  if (tva?.assujettie) {
+    const ht = Number(total) || 0;
+    const montantTva = Math.round(ht * (Number(tva.taux) || 0)) / 100;
+    return (
+      <div style={{ textAlign: 'right', marginTop: '10px', color: '#004d5a' }}>
+        <div style={ligne}><span>TOTAL HT</span><strong>{fr(ht)} Ar</strong></div>
+        <div style={ligne}><span>TVA ({fr(tva.taux)} %)</span><strong>{fr(montantTva)} Ar</strong></div>
+        <div style={{ ...ligne, fontSize: '16px', fontWeight: 'bold', borderTop: '2px solid #004d5a', marginTop: '4px', paddingTop: '4px' }}>
+          <span>TOTAL TTC</span><span>{fr(ht + montantTva)} Ar</span>
+        </div>
+        <div style={{ fontSize: '11px', color: '#888' }}>Les prix saisis sont hors taxes (HT).</div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ textAlign: 'right', marginTop: '10px', color: '#004d5a' }}>
+      <div style={{ fontSize: '16px', fontWeight: 'bold' }}>MONTANT À PAYER : {fr(total)} Ar</div>
+      <div style={{ fontSize: '11px', color: '#888' }}>Entreprise non assujettie à la TVA</div>
+    </div>
+  );
+}
+
+function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefaut, tva }) {
   const [tropPercu, setTropPercu] = useState(0);
   const [sousCategories, setSousCategories] = useState([]);
   const [enCours, setEnCours] = useState(false);
@@ -336,7 +363,7 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
-                {['Description', 'Qté', 'Prix unitaire', 'Remise %', 'Total', ''].map(h => (
+                {['Description', 'Qté', tva?.assujettie ? 'Prix unitaire HT' : 'Prix unitaire', 'Remise %', tva?.assujettie ? 'Total HT' : 'Total', ''].map(h => (
                   <th key={h} style={{ padding: '8px', fontSize: '12px', textAlign: 'left', borderBottom: '1px solid #e0e0e0' }}>
                     {h}
                   </th>
@@ -400,9 +427,7 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
             </tbody>
           </table>
 
-          <div style={{ textAlign: 'right', marginTop: '10px', fontSize: '16px', fontWeight: 'bold', color: '#004d5a' }}>
-            TOTAL : {calculerTotal().toLocaleString('fr-FR')} Ar
-          </div>
+          <BlocTotauxFacture total={calculerTotal()} tva={tva} />
         </div>
         {/* Note de facture */}
         <div style={{ marginBottom: '15px' }}>
@@ -665,7 +690,7 @@ function FormulaireAnnulation({ facture, onSave, onCancel }) {
   );
 }
 
-function FormulaireFactureMasse({ onSave, onCancel, noteDefaut }) {
+function FormulaireFactureMasse({ onSave, onCancel, noteDefaut, tva }) {
   const moisListe = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
@@ -689,6 +714,9 @@ function FormulaireFactureMasse({ onSave, onCancel, noteDefaut }) {
         </h3>
         <p style={{ color: '#666', fontSize: '14px' }}>
           Crée automatiquement une facture pour tous les clients actifs avec un montant mensuel.
+          {tva?.assujettie && (
+            <><br /><strong>Les montants mensuels des clients sont considérés hors taxes (HT) : la TVA de {tva.taux} % est ajoutée à chaque facture.</strong></>
+          )}
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -767,7 +795,7 @@ function FormulaireFactureMasse({ onSave, onCancel, noteDefaut }) {
 
 
 // Modal modification facture
-function FormulaireModificationFacture({ facture, lignes, onSave, onCancel }) {
+function FormulaireModificationFacture({ facture, lignes, onSave, onCancel, tva }) {
   const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
     lignes: lignes.length > 0 ? lignes.map(l => ({
@@ -822,7 +850,7 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel }) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
-                {['Description', 'Qté', 'Prix unitaire', 'Remise %', 'Total', ''].map(h => (
+                {['Description', 'Qté', tva?.assujettie ? 'Prix unitaire HT' : 'Prix unitaire', 'Remise %', tva?.assujettie ? 'Total HT' : 'Total', ''].map(h => (
                   <th key={h} style={{ padding: '8px', fontSize: '12px', textAlign: 'left', borderBottom: '1px solid #e0e0e0' }}>
                     {h}
                   </th>
@@ -885,9 +913,7 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel }) {
             </tbody>
           </table>
 
-          <div style={{ textAlign: 'right', marginTop: '10px', fontSize: '16px', fontWeight: 'bold', color: '#004d5a' }}>
-            TOTAL : {calculerTotal().toLocaleString('fr-FR')} Ar
-          </div>
+          <BlocTotauxFacture total={calculerTotal()} tva={tva} />
         </div>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -920,6 +946,7 @@ export default function Factures() {
   const [selection, setSelection] = useState([]);
   const [lignesFactureSelectionnee, setLignesFactureSelectionnee] = useState([]);
   const [noteDefaut, setNoteDefaut] = useState('');
+  const [regimeTva, setRegimeTva] = useState({ assujettie: false, taux: 20 });
   const [triColonne, setTriColonne] = useState('numero_facture');
   const [triOrdre, setTriOrdre] = useState('desc');
 
@@ -946,6 +973,10 @@ export default function Factures() {
       String(a.nom || '').localeCompare(String(b.nom || ''), 'fr', { sensitivity: 'base', numeric: true })
     ));
     setNoteDefaut(entrepriseRes.data?.note_facture_defaut || '');
+    setRegimeTva({
+      assujettie: entrepriseRes.data?.assujettie_tva === true,
+      taux: Number(entrepriseRes.data?.taux_tva) || 20
+    });
   } catch (err) {
     console.error('[FACTURES] Erreur lors du chargement:', err);
     toast.error('Erreur lors du chargement.');
@@ -1392,6 +1423,7 @@ function exporterCSV() {
           clients={clients}
           entreprise_id={entreprise.id}
           noteDefaut={noteDefaut}
+          tva={regimeTva}
           onSave={creerFacture}
           onCancel={() => setModalOuvert(null)}
         />
@@ -1399,6 +1431,7 @@ function exporterCSV() {
       {modalOuvert === 'masse' && (
         <FormulaireFactureMasse
           noteDefaut={noteDefaut}
+          tva={regimeTva}
           onSave={creerFacturesMasse}
           onCancel={() => setModalOuvert(null)}
         />
@@ -1419,6 +1452,7 @@ function exporterCSV() {
       )}
       {modalOuvert === 'modifier' && factureSelectionnee && (
         <FormulaireModificationFacture
+          tva={regimeTva}
           facture={factureSelectionnee}
           lignes={lignesFactureSelectionnee}
           onSave={modifierFacture}

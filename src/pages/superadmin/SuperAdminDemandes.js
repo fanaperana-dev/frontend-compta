@@ -138,6 +138,7 @@ export default function SuperAdminDemandes() {
               <div><strong>Activité :</strong> {demandeSelectionnee.activite}</div>
               <div><strong>Préfixe factures :</strong> {demandeSelectionnee.prefixe_facture}</div>
               <div><strong>Organisme santé :</strong> {demandeSelectionnee.nom_organisme_sante}</div>
+              <div><strong>Assujettie à la TVA :</strong> {demandeSelectionnee.assujettie_tva ? 'Oui' : 'Non'}</div>
             </div>
 
             {/* Aperçu couleurs */}

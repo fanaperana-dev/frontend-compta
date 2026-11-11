@@ -129,6 +129,8 @@ export default function InscriptionPage() {
     // Config RH
     nom_organisme_sante: 'OSTIE',
     taux_majoration_ferie: 1.5,
+    // TVA
+    assujettie_tva: false,
     // Personnalisation
     couleur_primaire: '#004d5a',
     couleur_secondaire: '#2e7d32',
@@ -466,6 +468,14 @@ export default function InscriptionPage() {
                   <label style={styles.label}>Délai de paiement (jours)</label>
                   <input style={styles.input} type="number" value={form.delai_paiement}
                     onChange={e => setForm({ ...form, delai_paiement: e.target.value })} />
+                </div>
+                <div>
+                  <label style={styles.label}>Votre entreprise est-elle assujettie à la TVA ? *</label>
+                  <select style={styles.input} value={form.assujettie_tva ? 'oui' : 'non'}
+                    onChange={e => setForm({ ...form, assujettie_tva: e.target.value === 'oui' })}>
+                    <option value="non">Non – factures sans TVA</option>
+                    <option value="oui">Oui – factures avec HT, TVA (20 %) et TTC</option>
+                  </select>
                 </div>
                 <div>
                   <label style={styles.label}>Nom organisme santé</label>
