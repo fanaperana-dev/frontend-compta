@@ -59,13 +59,15 @@ const aujourdhui = () => new Date().toISOString().split('T')[0];
 const fmtNb = n => (Number(n) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
 const fmtDate = d => (d ? new Date(d).toLocaleDateString('fr-FR') : '');
 
-// Jours ouvrables (lundi–samedi) entre deux dates incluses : valeur proposée, modifiable
-function joursOuvrables(debut, fin) {
+// Jours de congé comptés selon la législation malgache : tous les jours calendaires, samedi et dimanche inclus.
+// Un congé qui se termine un vendredi compte aussi le week-end qui suit (ven. = 3 j), un lundi = 1 j.
+function joursConge(debut, fin) {
   if (!debut || !fin) return 0;
   const d = new Date(debut); const f = new Date(fin);
   if (f < d) return 0;
-  let n = 0;
-  for (const c = new Date(d); c <= f; c.setDate(c.getDate() + 1)) if (c.getDay() !== 0) n++;
+  let n = Math.round((f - d) / 86400000) + 1;
+  if (f.getDay() === 5) n += 2;      // vendredi → + samedi + dimanche
+  else if (f.getDay() === 6) n += 1; // samedi → + dimanche
   return n;
 }
 
@@ -102,7 +104,7 @@ function FormulaireDemande({ salaries, onSave, onCancel, entete, entrepriseId })
   function majDates(champ, valeur) {
     const f = { ...form, [champ]: valeur };
     if (champ === 'date_debut' && f.date_fin < valeur) f.date_fin = valeur;
-    f.nb_jours = joursOuvrables(f.date_debut, f.date_fin);
+    f.nb_jours = joursConge(f.date_debut, f.date_fin);
     setForm(f);
   }
 
@@ -152,8 +154,9 @@ function FormulaireDemande({ salaries, onSave, onCancel, entete, entrepriseId })
           </div>
         </div>
         <span style={{ fontSize: '11px', color: '#888' }}>
-          Calculé en jours ouvrables (lundi–samedi), modifiable (ex. demi-journée : 0,5).
-          Les jours sont rattachés au mois de la date de début.
+          Calcul selon la législation malgache : le samedi et le dimanche comptent dans le congé
+          (un congé le vendredi = 3 jours, un lundi = 1 jour). Le nombre de jours reste modifiable
+          selon la politique de l'entreprise (ex. demi-journée : 0,5). Les jours sont rattachés au mois de la date de début.
         </span>
 
         <div style={{
@@ -161,7 +164,7 @@ function FormulaireDemande({ salaries, onSave, onCancel, entete, entrepriseId })
           background: '#f4f9fa', borderRadius: '8px', padding: '14px', textAlign: 'center'
         }}>
           <div>
-            <div style={{ fontSize: '12px', color: '#666' }}>Solde congé{solde ? ` (fin ${solde.mois})` : ''}</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>Solde congé (fin du mois précédent)</div>
             <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#004d5a' }}>{solde ? `${fmtNb(solde.solde)} j` : '—'}</div>
           </div>
           <div>
@@ -292,7 +295,7 @@ export default function OngletConges() {
     { key: 'matricule', label: 'Matricule', val: l => l.matricule || '' },
     { key: 'nom', label: 'Nom', val: l => l.nom || '' },
     { key: 'prenom', label: 'Prénom', val: l => l.prenom || '' },
-    { key: 'solde', label: `Solde fin ${(tableau.mois_courant || '').toLowerCase()}`, val: l => l.solde_fin_mois },
+    { key: 'solde', label: 'Solde (mois précédent)', val: l => l.solde_precedent },
     ...moisListe.map((m, i) => ({ key: m, label: moisCourts[i], val: l => l.pris[m] || 0 }))
   ]), [tableau.mois_courant]);
 
@@ -361,8 +364,8 @@ export default function OngletConges() {
                   <td style={styles.td}>{l.matricule}</td>
                   <td style={{ ...styles.td, fontWeight: 'bold' }}>{l.nom}</td>
                   <td style={styles.td}>{l.prenom}</td>
-                  <td style={{ ...styles.td, fontWeight: 'bold', color: l.solde_fin_mois < 0 ? '#c62828' : '#004d5a' }}>
-                    {fmtNb(l.solde_fin_mois)} j
+                  <td style={{ ...styles.td, fontWeight: 'bold', color: l.solde_precedent < 0 ? '#c62828' : '#004d5a' }}>
+                    {fmtNb(l.solde_precedent)} j
                   </td>
                   {moisListe.map(m => (
                     <td key={m} style={{ ...styles.td, color: l.pris[m] ? '#222' : '#bbb' }}>{l.pris[m] ? fmtNb(l.pris[m]) : '–'}</td>
@@ -373,7 +376,7 @@ export default function OngletConges() {
           </table>
         </div>
         <p style={{ fontSize: '11px', color: '#888', marginBottom: 0 }}>
-          Solde = congés cumulés à la fin du mois en cours (2,5 j acquis par mois inclus). Filtres numériques : &gt;0, &lt;2, =0…
+          Solde = jours de congé restants à la fin du mois précédent, sans les 2,5 j qui seront acquis sur le mois en cours. Filtres numériques : &gt;0, &lt;2, =0…
         </p>
       </div>
 
