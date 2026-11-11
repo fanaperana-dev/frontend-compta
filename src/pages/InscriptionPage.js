@@ -71,17 +71,17 @@ const styles = {
 const forfaits = [
   {
     key: 'Business',
-    label: 'Business — 380 000 Ar/mois',
+    label: 'Business',
     description: 'Tous les modules : Clients, Factures, Fournisseurs, RH, Stocks, Immobilisations...'
   },
   {
     key: 'Start',
-    label: 'Start — 150 000 Ar/mois',
+    label: 'Start',
     description: 'Clients, Factures, Journal, Dashboard'
   },
   {
     key: 'RH',
-    label: 'RH — 150 000 Ar/mois',
+    label: 'RH',
     description: 'Ressources Humaines, Journal, Dashboard'
   }
 ];
@@ -120,6 +120,7 @@ export default function InscriptionPage() {
     stat: '',
     rcs: '',
     numero_cnaps: '',
+    code_adherent_ostie: '',
     // Config facturation
     prefixe_facture: 'FAC-',
     delai_paiement: 30,
@@ -319,6 +320,12 @@ export default function InscriptionPage() {
                   <label style={styles.label}>N° CNAPS entreprise</label>
                   <input style={styles.input} value={form.numero_cnaps}
                     onChange={e => setForm({ ...form, numero_cnaps: e.target.value })} />
+                </div>
+                <div>
+                  <label style={styles.label}>Code adhérent OSTIE (employeur)</label>
+                  <input style={styles.input} value={form.code_adherent_ostie}
+                    onChange={e => setForm({ ...form, code_adherent_ostie: e.target.value })}
+                    placeholder="Ex : 13056" />
                 </div>
               </div>
             </div>
@@ -533,9 +540,6 @@ export default function InscriptionPage() {
                   }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <strong style={{ color: '#004d5a', fontSize: '15px' }}>{f.key}</strong>
-                    <span style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '15px' }}>
-                      {f.label.split('—')[1]}
-                    </span>
                   </div>
                   <p style={{ color: '#666', fontSize: '12px', margin: '5px 0 0 0' }}>
                     {f.description}
