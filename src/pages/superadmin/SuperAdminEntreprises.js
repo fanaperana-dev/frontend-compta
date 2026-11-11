@@ -253,6 +253,7 @@ function ModalDetailEntreprise({ entreprise, forfaits, onClose, onModifier, onCh
           <div><strong>Activité :</strong> {entreprise.activite || '—'}</div>
           <div><strong>NIF :</strong> {entreprise.nif || '—'} — <strong>STAT :</strong> {entreprise.stat || '—'}</div>
           <div><strong>RCS :</strong> {entreprise.rcs || '—'} — <strong>Capital :</strong> {entreprise.capital || '—'}</div>
+          <div><strong>TVA :</strong> {entreprise.assujettie_tva ? `Assujettie (${Number(entreprise.taux_tva) || 20} %)` : 'Non assujettie'} — <strong>Code adhérent OSTIE :</strong> {entreprise.code_adherent_ostie || '—'}</div>
           <div><strong>Forfait :</strong> {forfait ? `${forfait.nom} (${Number(forfait.prix).toLocaleString('fr-FR')} Ar/mois)` : 'Non défini'}</div>
           {entreprise.statut === 'SUSPENDU' && (
             <div style={{ background: '#ffebee', padding: '10px', borderRadius: '8px', color: '#c62828' }}>
