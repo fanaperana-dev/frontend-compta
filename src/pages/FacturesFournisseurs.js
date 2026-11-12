@@ -285,6 +285,11 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tv
     montant: facture?.montant || 0,
     montant_paye: facture?.montant_paye || 0,
     montant_tva: facture?.montant_tva || 0,
+    montant_is: facture?.montant_is || 0,
+    // Entreprise assujettie : on saisit le HT ; le TTC et le montant à payer en découlent
+    montant_ht: facture
+      ? Number(facture.montant_ht != null ? facture.montant_ht : (Number(facture.montant) + Number(facture.montant_is || 0) - Number(facture.montant_tva || 0)))
+      : 0,
     mode_paiement: facture?.mode_paiement || '',
     date_facture: facture?.date_facture
       ? new Date(facture.date_facture).toISOString().split('T')[0]
@@ -294,6 +299,31 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tv
       : '',
     commentaire: facture?.commentaire || ''
   });
+
+  const [tvaManuelle, setTvaManuelle] = useState(!!facture);   // TVA modifiée à la main : on ne la présaisit plus
+  const [isAuto, setIsAuto] = useState(false);                  // IS calculé à 5 % : suit le montant HT
+
+  const TAUX_IS = 5;
+  const arrondi = (x) => Math.round(Number(x) * 100) / 100;
+  // Recalcule TVA (présaisie à 20 %), TTC et montant à payer à partir du HT, de la TVA et de l'IS
+  function majMontants(patch, options = {}) {
+    const f = { ...form, ...patch };
+    const ht = Number(f.montant_ht) || 0;
+    if (patch.montant_ht !== undefined) {
+      if (isAuto && !options.sansIs) f.montant_is = arrondi(ht * TAUX_IS / 100);
+      else if (!tvaManuelle && !(Number(f.montant_is) > 0)) f.montant_tva = arrondi(ht * (tva?.taux || 20) / 100);
+    }
+    f.montant = arrondi(ht + (Number(f.montant_tva) || 0) - (Number(f.montant_is) || 0));
+    setForm(f);
+  }
+  const appliquerIs = () => {
+    setIsAuto(true); setTvaManuelle(true);
+    majMontants({ montant_tva: 0, montant_is: arrondi((Number(form.montant_ht) || 0) * TAUX_IS / 100) });
+  };
+  const retirerIs = () => {
+    setIsAuto(false); setTvaManuelle(false);
+    majMontants({ montant_is: 0, montant_tva: arrondi((Number(form.montant_ht) || 0) * (tva?.taux || 20) / 100) });
+  };
 
   const [sousCategories, setSousCategories] = useState([]);
   const [fichierScan, setFichierScan] = useState(null);
@@ -384,35 +414,56 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tv
             />
           </div>
 
-          {/* Montant total */}
-          <div>
-            <label style={styles.label}>{tva?.assujettie ? 'Montant total TTC (Ar) *' : 'Montant total (Ar) *'}</label>
-            <input
-              style={styles.input}
-              type="number"
-              value={form.montant}
-              onChange={e => setForm({ ...form, montant: Number(e.target.value) })}
-            />
-          </div>
-
-          {/* TVA déductible : entreprise assujettie uniquement (total de la facture, pas ligne par ligne) */}
-          {tva?.assujettie && (
+          {tva?.assujettie ? (
+            <>
+              {/* Entreprise assujettie : HT saisi → TVA présaisie → TTC ; IS retenu en option */}
+              <div>
+                <label style={styles.label}>Montant HT (Ar) *</label>
+                <input style={styles.input} type="number" value={form.montant_ht}
+                  onChange={e => majMontants({ montant_ht: Number(e.target.value) })} />
+              </div>
+              <div>
+                <label style={styles.label}>TVA déductible (Ar)</label>
+                <input style={styles.input} type="number" value={form.montant_tva}
+                  onChange={e => { setTvaManuelle(true); majMontants({ montant_tva: Number(e.target.value) || 0 }); }} />
+                <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+                  Présaisie à {tva.taux} % du HT ; modifiable. Laisser à 0 si le fournisseur n'est pas assujetti.
+                </div>
+              </div>
+              <div>
+                <label style={styles.label}>Montant TTC (Ar) = HT + TVA</label>
+                <input style={{ ...styles.input, background: '#f5f5f5' }} type="number" readOnly
+                  value={arrondi((Number(form.montant_ht) || 0) + (Number(form.montant_tva) || 0))} />
+              </div>
+              <div>
+                <label style={styles.label}>IS retenu à la source (Ar)</label>
+                <input style={styles.input} type="number" value={form.montant_is}
+                  onChange={e => { setIsAuto(false); majMontants({ montant_is: Number(e.target.value) || 0 }); }} />
+                <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+                  Fournisseur non assujetti à la TVA : l'IS est retenu sur le total de la prestation, il ne s'ajoute pas.{' '}
+                  {Number(form.montant_is) > 0 ? (
+                    <button type="button" style={{ background: 'none', border: 'none', color: '#c62828', cursor: 'pointer', padding: 0, fontSize: '11px', textDecoration: 'underline' }}
+                      onClick={retirerIs}>Retirer l'IS</button>
+                  ) : (
+                    <button type="button" style={{ background: 'none', border: 'none', color: '#0097a7', cursor: 'pointer', padding: 0, fontSize: '11px', textDecoration: 'underline' }}
+                      onClick={appliquerIs}>Appliquer IS {TAUX_IS} %</button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label style={styles.label}>Montant à payer au fournisseur (Ar)</label>
+                <input style={{ ...styles.input, background: '#f5f5f5', fontWeight: 'bold' }} type="number" readOnly value={form.montant} />
+              </div>
+            </>
+          ) : (
             <div>
-              <label style={styles.label}>dont TVA déductible (Ar)</label>
+              <label style={styles.label}>Montant total (Ar) *</label>
               <input
                 style={styles.input}
                 type="number"
-                value={form.montant_tva}
-                onChange={e => setForm({ ...form, montant_tva: Number(e.target.value) })}
+                value={form.montant}
+                onChange={e => setForm({ ...form, montant: Number(e.target.value) })}
               />
-              <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
-                Recopie la TVA totale indiquée sur la facture (0 si le fournisseur n'est pas assujetti).{' '}
-                <button type="button" style={{ background: 'none', border: 'none', color: '#0097a7', cursor: 'pointer', padding: 0, fontSize: '11px', textDecoration: 'underline' }}
-                  onClick={() => setForm({ ...form, montant_tva: Math.round(Number(form.montant) * tva.taux / (100 + tva.taux) * 100) / 100 })}>
-                  Calculer à {tva.taux} % du TTC
-                </button>
-                <br />Montant HT : <strong>{Math.max(0, Number(form.montant) - Number(form.montant_tva)).toLocaleString('fr-FR')} Ar</strong>
-              </div>
             </div>
           )}
 
@@ -746,7 +797,7 @@ export default function FacturesFournisseurs() {
         sous_categorie: form.sous_categorie,
         montant: form.montant,
         montant_paye: form.montant_paye,
-        ...(regimeTva.assujettie ? { montant_tva: form.montant_tva || 0 } : {}),
+        ...(regimeTva.assujettie ? { montant_tva: form.montant_tva || 0, montant_is: form.montant_is || 0 } : {}),
         mode_paiement: form.mode_paiement,
         date_facture: form.date_facture,
         date_echeance: form.date_echeance || null,
@@ -1061,6 +1112,11 @@ export default function FacturesFournisseurs() {
                     </td>
                     <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold' }}>
                       {Number(f.montant || 0).toLocaleString('fr-FR')} Ar
+                      {Number(f.montant_is) > 0 && (
+                        <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#888' }}>
+                          après IS retenu {Number(f.montant_is).toLocaleString('fr-FR')}
+                        </div>
+                      )}
                       {Number(f.montant_tva) > 0 && (
                         <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#888' }}>
                           dont TVA {Number(f.montant_tva).toLocaleString('fr-FR')}

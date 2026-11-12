@@ -89,7 +89,7 @@ function couleurStatut(statut) {
 // Modal création facture
 // Totaux d'une facture en cours de saisie : entreprise assujettie à la TVA → HT / TVA / TTC ;
 // sinon le montant à payer directement, avec la mention « non assujettie ».
-function BlocTotauxFacture({ total, tva }) {
+function BlocTotauxFacture({ total, tva, appliquerIs, setAppliquerIs }) {
   const fr = n => (Number(n) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
   const ligne = { display: 'flex', justifyContent: 'flex-end', gap: '30px' };
   if (tva?.assujettie) {
@@ -106,9 +106,26 @@ function BlocTotauxFacture({ total, tva }) {
       </div>
     );
   }
+  // Entreprise non assujettie : IS retenu à la source (5 %) en option. Il ne s'ajoute pas : le montant à payer est le total moins l'IS.
+  const totalPrestation = Number(total) || 0;
+  const montantIs = Math.round(totalPrestation * 5) / 100;
   return (
     <div style={{ textAlign: 'right', marginTop: '10px', color: '#004d5a' }}>
-      <div style={{ fontSize: '16px', fontWeight: 'bold' }}>MONTANT À PAYER : {fr(total)} Ar</div>
+      {setAppliquerIs && (
+        <div style={{ marginBottom: '6px' }}>
+          <button type="button" onClick={() => setAppliquerIs(!appliquerIs)}
+            style={{ background: 'none', border: 'none', color: appliquerIs ? '#c62828' : '#0097a7', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}>
+            {appliquerIs ? "Retirer l'IS" : 'Appliquer IS 5 %'}
+          </button>
+        </div>
+      )}
+      {appliquerIs && (
+        <>
+          <div style={ligne}><span>TOTAL DE LA PRESTATION</span><strong>{fr(totalPrestation)} Ar</strong></div>
+          <div style={ligne}><span>IS retenu à la source (5 %)</span><strong>-{fr(montantIs)} Ar</strong></div>
+        </>
+      )}
+      <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{appliquerIs ? 'NET' : 'MONTANT'} À PAYER : {fr(appliquerIs ? totalPrestation - montantIs : totalPrestation)} Ar</div>
       <div style={{ fontSize: '11px', color: '#888' }}>Entreprise non assujettie à la TVA</div>
     </div>
   );
@@ -127,6 +144,7 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
     date_facture: new Date().toISOString().split('T')[0],
     delai_paiement: 30,
     note: noteDefaut || '',
+    appliquer_is: false,
     lignes: [{ description: '', quantite: 1, prix_unitaire: 0, remise_pourcent: 0 }]
   });
 
@@ -427,7 +445,7 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
             </tbody>
           </table>
 
-          <BlocTotauxFacture total={calculerTotal()} tva={tva} />
+          <BlocTotauxFacture total={calculerTotal()} tva={tva} appliquerIs={form.appliquer_is} setAppliquerIs={v => setForm({ ...form, appliquer_is: v })} />
         </div>
         {/* Note de facture */}
         <div style={{ marginBottom: '15px' }}>
@@ -810,6 +828,7 @@ function FormulaireFactureMasse({ onSave, onCancel, noteDefaut, tva }) {
 function FormulaireModificationFacture({ facture, lignes, onSave, onCancel, tva }) {
   const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
+    appliquer_is: Number(facture?.montant_is) > 0,
     lignes: lignes.length > 0 ? lignes.map(l => ({
       id: l.id,
       description: l.description,
@@ -925,14 +944,14 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel, tva 
             </tbody>
           </table>
 
-          <BlocTotauxFacture total={calculerTotal()} tva={tva} />
+          <BlocTotauxFacture total={calculerTotal()} tva={tva} appliquerIs={form.appliquer_is} setAppliquerIs={v => setForm({ ...form, appliquer_is: v })} />
         </div>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
           <button
             style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
-            onClick={() => soumettre(() => onSave(facture.id, form.lignes))} disabled={envoiEnCours}>
+            onClick={() => soumettre(() => onSave(facture.id, form.lignes, form.appliquer_is))} disabled={envoiEnCours}>
             {envoiEnCours ? '⏳ Patientez...' : 'Enregistrer modifications'}
           </button>
         </div>
@@ -1225,9 +1244,9 @@ function changerTri(colonne) {
 
   
 
-  async function modifierFacture(id, lignes) {
+  async function modifierFacture(id, lignes, appliquer_is) {
     try {
-      await factureService.modifier(id, { lignes });
+      await factureService.modifier(id, { lignes, appliquer_is: !!appliquer_is });
       toast.success('Facture modifiée avec succès !');
       setModalOuvert(null);
       setFactureSelectionnee(null);
