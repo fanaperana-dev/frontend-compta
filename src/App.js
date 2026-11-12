@@ -31,6 +31,7 @@ import SuperAdminSaisieCompta from './pages/superadmin/SuperAdminSaisieCompta';
 import ComptabiliteResultatPage from './pages/ComptabiliteResultatPage';
 import BilanPage from './pages/BilanPage';
 import GrandLivrePage from './pages/GrandLivrePage';
+import DeclarationTvaPage from './pages/DeclarationTvaPage';
 import ComptabiliteResultatFonctionPage from './pages/ComptabiliteResultatFonctionPage';
 import CompteCourantAssociesPage from './pages/CompteCourantAssociesPage';
 import FluxTresoreriePage from './pages/FluxTresoreriePage';
@@ -161,6 +162,13 @@ function App() {
             <RouteProtegee>
               <ModuleProtege module="comptabilite">
                 <BilanPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/comptabilite/tva" element={
+            <RouteProtegee>
+              <ModuleProtege module="comptabilite">
+                <DeclarationTvaPage />
               </ModuleProtege>
             </RouteProtegee>
           } />

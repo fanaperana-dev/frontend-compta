@@ -18,6 +18,7 @@ const menuItems = [
   { path: '/comptabilite/flux-tresorerie', icon: '💹', label: 'Flux de trésorerie', module: 'comptabilite' },
   { path: '/comptabilite/bilan', icon: '⚖️', label: 'Bilan', module: 'comptabilite' },
   { path: '/comptabilite/grand-livre', icon: '📒', label: 'Grand Livre', module: 'comptabilite' },
+  { path: '/comptabilite/tva', icon: '🧾', label: 'Déclaration de TVA', module: 'comptabilite', tva: true },
   { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
   
 ];
@@ -113,6 +114,7 @@ export default function Navigation({ children }) {
         <nav style={{ flex: 1, padding: '10px 0' }}>
           {menuItems.map(item => {
             if (item.module && !moduleActif(item.module)) return null;
+            if (item.tva && !entreprise?.assujettie_tva) return null; // visible seulement pour une entreprise assujettie
 
             const actif = location.pathname === item.path;
 
