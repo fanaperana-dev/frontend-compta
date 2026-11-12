@@ -512,6 +512,18 @@ function FormulairePaiement({ facture, onSave, onCancel }) {
           Facture : <strong>{facture.numero_facture}</strong> —
           Solde restant : <strong>{Number(facture.solde).toLocaleString('fr-FR')} Ar</strong>
         </p>
+        {facture.montant_tva != null && Number(facture.montant_tva) > 0 && (
+          <div style={{ background: '#f0f7f9', border: '1px solid #cfe3e8', borderRadius: '6px', padding: '8px 12px', fontSize: '13px', color: '#004d5a', marginBottom: '12px' }}>
+            Facture TTC : <strong>{Number(facture.montant_total).toLocaleString('fr-FR')} Ar</strong>
+            {' '}(HT {Number(facture.montant_ht).toLocaleString('fr-FR')} + TVA {Number(facture.montant_tva).toLocaleString('fr-FR')}).
+            Les paiements s'imputent sur le montant TTC.
+            {Number(form.montant) > 0 && (
+              <div style={{ marginTop: '4px' }}>
+                Ce paiement comprend <strong>{(Number(form.montant) * Number(facture.montant_tva) / Number(facture.montant_total)).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} Ar</strong> de TVA.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Type de paiement */}
         <div style={{ marginBottom: '15px' }}>
