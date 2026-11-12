@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { fournisseurService, fournisseurListeService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
+
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -273,7 +274,7 @@ function couleurStatut(statut) {
 }
 
 // Formulaire facture fournisseur
-function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, onSave, onCancel }) {
+function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tva, onSave, onCancel }) {
   const [enCours, setEnCours] = useState(false);
   const [form, setForm] = useState({
     fournisseur_id: facture?.fournisseur_id || '',
@@ -283,6 +284,7 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, on
     sous_categorie: facture?.sous_categorie || '',
     montant: facture?.montant || 0,
     montant_paye: facture?.montant_paye || 0,
+    montant_tva: facture?.montant_tva || 0,
     mode_paiement: facture?.mode_paiement || '',
     date_facture: facture?.date_facture
       ? new Date(facture.date_facture).toISOString().split('T')[0]
@@ -384,7 +386,7 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, on
 
           {/* Montant total */}
           <div>
-            <label style={styles.label}>Montant total (Ar) *</label>
+            <label style={styles.label}>{tva?.assujettie ? 'Montant total TTC (Ar) *' : 'Montant total (Ar) *'}</label>
             <input
               style={styles.input}
               type="number"
@@ -392,6 +394,27 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, on
               onChange={e => setForm({ ...form, montant: Number(e.target.value) })}
             />
           </div>
+
+          {/* TVA déductible : entreprise assujettie uniquement (total de la facture, pas ligne par ligne) */}
+          {tva?.assujettie && (
+            <div>
+              <label style={styles.label}>dont TVA déductible (Ar)</label>
+              <input
+                style={styles.input}
+                type="number"
+                value={form.montant_tva}
+                onChange={e => setForm({ ...form, montant_tva: Number(e.target.value) })}
+              />
+              <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+                Recopie la TVA totale indiquée sur la facture (0 si le fournisseur n'est pas assujetti).{' '}
+                <button type="button" style={{ background: 'none', border: 'none', color: '#0097a7', cursor: 'pointer', padding: 0, fontSize: '11px', textDecoration: 'underline' }}
+                  onClick={() => setForm({ ...form, montant_tva: Math.round(Number(form.montant) * tva.taux / (100 + tva.taux) * 100) / 100 })}>
+                  Calculer à {tva.taux} % du TTC
+                </button>
+                <br />Montant HT : <strong>{Math.max(0, Number(form.montant) - Number(form.montant_tva)).toLocaleString('fr-FR')} Ar</strong>
+              </div>
+            </div>
+          )}
 
           {/* Montant déjà payé */}
           <div>
@@ -659,6 +682,7 @@ function ModalAjouterPJ({ facture, onClose, onUpload }) {
 export default function FacturesFournisseurs() {
   const { enCours: envoiEnCours, soumettre } = useSoumission();
   const { entreprise } = useAuth();
+  const [regimeTva, setRegimeTva] = useState({ assujettie: false, taux: 20 });
   const [factures, setFactures] = useState([]);
   const [fournisseurs, setFournisseurs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -679,10 +703,17 @@ export default function FacturesFournisseurs() {
 
   async function chargerDonnees() {
     try {
-      const [facturesRes, fournisseursRes] = await Promise.all([
+      const [facturesRes, fournisseursRes, entrepriseRes] = await Promise.all([
         fournisseurService.getAll(entreprise.id),
-        fournisseurListeService.getAll(entreprise.id)
+        fournisseurListeService.getAll(entreprise.id),
+        fetch(`${API_URL}/api/entreprises/detail/${entreprise.id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        }).then(r => r.json()).catch(() => ({}))
       ]);
+      setRegimeTva({
+        assujettie: entrepriseRes.data?.assujettie_tva === true,
+        taux: Number(entrepriseRes.data?.taux_tva) || 20
+      });
       setFactures(facturesRes.data.data || []);
       setFournisseurs(fournisseursRes.data.data || []);
     } catch (err) {
@@ -715,6 +746,7 @@ export default function FacturesFournisseurs() {
         sous_categorie: form.sous_categorie,
         montant: form.montant,
         montant_paye: form.montant_paye,
+        ...(regimeTva.assujettie ? { montant_tva: form.montant_tva || 0 } : {}),
         mode_paiement: form.mode_paiement,
         date_facture: form.date_facture,
         date_echeance: form.date_echeance || null,
@@ -823,6 +855,7 @@ export default function FacturesFournisseurs() {
           facture={factureSelectionnee}
           fournisseurs={fournisseurs}
           entreprise_id={entreprise.id}
+          tva={regimeTva}
           onSave={sauvegarderFacture}
           onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
         />
@@ -1028,6 +1061,11 @@ export default function FacturesFournisseurs() {
                     </td>
                     <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold' }}>
                       {Number(f.montant || 0).toLocaleString('fr-FR')} Ar
+                      {Number(f.montant_tva) > 0 && (
+                        <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#888' }}>
+                          dont TVA {Number(f.montant_tva).toLocaleString('fr-FR')}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '10px', fontSize: '13px', color: '#2e7d32' }}>
                       {Number(f.montant_paye || 0).toLocaleString('fr-FR')} Ar
