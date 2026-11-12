@@ -5,7 +5,6 @@ import { fournisseurService, fournisseurListeService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
 
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
-const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
     background: 'white', color: '#004d5a', border: '2px solid #004d5a',
