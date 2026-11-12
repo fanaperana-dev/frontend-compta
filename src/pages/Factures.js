@@ -81,7 +81,6 @@ function couleurStatut(statut) {
     PAYEE: { bg: '#e8f5e9', color: '#2e7d32', label: '✅ Payée' },
     EN_RETARD: { bg: '#ffebee', color: '#c62828', label: '⚠️ Retard' },
     ANNULEE: { bg: '#fafafa', color: '#9e9e9e', label: '❌ Annulée' },
-    ARCHIVEE: { bg: '#f3e5f5', color: '#6a1b9a', label: '📦 Archivée' }
   };
   return couleurs[statut] || { bg: '#f5f5f5', color: '#616161', label: statut };
 }
@@ -962,7 +961,7 @@ export default function Factures() {
   const [triColonne, setTriColonne] = useState('numero_facture');
   const [triOrdre, setTriOrdre] = useState('desc');
 
-  const statuts = ['TOUS', 'CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE', 'ARCHIVEE'];
+  const statuts = ['TOUS', 'CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE'];
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -1875,7 +1874,7 @@ function exporterCSV() {
                          
                          
                         {/* Paiement */}
-                        {!['PAYEE', 'ANNULEE', 'ARCHIVEE'].includes(facture.statut) && (
+                        {!['PAYEE', 'ANNULEE'].includes(facture.statut) && (
                           <button
                             style={{ ...styles.boutonSecondaire, padding: '4px 8px', color: '#2e7d32', borderColor: '#2e7d32' }}
                             onClick={() => { setFactureSelectionnee(facture); setModalOuvert('paiement'); }}
@@ -1885,7 +1884,7 @@ function exporterCSV() {
                           </button>
                         )}
                         {/* Annuler */}
-                        {!['PAYEE', 'ANNULEE', 'ARCHIVEE'].includes(facture.statut) && facture.montant_paye === 0 && (
+                        {!['PAYEE', 'ANNULEE'].includes(facture.statut) && facture.montant_paye === 0 && (
                           <button
                             style={{ ...styles.boutonDanger, padding: '4px 8px' }}
                             onClick={() => { setFactureSelectionnee(facture); setModalOuvert('annuler'); }}

@@ -490,7 +490,7 @@ export default function DashboardPage() {
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
                   <CarteChiffre titre="💰 Chiffre d'affaires" valeur={totalRecettes} couleur="#2e7d32"
-                    sousTitre="Encaissements clients (payées, archivées, partielles) + recettes tiers" />
+                    sousTitre="Encaissements clients (payées, partielles) + recettes tiers" />
                   <CarteChiffre titre="💸 Total dépenses" valeur={totalDepenses} couleur="#c62828"
                     sousTitre="Achats, immobilisations, dépenses tiers + salaires bruts et charges patronales" />
                   <CarteChiffre titre="📊 Solde global" valeur={soldeGlobal}

@@ -182,7 +182,7 @@ export default function SuperAdminCorrections() {
           { key: 'solde', label: 'Solde', type: 'number' },
           { key: 'mode_paiement', label: 'Mode paiement' },
           { key: 'statut', label: 'Statut', type: 'select',
-            options: ['CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE', 'ARCHIVEE'] },
+            options: ['CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE'] },
           { key: 'note', label: 'Note', type: 'textarea', pleineLargeur: true }
         ]
       };
