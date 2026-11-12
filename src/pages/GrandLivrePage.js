@@ -20,7 +20,7 @@ export default function GrandLivrePage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0, color: '#004d5a' }}>📒 Grand Livre</h2>
+        <h2 style={{ margin: 0, color: '#004d5a' }}>📒 Grand Livre <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#666', marginLeft: '10px' }}>{entreprise.assujettie_tva ? '(ventes et charges en HT · TVA sur les comptes 4456 / 4457)' : ''}</span></h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <input style={{ ...styles.input, width: '220px' }} placeholder="Filtrer par compte ou libellé..."
             value={filtre} onChange={e => setFiltre(e.target.value)} />

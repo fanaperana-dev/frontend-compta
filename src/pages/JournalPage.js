@@ -396,10 +396,16 @@ async function sauvegarderSoldesOuverture() {
 }
 
 export default function JournalPage() {
+  const { entreprise } = useAuth();
   const [ongletActif, setOngletActif] = useState('BANQUE');
 
   return (
     <div>
+      {entreprise.assujettie_tva && (
+        <div style={{ fontSize: '13px', color: '#1565c0', background: '#e3f2fd', borderRadius: '8px', padding: '8px 12px', marginBottom: '12px' }}>
+          Journal de trésorerie : montants <strong>TTC</strong> (argent réellement encaissé ou payé, TVA comprise).
+        </div>
+      )}
       {/* Onglets */}
       <div style={{
         display: 'flex', gap: '0', marginBottom: '20px',

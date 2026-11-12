@@ -80,7 +80,7 @@ export default function BilanPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0, color: '#004d5a' }}>⚖️ Bilan</h2>
+        <h2 style={{ margin: 0, color: '#004d5a' }}>⚖️ Bilan <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#666', marginLeft: '10px' }}>{entreprise.assujettie_tva ? '(TVA non encore reversée à l’État : « Dettes fiscales et sociales »)' : ''}</span></h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <SelecteurAnnee annee={annee} setAnnee={setAnnee} />
           <BoutonCloture entrepriseId={entreprise.id} annee={annee} etat={etat} onDone={recharger} />
