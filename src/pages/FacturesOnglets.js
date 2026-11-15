@@ -270,6 +270,7 @@ export function ProformasOnglet({ entreprise, clients, tva, noteDefaut, onFactur
   const [filtre, setFiltre] = useState('TOUS');
   const [recherche, setRecherche] = useState('');
   const [modal, setModal] = useState(null); // { type: 'form' | 'annuler' | 'valider', proforma }
+  const [envoiId, setEnvoiId] = useState(null); // ligne dont le mail est en cours d'envoi
 
   async function charger() {
     try {
@@ -319,10 +320,13 @@ export function ProformasOnglet({ entreprise, clients, tva, noteDefaut, onFactur
   }
 
   async function envoyer(p) {
+    if (envoiId) return;
+    setEnvoiId(p.id);
     try {
       const res = await proformaService.envoyer(p.id);
       toast.success(res.data.message);
     } catch (err) { toast.error(message(err, 'Envoi impossible.')); }
+    finally { setEnvoiId(null); }
   }
 
   if (chargement) return <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>;
@@ -378,8 +382,9 @@ export function ProformasOnglet({ entreprise, clients, tva, noteDefaut, onFactur
                   <td style={{ ...S.td, textAlign: 'right', whiteSpace: 'nowrap' }}>{fr(p.montant_total)} Ar</td>
                   <td style={S.td}><Pastille statut={p.statut} /></td>
                   <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
-                    <button style={S.petit} title="Voir le PDF" onClick={() => ouvrirPdf(() => proformaService.pdf(p.id))}>📄</button>
-                    <button style={S.petit} title="Envoyer par e-mail" onClick={() => envoyer(p)}>📧</button>
+                    <button style={S.petit} title="Visualiser le proforma" onClick={() => ouvrirPdf(() => proformaService.pdf(p.id))}>👁️</button>
+                    <button disabled={!!envoiId} title={envoiId === p.id ? 'Envoi en cours...' : 'Envoyer par e-mail'} onClick={() => envoyer(p)}
+                      style={{ ...S.petit, ...(envoiId ? { opacity: 0.4, cursor: 'not-allowed', background: '#eee' } : {}) }}>{envoiId === p.id ? '⏳' : '📧'}</button>
                     {ouvert && <button style={S.petit} title="Modifier" onClick={() => setModal({ type: 'form', proforma: p })}>✏️</button>}
                     {ouvert && <button style={{ ...S.petit, color: '#2e7d32', borderColor: '#2e7d32' }} title="Valider (devient une facture)" onClick={() => setModal({ type: 'valider', proforma: p })}>✅ Valider</button>}
                     {ouvert && <button style={{ ...S.petit, color: '#c62828', borderColor: '#c62828' }} title="Annuler (sans suite)" onClick={() => setModal({ type: 'annuler', proforma: p })}>❌</button>}
@@ -494,6 +499,7 @@ export function AvoirsOnglet({ entreprise, clients }) {
   const [avoirs, setAvoirs] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [modal, setModal] = useState(null); // { clientInitial }
+  const [envoiId, setEnvoiId] = useState(null); // ligne dont le mail est en cours d'envoi
 
   async function charger() {
     try {
@@ -519,10 +525,13 @@ export function AvoirsOnglet({ entreprise, clients }) {
   }
 
   async function envoyer(a) {
+    if (envoiId) return;
+    setEnvoiId(a.id);
     try {
       const res = await avoirService.envoyer(a.id);
       toast.success(res.data.message);
     } catch (err) { toast.error(message(err, 'Envoi impossible.')); }
+    finally { setEnvoiId(null); }
   }
 
   if (chargement) return <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>;
@@ -579,8 +588,9 @@ export function AvoirsOnglet({ entreprise, clients }) {
                 <td style={S.td}>{a.mode_paiement}</td>
                 <td style={{ ...S.td, textAlign: 'right', whiteSpace: 'nowrap' }}>{fr(a.montant)} Ar</td>
                 <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
-                  <button style={S.petit} title="Voir le PDF" onClick={() => ouvrirPdf(() => avoirService.pdf(a.id))}>📄</button>
-                  <button style={S.petit} title="Envoyer par e-mail" onClick={() => envoyer(a)}>📧</button>
+                  <button style={S.petit} title="Visualiser l'avoir" onClick={() => ouvrirPdf(() => avoirService.pdf(a.id))}>👁️</button>
+                  <button disabled={!!envoiId} title={envoiId === a.id ? 'Envoi en cours...' : 'Envoyer par e-mail'} onClick={() => envoyer(a)}
+                      style={{ ...S.petit, ...(envoiId ? { opacity: 0.4, cursor: 'not-allowed', background: '#eee' } : {}) }}>{envoiId === a.id ? '⏳' : '📧'}</button>
                 </td>
               </tr>
             ))}
