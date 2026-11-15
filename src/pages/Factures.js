@@ -4,6 +4,8 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { factureService, clientService, mailService, paiementService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
+import { categoriesEtSousCategories } from '../utils/categoriesComptables';
+import { ProformasOnglet, AvoirsOnglet } from './FacturesOnglets';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -147,57 +149,6 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
     appliquer_is: false,
     lignes: [{ description: '', quantite: 1, prix_unitaire: 0, remise_pourcent: 0 }]
   });
-
-  const categoriesEtSousCategories = {
-  '70 - Ventes de produits fabriqués, marchandises, prestations': [
-    '701 - Ventes de produits finis',
-    '702 - Ventes de produits intermédiaires',
-    '703 - Ventes de produits résiduels',
-    '704 - Vente de travaux',
-    '705 - Vente d\'études',
-    '706 - Vente de prestations de service',
-    '707 - Ventes de marchandises',
-    '708 - Produits des activités annexes',
-    '709 - Rabais, remises et ristournes accordés'
-  ],
-  '71 - Production stockée (ou déstockage)': [
-    '713 - Variation de stocks d\'en-cours',
-    '714 - Variation de stocks de produits'
-  ],
-  '72 - Production immobilisée': [
-    '721 - Production immobilisée d\'actif incorporel',
-    '722 - Production immobilisée d\'actif corporel'
-  ],
-  '74 - Subventions d\'exploitation': [
-    '741 - Subvention d\'équilibre',
-    '748 - Autres subventions d\'exploitation'
-  ],
-  '75 - Autres produits opérationnels': [
-    '751 - Redevances pour concessions, brevets, licences, logiciels',
-    '752 - Plus-values sur cessions d\'actifs non courants',
-    '753 - Jetons de présence et rémunérations d\'administrateurs',
-    '754 - Quotes-parts de subventions d\'investissement virées au résultat',
-    '755 - Quote-part de résultat sur opérations faites en commun',
-    '756 - Libéralités perçues, rentrées sur créances amorties',
-    '757 - Produits exceptionnels sur opérations de gestion',
-    '758 - Autres produits de gestion courante'
-  ],
-  '76 - Produits financiers': [
-    '761 - Produits de participations',
-    '762 - Produits des autres immobilisations financières',
-    '763 - Revenus des autres créances',
-    '764 - Revenus et plus-values des valeurs mobilières de placement',
-    '766 - Gains de change',
-    '767 - Produits nets sur cessions de valeurs mobilières de placement',
-    '768 - Autres produits financiers'
-  ],
-  '77 - Eléments extraordinaires (produits)': [],
-  '78 - Reprises sur provisions et pertes de valeur': [
-    '781 - Reprise d\'exploitation - actifs non courants',
-    '785 - Reprise d\'exploitation - actifs courants',
-    '786 - Reprises financières'
-  ]
-};
 
   const moisListe = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -980,6 +931,7 @@ export default function Factures() {
   const [regimeTva, setRegimeTva] = useState({ assujettie: false, taux: 20 });
   const [triColonne, setTriColonne] = useState('numero_facture');
   const [triOrdre, setTriOrdre] = useState('desc');
+  const [onglet, setOnglet] = useState('factures'); // factures | proformas | avoirs
 
   const statuts = ['TOUS', 'CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE', 'ARCHIVEE'];
 
@@ -1446,6 +1398,35 @@ function exporterCSV() {
     <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>
   );
 
+  const barreOnglets = (
+    <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e0e0e0' }}>
+      {[['factures', '🧾 Factures'], ['proformas', '📄 Proforma'], ['avoirs', '↩️ Avoirs']].map(([cle, libelle]) => (
+        <button key={cle} onClick={() => setOnglet(cle)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: '10px 18px', fontSize: '14px',
+            fontWeight: onglet === cle ? 'bold' : 'normal', color: onglet === cle ? '#004d5a' : '#666',
+            borderBottom: onglet === cle ? '3px solid #004d5a' : '3px solid transparent', marginBottom: '-2px'
+          }}>
+          {libelle}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (onglet !== 'factures') {
+    return (
+      <div>
+        {barreOnglets}
+        {onglet === 'proformas' ? (
+          <ProformasOnglet entreprise={entreprise} clients={clients} tva={regimeTva} noteDefaut={noteDefaut}
+            onFactureCreee={() => chargerDonnees()} />
+        ) : (
+          <AvoirsOnglet entreprise={entreprise} clients={clients} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Modals */}
@@ -1490,6 +1471,8 @@ function exporterCSV() {
           onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
         />
       )}
+
+      {barreOnglets}
 
       {/* En-tête */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>

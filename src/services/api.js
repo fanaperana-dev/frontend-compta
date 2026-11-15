@@ -87,6 +87,27 @@ export const factureService = {
     api.patch(`/factures/${id}/annuler`, { motif })
 };
 
+// PROFORMAS (devis)
+export const proformaService = {
+  getAll: (entreprise_id) => api.get(`/proformas/${entreprise_id}`),
+  creer: (data) => api.post('/proformas', data),
+  modifier: (id, data) => api.put(`/proformas/${id}`, data),
+  annuler: (id, motif) => api.patch(`/proformas/${id}/annuler`, { motif }),
+  valider: (id, data) => api.post(`/proformas/${id}/valider`, data),
+  envoyer: (id) => api.post(`/proformas/${id}/envoyer`),
+  pdf: (id) => api.get(`/proformas/${id}/pdf`, { responseType: 'blob' })
+};
+
+// AVOIRS (remboursement d'un trop-perçu)
+export const avoirService = {
+  getAll: (entreprise_id) => api.get(`/avoirs/${entreprise_id}`),
+  credits: (entreprise_id) => api.get(`/avoirs/credits/${entreprise_id}`),
+  facturesClient: (entreprise_id, client_id) => api.get(`/avoirs/factures/${entreprise_id}/${client_id}`),
+  creer: (data) => api.post('/avoirs', data),
+  envoyer: (id) => api.post(`/avoirs/${id}/envoyer`),
+  pdf: (id) => api.get(`/avoirs/${id}/pdf`, { responseType: 'blob' })
+};
+
 // PAIEMENTS
 export const paiementService = {
   getAll: (entreprise_id, params) =>
