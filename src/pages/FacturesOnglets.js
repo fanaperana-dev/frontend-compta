@@ -5,6 +5,7 @@ import { proformaService, avoirService, clientService, entrepriseService, pdfLie
 import { useAuth } from '../context/AuthContext';
 import useSoumission from '../hooks/useSoumission';
 import { categoriesEtSousCategories } from '../utils/categoriesComptables';
+import { BlocTotauxFacture } from './Factures';
 
 const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 const MODES_REMBOURSEMENT = ['Virement bancaire', 'Chèque', 'Espèces', 'Airtel money', 'Orange money', 'Mvola', 'Autre'];
@@ -97,7 +98,6 @@ function FormulaireProforma({ clients, tva, initial, onSave, onCancel }) {
     return brut - brut * (Number(l.remise_pourcent) || 0) / 100;
   };
   const ht = form.lignes.reduce((s, l) => s + totalLigne(l), 0);
-  const montantTva = tva?.assujettie ? Math.round(ht * (Number(tva.taux) || 0)) / 100 : 0;
 
   function majLigne(i, champ, valeur) {
     setForm({ ...form, lignes: form.lignes.map((l, k) => (k === i ? { ...l, [champ]: valeur } : l)) });
@@ -175,18 +175,8 @@ function FormulaireProforma({ clients, tva, initial, onSave, onCancel }) {
           + Ajouter une ligne
         </button>
 
-        <div style={{ textAlign: 'right', marginTop: '15px', color: '#004d5a' }}>
-          {tva?.assujettie ? (
-            <>
-              <div>Total HT : {fr(ht)} Ar</div>
-              <div>TVA ({tva.taux} %) : {fr(montantTva)} Ar</div>
-              <div style={{ fontSize: '16px', fontWeight: 'bold', borderTop: '2px solid #004d5a', paddingTop: '4px', marginTop: '4px' }}>TOTAL TTC : {fr(ht + montantTva)} Ar</div>
-              <div style={{ fontSize: '11px', color: '#888' }}>Les prix saisis sont hors taxes (HT).</div>
-            </>
-          ) : (
-            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>MONTANT : {fr(ht)} Ar</div>
-          )}
-        </div>
+        {/* Même bloc de totaux que la création d'une facture client : HT / TVA / TTC, ou montant à payer si non assujettie */}
+        <BlocTotauxFacture total={ht} tva={tva} />
 
         <div style={{ marginTop: '15px' }}>
           <label style={S.label}>Note (affichée sur le PDF)</label>
@@ -618,7 +608,8 @@ function useDonneesEntreprise() {
         const [c, e] = await Promise.all([clientService.getAll(entreprise.id), entrepriseService.getDetail(entreprise.id)]);
         if (!actif) return;
         setClients(trierClients(c.data.data || []));
-        setTva({ assujettie: e.data?.assujettie_tva === true, taux: Number(e.data?.taux_tva) || 20 });
+        const ent = e.data?.data || {};   // la réponse est { success, data: {...} }, comme dans la page Factures
+        setTva({ assujettie: ent.assujettie_tva === true, taux: Number(ent.taux_tva) || 20 });
       } catch (err) {
         toast.error('Erreur lors du chargement des clients.');
       } finally {

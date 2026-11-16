@@ -91,7 +91,7 @@ function couleurStatut(statut) {
 // Modal création facture
 // Totaux d'une facture en cours de saisie : entreprise assujettie à la TVA → HT / TVA / TTC ;
 // sinon le montant à payer directement, avec la mention « non assujettie ».
-function BlocTotauxFacture({ total, tva, appliquerIs, setAppliquerIs }) {
+export function BlocTotauxFacture({ total, tva, appliquerIs, setAppliquerIs }) {
   const fr = n => (Number(n) || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
   const ligne = { display: 'flex', justifyContent: 'flex-end', gap: '30px' };
   if (tva?.assujettie) {
