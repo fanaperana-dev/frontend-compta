@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { factureService, clientService, mailService, paiementService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
+import { pdfLienService } from '../services/api';
 import { categoriesEtSousCategories } from '../utils/categoriesComptables';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
@@ -1148,26 +1149,9 @@ function changerTri(colonne) {
 
   try {
     toast.info('Chargement du PDF...');
-    const response = await fetch(
-      `${API_URL}/api/mails/pdf/${facture.id}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ entreprise_id: entreprise.id })
-      }
-    );
-
-    if (!response.ok) {
-      if (onglet) onglet.close();
-      toast.error('Erreur chargement PDF.');
-      return;
-    }
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
+    // Lien temporaire fourni par le serveur : le fichier s'enregistre sous le numéro de la facture (FAC-001.pdf)
+    const res = await pdfLienService.creer('FACTURE', facture.id);
+    const url = pdfLienService.adresse(res.data.url);
     if (onglet) {
       onglet.location.href = url;
     } else {
@@ -1233,7 +1217,7 @@ function changerTri(colonne) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Facture_${facture.numero_facture}.pdf`;
+      a.download = `${String(facture.numero_facture).replace(/[\\/:*?"<>|\s]+/g, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
