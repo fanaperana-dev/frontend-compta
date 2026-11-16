@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { stockService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
+import { trouverSimilaires, nettoyerDesignation } from '../utils/similitudeArticles';
 import { groupesStock, compteStockArticle, groupeDeCompte, groupeStock, libelleCompte, texteCompte } from '../utils/comptesStock';
 
 const styles = {
@@ -51,7 +52,7 @@ const typesMouvement = [
 ];
 
 // Formulaire article
-function FormulaireArticle({ article, onSave, onCancel }) {
+function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArticle }) {
   const [form, setForm] = useState({
     reference: article?.reference || '',
     designation: article?.designation || '',
@@ -66,6 +67,15 @@ function FormulaireArticle({ article, onSave, onCancel }) {
     actif: article?.actif !== undefined ? article.actif : true
   });
   const [enCours, setEnCours] = useState(false);
+  const [confirmeDifferent, setConfirmeDifferent] = useState(false);
+
+  // Aide à l'écriture : les articles qui ressemblent à ce qui est tapé (hors l'article en cours de modification)
+  const similaires = form.designation.trim().length >= 3
+    ? trouverSimilaires(form.designation, articles, { exclureId: article?.id })
+    : [];
+  const identique = similaires.find(x => x.type === 'IDENTIQUE');
+  const proches = similaires.filter(x => x.type === 'PROCHE');
+  const bloque = !!identique || (proches.length > 0 && !confirmeDifferent);
   const prix_ttc = (Number(form.prix_achat_ht) * (1 + Number(form.taux_tva) / 100)).toFixed(2);
   const prix_net = (Number(prix_ttc) * (1 - Number(form.remise_pourcent) / 100)).toFixed(2);
 
@@ -84,8 +94,34 @@ function FormulaireArticle({ article, onSave, onCancel }) {
           </div>
           <div>
             <label style={styles.label}>Désignation *</label>
-            <input style={styles.input} value={form.designation}
-              onChange={e => setForm({ ...form, designation: e.target.value })} />
+            <input style={styles.input} value={form.designation} list="designations-existantes"
+              placeholder="Commence à écrire : les articles existants sont proposés"
+              onChange={e => { setForm({ ...form, designation: e.target.value }); setConfirmeDifferent(false); }} />
+            <datalist id="designations-existantes">
+              {articles.filter(a => a.id !== article?.id).map(a => <option key={a.id} value={a.designation} />)}
+            </datalist>
+            {identique && (
+              <div style={{ marginTop: '6px', padding: '8px 10px', borderRadius: '6px', background: '#ffebee', color: '#c62828', fontSize: '12px' }}>
+                ⛔ Cet article existe déjà : <b>{identique.article.designation}</b> (réf. {identique.article.reference})
+                {identique.article.actif === false && ' — désactivé'}.
+                {onVoirArticle && (
+                  <> <button type="button" style={{ ...styles.boutonSecondaire, padding: '2px 8px', fontSize: '11px', marginLeft: '6px' }}
+                    onClick={() => onVoirArticle(identique.article)}>Voir cet article</button></>
+                )}
+              </div>
+            )}
+            {!identique && proches.length > 0 && (
+              <div style={{ marginTop: '6px', padding: '8px 10px', borderRadius: '6px', background: '#fff8e1', color: '#8d6e00', fontSize: '12px' }}>
+                ⚠️ Un article très proche existe déjà :{' '}
+                {proches.map((x, i) => (
+                  <span key={x.article.id}>{i > 0 && ', '}<b>{x.article.designation}</b> (réf. {x.article.reference})</span>
+                ))}.
+                <label style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={confirmeDifferent} onChange={e => setConfirmeDifferent(e.target.checked)} />
+                  C'est bien un article différent
+                </label>
+              </div>
+            )}
           </div>
           <div>
             <label style={styles.label}>Compte de stock *</label>
@@ -166,13 +202,17 @@ function FormulaireArticle({ article, onSave, onCancel }) {
           <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
           <button
             style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
-            disabled={enCours}
+            disabled={enCours || bloque}
             onClick={async () => {
               if (!form.compte_stock) { toast.error('Choisis le compte de stock de l\'article.'); return; }
               setEnCours(true);
-              await onSave(form);
+              const ok = await onSave({
+                ...form,
+                designation: nettoyerDesignation(form.designation),
+                confirmer_similaire: confirmeDifferent
+              });
               setEnCours(false);
-              onCancel();
+              if (ok !== false) onCancel();   // en cas de refus du serveur, le formulaire reste ouvert
             }}>
             {enCours ? '⏳...' : article ? 'Modifier' : 'Créer'}
           </button>
@@ -335,8 +375,10 @@ export default function StocksPage() {
       await stockService.creerArticle({ ...form, entreprise_id: entreprise.id });
       toast.success('Article créé !');
       chargerDonnees();
+      return true;
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur création.');
+      return false;
     }
   }
 
@@ -347,9 +389,19 @@ export default function StocksPage() {
       setModalOuvert(null);
       setArticleSelectionne(null);
       chargerDonnees();
+      return true;
     } catch (err) {
-      toast.error('Erreur modification.');
+      toast.error(err.response?.data?.message || 'Erreur modification.');
+      return false;
     }
+  }
+
+  // Depuis l'alerte « cet article existe déjà » : on ferme le formulaire et on montre l'article dans le catalogue
+  function voirArticle(a) {
+    setModalOuvert(null);
+    setArticleSelectionne(null);
+    setOnglet('articles');
+    setRecherche(a.designation);
   }
 
   async function enregistrerMouvement(form) {
@@ -378,12 +430,15 @@ export default function StocksPage() {
   return (
     <div>
       {modalOuvert === 'creer' && (
-        <FormulaireArticle onSave={creerArticle} onCancel={() => setModalOuvert(null)} />
+        <FormulaireArticle articles={articles} onSave={creerArticle} onVoirArticle={voirArticle}
+          onCancel={() => setModalOuvert(null)} />
       )}
       {modalOuvert === 'modifier' && articleSelectionne && (
         <FormulaireArticle
           article={articleSelectionne}
+          articles={articles}
           onSave={modifierArticle}
+          onVoirArticle={voirArticle}
           onCancel={() => { setModalOuvert(null); setArticleSelectionne(null); }}
         />
       )}
