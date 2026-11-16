@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { stockService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
+import { groupesStock, compteStockArticle, groupeDeCompte, groupeStock, libelleCompte, texteCompte } from '../utils/comptesStock';
 
 const styles = {
   boutonPrimaire: {
@@ -41,7 +42,6 @@ const styles = {
   }
 };
 
-const categories = ['Matière première', 'Produit fini', 'Marchandise', 'Fourniture', 'Autre'];
 const unites = ['pièce', 'kg', 'g', 'litre', 'ml', 'm', 'cm', 'boîte', 'carton', 'lot'];
 const typesMouvement = [
   { key: 'ENTREE_ACHAT', label: '📦 Entrée achat fournisseur', couleur: '#2e7d32' },
@@ -55,7 +55,7 @@ function FormulaireArticle({ article, onSave, onCancel }) {
   const [form, setForm] = useState({
     reference: article?.reference || '',
     designation: article?.designation || '',
-    categorie: article?.categorie || 'Marchandise',
+    compte_stock: article ? compteStockArticle(article) : '',
     unite: article?.unite || 'pièce',
     prix_achat_ht: article?.prix_achat_ht || 0,
     taux_tva: article?.taux_tva || 0,
@@ -88,11 +88,23 @@ function FormulaireArticle({ article, onSave, onCancel }) {
               onChange={e => setForm({ ...form, designation: e.target.value })} />
           </div>
           <div>
-            <label style={styles.label}>Catégorie</label>
-            <select style={styles.input} value={form.categorie}
-              onChange={e => setForm({ ...form, categorie: e.target.value })}>
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            <label style={styles.label}>Compte de stock *</label>
+            <select style={styles.input} value={form.compte_stock}
+              onChange={e => setForm({ ...form, compte_stock: e.target.value })}>
+              <option value="">— Choisir le compte —</option>
+              {groupesStock.map(g => g.comptes.length ? (
+                <optgroup key={g.code} label={`${g.code} - ${g.libelle}`}>
+                  {g.comptes.map(c => <option key={c.code} value={c.code}>{c.code} - {c.libelle}</option>)}
+                </optgroup>
+              ) : (
+                <option key={g.code} value={g.code}>{g.code} - {g.libelle}</option>
+              ))}
             </select>
+            {form.compte_stock && (
+              <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+                Variation de stock en fin d'exercice : compte {groupeStock(form.compte_stock)?.contrepartie}
+              </div>
+            )}
           </div>
           <div>
             <label style={styles.label}>Unité</label>
@@ -156,6 +168,7 @@ function FormulaireArticle({ article, onSave, onCancel }) {
             style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
             disabled={enCours}
             onClick={async () => {
+              if (!form.compte_stock) { toast.error('Choisis le compte de stock de l\'article.'); return; }
               setEnCours(true);
               await onSave(form);
               setEnCours(false);
@@ -296,6 +309,7 @@ export default function StocksPage() {
   const [articleSelectionne, setArticleSelectionne] = useState(null);
   const [recherche, setRecherche] = useState('');
   const [filtreArticle, setFiltreArticle] = useState('');
+  const [filtreCompte, setFiltreCompte] = useState('');
 
   useEffect(() => { chargerDonnees(); }, []);
 
@@ -447,13 +461,28 @@ export default function StocksPage() {
         ))}
       </div>
 
-      {/* Onglet État du stock */}
+      {/* Onglet État du stock : regroupé par compte de la classe 3, avec sous-totaux */}
       {onglet === 'etat' && (
         <div style={styles.card}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+            <label style={{ ...styles.label, margin: 0 }}>Compte</label>
+            <select style={{ ...styles.input, maxWidth: '320px' }} value={filtreCompte}
+              onChange={e => setFiltreCompte(e.target.value)}>
+              <option value="">Tous les comptes</option>
+              {(etat.par_compte || []).map(g => (
+                <option key={g.groupe} value={g.groupe}>{g.groupe} - {g.libelle}</option>
+              ))}
+            </select>
+            {(etat.data || []).some(a => a.compte_a_confirmer) && (
+              <span style={{ fontSize: '12px', color: '#c62828' }}>
+                ⚠️ Des articles n'ont pas de compte : ils sont comptés en 37 par défaut (modifie l'article pour choisir).
+              </span>
+            )}
+          </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
-                {['Réf.', 'Désignation', 'Catégorie', 'Unité', 'Stock actuel',
+                {['Réf.', 'Désignation', 'Compte', 'Unité', 'Stock actuel',
                   'Stock min.', 'CMUP', 'Valeur stock', 'Méthode'].map(h => (
                   <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '12px',
                     color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
@@ -461,41 +490,77 @@ export default function StocksPage() {
               </tr>
             </thead>
             <tbody>
-              {etat.data?.map((a, i) => {
-                const cmup = a.stock_actuel > 0
-                  ? (a.valeur_stock / a.stock_actuel).toFixed(2)
-                  : a.prix_achat_net;
-                const sousMin = a.stock_actuel <= a.stock_minimum;
-                return (
-                  <tr key={a.id} style={{ background: sousMin ? '#ffebee' : i % 2 === 0 ? 'white' : '#fafafa',
-                    borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>{a.reference}</td>
-                    <td style={{ padding: '10px', fontSize: '13px' }}>{a.designation}</td>
-                    <td style={{ padding: '10px', fontSize: '12px', color: '#666' }}>{a.categorie}</td>
-                    <td style={{ padding: '10px', fontSize: '12px' }}>{a.unite}</td>
-                    <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold',
-                      color: sousMin ? '#c62828' : '#2e7d32' }}>
-                      {Number(a.stock_actuel).toLocaleString('fr-FR')}
-                      {sousMin && ' ⚠️'}
-                    </td>
-                    <td style={{ padding: '10px', fontSize: '12px' }}>{a.stock_minimum}</td>
-                    <td style={{ padding: '10px', fontSize: '12px' }}>
-                      {Number(cmup).toLocaleString('fr-FR')} Ar
-                    </td>
-                    <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
-                      {Number(a.valeur_stock).toLocaleString('fr-FR')} Ar
-                    </td>
-                    <td style={{ padding: '10px', fontSize: '12px' }}>
-                      <span style={{ padding: '3px 8px', borderRadius: '12px',
-                        background: a.methode_valorisation === 'FIFO' ? '#e3f2fd' : '#e8f5e9',
-                        color: a.methode_valorisation === 'FIFO' ? '#1565c0' : '#2e7d32',
-                        fontSize: '11px' }}>
-                        {a.methode_valorisation}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {(etat.par_compte || [])
+                .filter(g => !filtreCompte || g.groupe === filtreCompte)
+                .map(g => {
+                  const lignes = (etat.data || []).filter(a => groupeDeCompte(a.compte_stock) === g.groupe);
+                  return (
+                    <React.Fragment key={g.groupe}>
+                      <tr style={{ background: '#e0f2f1' }}>
+                        <td colSpan={9} style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
+                          {g.groupe} - {g.libelle}
+                          <span style={{ fontWeight: 'normal', color: '#555', marginLeft: '10px', fontSize: '12px' }}>
+                            {g.nb_articles} article(s) · variation en fin d'exercice : compte {g.contrepartie}
+                          </span>
+                        </td>
+                      </tr>
+                      {lignes.map((a, i) => {
+                        const cmup = a.stock_actuel > 0
+                          ? (a.valeur_stock / a.stock_actuel).toFixed(2)
+                          : a.prix_achat_net;
+                        const sousMin = a.stock_actuel <= a.stock_minimum;
+                        return (
+                          <tr key={a.id} style={{ background: sousMin ? '#ffebee' : i % 2 === 0 ? 'white' : '#fafafa',
+                            borderBottom: '1px solid #f0f0f0' }}>
+                            <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>{a.reference}</td>
+                            <td style={{ padding: '10px', fontSize: '13px' }}>{a.designation}</td>
+                            <td style={{ padding: '10px', fontSize: '12px', color: a.compte_a_confirmer ? '#c62828' : '#666' }}
+                              title={a.compte_a_confirmer ? 'Compte à choisir : compté en 37 par défaut' : texteCompte(a.compte_stock)}>
+                              {a.compte_stock}{a.compte_a_confirmer && ' ⚠️'}
+                            </td>
+                            <td style={{ padding: '10px', fontSize: '12px' }}>{a.unite}</td>
+                            <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold',
+                              color: sousMin ? '#c62828' : '#2e7d32' }}>
+                              {Number(a.stock_actuel).toLocaleString('fr-FR')}
+                              {sousMin && ' ⚠️'}
+                            </td>
+                            <td style={{ padding: '10px', fontSize: '12px' }}>{a.stock_minimum}</td>
+                            <td style={{ padding: '10px', fontSize: '12px' }}>
+                              {Number(cmup).toLocaleString('fr-FR')} Ar
+                            </td>
+                            <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
+                              {Number(a.valeur_stock).toLocaleString('fr-FR')} Ar
+                            </td>
+                            <td style={{ padding: '10px', fontSize: '12px' }}>
+                              <span style={{ padding: '3px 8px', borderRadius: '12px',
+                                background: a.methode_valorisation === 'FIFO' ? '#e3f2fd' : '#e8f5e9',
+                                color: a.methode_valorisation === 'FIFO' ? '#1565c0' : '#2e7d32',
+                                fontSize: '11px' }}>
+                                {a.methode_valorisation}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr style={{ borderBottom: '2px solid #b2dfdb' }}>
+                        <td colSpan={7} style={{ padding: '8px 10px', textAlign: 'right', fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+                          Sous-total {g.groupe}
+                        </td>
+                        <td colSpan={2} style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
+                          {Number(g.valeur).toLocaleString('fr-FR')} Ar
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                })}
+              {!filtreCompte && (etat.par_compte || []).length > 0 && (
+                <tr style={{ background: '#f5f5f5' }}>
+                  <td colSpan={7} style={{ padding: '10px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold' }}>Total du stock</td>
+                  <td colSpan={2} style={{ padding: '10px', fontSize: '14px', fontWeight: 'bold', color: '#2e7d32' }}>
+                    {Number(etat.valeur_totale || 0).toLocaleString('fr-FR')} Ar
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -511,7 +576,7 @@ export default function StocksPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
-                {['Réf.', 'Désignation', 'Catégorie', 'Prix HT', 'TVA', 'Remise',
+                {['Réf.', 'Désignation', 'Compte de stock', 'Prix HT', 'TVA', 'Remise',
                   'Prix net', 'Stock', 'Méthode', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '12px',
                     color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
@@ -524,7 +589,10 @@ export default function StocksPage() {
                   borderBottom: '1px solid #f0f0f0', opacity: a.actif ? 1 : 0.5 }}>
                   <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>{a.reference}</td>
                   <td style={{ padding: '10px', fontSize: '13px' }}>{a.designation}</td>
-                  <td style={{ padding: '10px', fontSize: '12px', color: '#666' }}>{a.categorie}</td>
+                  <td style={{ padding: '10px', fontSize: '12px', color: compteStockArticle(a) ? '#666' : '#c62828' }}
+                    title={compteStockArticle(a) ? libelleCompte(compteStockArticle(a)) : 'Compte à choisir : compté en 37 par défaut'}>
+                    {compteStockArticle(a) ? `${compteStockArticle(a)} - ${libelleCompte(compteStockArticle(a))}` : '⚠️ À choisir'}
+                  </td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>{Number(a.prix_achat_ht).toLocaleString('fr-FR')} Ar</td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>{a.taux_tva}%</td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>{a.remise_pourcent}%</td>
