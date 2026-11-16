@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { fournisseurService, fournisseurListeService, immobilisationService } from '../services/api';
+import { fournisseurService, fournisseurListeService, immobilisationService, stockService } from '../services/api';
 import { FormulaireImmobilisation, prochaineReferenceImmobilisation } from './ImmobilisationsPage';
+import { FormulaireEntreeStock } from './StocksPage';
+import { propositionEntreeStock } from '../utils/comptesStock';
 import useSoumission from '../hooks/useSoumission';
 
 // Catégories de dépenses qui donnent lieu à une immobilisation : 20 (incorporelles) et 21 (corporelles)
@@ -749,6 +751,8 @@ export default function FacturesFournisseurs() {
   const [modalOuvert, setModalOuvert] = useState(null);
   const [immoAPrefill, setImmoAPrefill] = useState(null);   // { donnees, bandeau } : fiche d'immobilisation proposée après la création d'une facture
   const immoCreee = useRef(false);
+  const [entreeStockAPrefill, setEntreeStockAPrefill] = useState(null);   // { initial, articles, bandeau } : entrée en stock proposée après une facture 601/602 ou classe 3
+  const entreeStockFaite = useRef(false);
   const [factureSelectionnee, setFactureSelectionnee] = useState(null);
   const [modalPaiement, setModalPaiement] = useState(null);
   const [montantPaiement, setMontantPaiement] = useState('');
@@ -869,6 +873,12 @@ export default function FacturesFournisseurs() {
         await ouvrirFicheImmobilisation(factureCreee, form);
         return;
       }
+      // Achat de matières / approvisionnements (601, 602) ou compte de la classe 3 : on propose aussitôt l'entrée en stock
+      const entreeStock = propositionEntreeStock(form.categorie, form.sous_categorie);
+      if (factureCreee && entreeStock.declenche) {
+        await ouvrirEntreeStock(factureCreee, form, entreeStock);
+        return;
+      }
       setModalOuvert(null);
     } catch (err) {
       toast.error('Erreur sauvegarde.');
@@ -908,6 +918,61 @@ export default function FacturesFournisseurs() {
       }
     });
     setModalOuvert('immobilisation');
+  }
+
+  // Reprend de la facture ce qui sert à l'entrée en stock : fournisseur, numéro, date, montant HT, taux de TVA
+  async function ouvrirEntreeStock(facture, form, proposition) {
+    let articles = [];
+    try {
+      const res = await stockService.getArticles(entreprise.id);
+      articles = res.data.data || [];
+    } catch (e) { /* la liste des articles existants reste vide : tout sera proposé en nouvel article */ }
+
+    const ht = Number(facture.montant_ht) > 0 ? Number(facture.montant_ht) : Number(facture.montant);
+    const tauxTva = regimeTva.assujettie && Number(facture.montant_ht) > 0 && Number(facture.montant_tva) > 0
+      ? Math.round((Number(facture.montant_tva) / Number(facture.montant_ht)) * 10000) / 100
+      : 0;
+    const libelleSous = String(form.sous_categorie || '').split(' - ').slice(1).join(' - ').trim();
+
+    entreeStockFaite.current = false;
+    setEntreeStockAPrefill({
+      articles,
+      bandeau: `Facture ${facture.numero} enregistrée. Indique les articles reçus : le fournisseur, la date et le montant HT sont déjà repris.`,
+      initial: {
+        numero_facture: facture.numero,
+        fournisseur: form.fournisseur,
+        fournisseur_id: form.fournisseur_id || null,
+        date: String(form.date_facture || '').slice(0, 10),
+        montant_ht: ht,
+        taux_tva: tauxTva,
+        designation: form.commentaire || libelleSous,
+        compte_stock: proposition.compte
+      }
+    });
+    setModalOuvert('entree-stock');
+  }
+
+  async function enregistrerEntreeStock(payload) {
+    try {
+      const res = await stockService.entreeAchat({ ...payload, entreprise_id: entreprise.id });
+      entreeStockFaite.current = true;
+      toast.success(res.data?.message || 'Entrée en stock enregistrée !');
+      setEntreeStockAPrefill(null);
+      setModalOuvert(null);
+      return { ok: true };
+    } catch (err) {
+      // le formulaire reste ouvert avec le message du serveur : rien n'est perdu
+      return { ok: false, code: err.response?.data?.code, message: err.response?.data?.message || 'Erreur enregistrement de l\'entrée en stock.' };
+    }
+  }
+
+  function fermerEntreeStock() {
+    if (!entreeStockFaite.current) {
+      toast.info('Entrée en stock non enregistrée : tu pourras ajouter les articles depuis la page Stocks (Mouvements).');
+    }
+    entreeStockFaite.current = false;
+    setEntreeStockAPrefill(null);
+    setModalOuvert(null);
   }
 
   async function creerImmobilisation(form) {
@@ -988,6 +1053,16 @@ export default function FacturesFournisseurs() {
           bandeau={immoAPrefill.bandeau}
           onSave={creerImmobilisation}
           onCancel={fermerFicheImmobilisation}
+        />
+      )}
+
+      {modalOuvert === 'entree-stock' && entreeStockAPrefill && (
+        <FormulaireEntreeStock
+          initial={entreeStockAPrefill.initial}
+          articles={entreeStockAPrefill.articles}
+          bandeau={entreeStockAPrefill.bandeau}
+          onSave={enregistrerEntreeStock}
+          onCancel={fermerEntreeStock}
         />
       )}
 

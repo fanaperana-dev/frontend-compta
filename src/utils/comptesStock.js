@@ -44,3 +44,21 @@ export const groupeDeCompte = code => String(code || '').slice(0, 2);
 export const libelleCompte = code => (comptesStock.find(c => c.code === code) || {}).libelle || '';
 export const texteCompte = code => (code ? `${code} - ${libelleCompte(code)}` : 'À choisir');
 export const groupeStock = code => groupesStock.find(g => g.code === groupeDeCompte(code));
+
+// Facture fournisseur → faut-il proposer l'entrée en stock, et sur quel compte ?
+//  - achats 601 (matières premières) et 602 (autres approvisionnements) ;
+//  - catégories de la classe 3 (31 à 38 ; les pertes de valeur 39 ne sont pas du stock).
+// Les services (61, 62), 604 à 609 ne donnent jamais lieu à une entrée en stock.
+export function propositionEntreeStock(categorie, sousCategorie) {
+  const codeCat = String(categorie || '').split(' - ')[0].trim();
+  const codeSous = String(sousCategorie || '').split(' - ')[0].trim();
+  if (codeCat === '60') {
+    if (codeSous === '601') return { declenche: true, compte: '31' };
+    if (codeSous === '602') return { declenche: true, compte: '322' };
+    return { declenche: false, compte: '' };
+  }
+  const groupe = groupesStock.find(g => g.code === codeCat);
+  if (!groupe) return { declenche: false, compte: '' };
+  if (comptesStock.some(c => c.code === codeSous && c.groupe === groupe.code)) return { declenche: true, compte: codeSous };
+  return { declenche: true, compte: groupe.comptes.length ? '' : groupe.code };
+}

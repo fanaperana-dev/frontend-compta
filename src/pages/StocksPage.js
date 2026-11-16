@@ -338,6 +338,230 @@ function FormulaireMouvement({ articles, onSave, onCancel }) {
   );
 }
 
+// Entrée en stock à partir d'une facture fournisseur (ouverte juste après l'enregistrement de la facture).
+// initial : { numero_facture, fournisseur, fournisseur_id, date, montant_ht, taux_tva, designation, compte_stock }
+// onSave(payload) → { ok: true } ou { ok: false, code, message } ; le formulaire reste ouvert tant que ça échoue.
+export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave, onCancel }) {
+  const actifs = articles.filter(a => a.actif !== false);
+  const ligneVide = (extra = {}) => ({
+    article_id: '', designation: '', compte_stock: initial?.compte_stock || '', unite: 'pièce', reference: '',
+    quantite: 1, prix_unitaire_ht: 0, confirmer_similaire: false, ...extra
+  });
+  const [lignes, setLignes] = useState(() => {
+    // Ligne de départ : le montant HT de la facture ; si l'article existe déjà, il est sélectionné d'office
+    const designation = initial?.designation || '';
+    const existant = designation
+      ? trouverSimilaires(designation, actifs).find(x => x.type === 'IDENTIQUE')
+      : null;
+    return [ligneVide({
+      article_id: existant ? existant.article.id : '',
+      designation: existant ? '' : designation,
+      prix_unitaire_ht: Number(initial?.montant_ht) || 0
+    })];
+  });
+  const [enCours, setEnCours] = useState(false);
+  const [retour, setRetour] = useState(null);          // dernier refus du serveur
+  const [forcerNouvelle, setForcerNouvelle] = useState(false);
+
+  const maj = (i, champs) => setLignes(ls => ls.map((l, k) => (k === i ? { ...l, ...champs } : l)));
+  const retirer = i => setLignes(ls => ls.filter((_, k) => k !== i));
+
+  // Analyse de chaque ligne : doublons du nouvel article avec les articles existants et avec les autres nouvelles lignes
+  const analyses = lignes.map((l, i) => {
+    if (l.article_id) return { sim: [], identique: null, proches: [] };
+    const autres = lignes.filter((x, k) => k !== i && !x.article_id && x.designation.trim())
+      .map((x, k) => ({ id: `nl-${k}`, reference: 'cette entrée', designation: x.designation }));
+    const sim = l.designation.trim().length >= 3 ? trouverSimilaires(l.designation, [...articles, ...autres]) : [];
+    return { sim, identique: sim.find(x => x.type === 'IDENTIQUE'), proches: sim.filter(x => x.type === 'PROCHE') };
+  });
+
+  const ligneValide = (l, a) => {
+    if (!(Number(l.quantite) > 0) || !(Number(l.prix_unitaire_ht) >= 0) || l.prix_unitaire_ht === '') return false;
+    if (l.article_id) return true;
+    if (!l.designation.trim() || !l.compte_stock) return false;
+    if (a.identique) return false;
+    return a.proches.length === 0 || l.confirmer_similaire;
+  };
+  const toutValide = lignes.length > 0 && lignes.every((l, i) => ligneValide(l, analyses[i]));
+  const totalLignes = lignes.reduce((s, l) => s + (Number(l.quantite) || 0) * (Number(l.prix_unitaire_ht) || 0), 0);
+  const montantFacture = Number(initial?.montant_ht) || 0;
+  const ecart = Math.round((totalLignes - montantFacture) * 100) / 100;
+  const fmt = n => Number(n || 0).toLocaleString('fr-FR');
+  const prochaineRef = (rang) => {
+    const refs = [...articles.map(a => a.reference), ...lignes.slice(0, rang).map(l => l.reference)];
+    let max = 0;
+    refs.forEach(r => { const m = String(r || '').match(/^ART-(\d+)$/i); if (m) max = Math.max(max, Number(m[1])); });
+    return `ART-${String(max + 1 + lignes.slice(0, rang).filter(l => !l.article_id && !l.reference).length).padStart(3, '0')}`;
+  };
+
+  async function enregistrer(confirmerNouvelle) {
+    setEnCours(true);
+    setRetour(null);
+    const res = await onSave({
+      fournisseur_id: initial?.fournisseur_id || null,
+      reference_document: initial?.numero_facture || '',
+      date_mouvement: initial?.date || '',
+      confirmer_nouvelle_entree: !!confirmerNouvelle,
+      lignes: lignes.map(l => ({
+        quantite: Number(l.quantite),
+        prix_unitaire_ht: Number(l.prix_unitaire_ht),
+        taux_tva: Number(initial?.taux_tva) || 0,
+        ...(l.article_id
+          ? { article_id: l.article_id }
+          : { nouvel_article: {
+              designation: l.designation, compte_stock: l.compte_stock, unite: l.unite,
+              reference: l.reference, confirmer_similaire: l.confirmer_similaire
+            } })
+      }))
+    });
+    setEnCours(false);
+    if (res && res.ok === false) setRetour(res);
+  }
+
+  return (
+    <div style={styles.modal}>
+      <div style={{ ...styles.modalContent, width: '880px' }}>
+        <h3 style={{ color: '#004d5a', marginTop: 0 }}>📦 Entrée en stock — facture {initial?.numero_facture}</h3>
+        {bandeau && (
+          <div style={{ background: '#e0f2f1', color: '#004d5a', padding: '10px 12px', borderRadius: '6px', fontSize: '13px', marginBottom: '14px' }}>
+            {bandeau}
+          </div>
+        )}
+
+        {lignes.map((l, i) => {
+          const a = analyses[i];
+          return (
+            <div key={i} style={{ border: '1px solid #e0e0e0', borderRadius: '8px', padding: '12px', marginBottom: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
+                <div>
+                  <label style={styles.label}>Article *</label>
+                  <select style={styles.input} value={l.article_id}
+                    onChange={e => maj(i, { article_id: e.target.value, confirmer_similaire: false })}>
+                    <option value="">➕ Nouvel article</option>
+                    {actifs.map(x => <option key={x.id} value={x.id}>{x.reference} — {x.designation}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={styles.label}>Quantité *</label>
+                  <input style={styles.input} type="number" min="0" step="any" value={l.quantite}
+                    onChange={e => maj(i, { quantite: e.target.value })} />
+                </div>
+                <div>
+                  <label style={styles.label}>Prix unitaire HT *</label>
+                  <input style={styles.input} type="number" min="0" step="any" value={l.prix_unitaire_ht}
+                    onChange={e => maj(i, { prix_unitaire_ht: e.target.value })} />
+                </div>
+                <div style={{ paddingBottom: '8px' }}>
+                  {lignes.length > 1 && (
+                    <button type="button" style={styles.boutonSecondaire} onClick={() => retirer(i)} title="Retirer cette ligne">🗑️</button>
+                  )}
+                </div>
+              </div>
+
+              {!l.article_id && (
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                  <div>
+                    <label style={styles.label}>Désignation du nouvel article *</label>
+                    <input style={styles.input} value={l.designation} list={`designations-entree-${i}`}
+                      placeholder="Les articles existants sont proposés"
+                      onChange={e => maj(i, { designation: e.target.value, confirmer_similaire: false })} />
+                    <datalist id={`designations-entree-${i}`}>
+                      {articles.map(x => <option key={x.id} value={x.designation} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label style={styles.label}>Compte de stock *</label>
+                    <select style={styles.input} value={l.compte_stock} onChange={e => maj(i, { compte_stock: e.target.value })}>
+                      <option value="">— Choisir le compte —</option>
+                      {groupesStock.map(g => g.comptes.length ? (
+                        <optgroup key={g.code} label={`${g.code} - ${g.libelle}`}>
+                          {g.comptes.map(c => <option key={c.code} value={c.code}>{c.code} - {c.libelle}</option>)}
+                        </optgroup>
+                      ) : (
+                        <option key={g.code} value={g.code}>{g.code} - {g.libelle}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={styles.label}>Unité</label>
+                    <select style={styles.input} value={l.unite} onChange={e => maj(i, { unite: e.target.value })}>
+                      {unites.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={styles.label}>Référence</label>
+                    <input style={styles.input} value={l.reference} placeholder={prochaineRef(i)}
+                      onChange={e => maj(i, { reference: e.target.value })} />
+                  </div>
+                </div>
+              )}
+
+              {!l.article_id && a.identique && (
+                <div style={{ marginTop: '8px', padding: '8px 10px', borderRadius: '6px', background: '#ffebee', color: '#c62828', fontSize: '12px' }}>
+                  ⛔ Cet article existe déjà : <b>{a.identique.article.designation}</b> (réf. {a.identique.article.reference}).
+                  {a.identique.article.actif !== false && a.identique.article.id && !String(a.identique.article.id).startsWith('nl-') && (
+                    <button type="button" style={{ ...styles.boutonSecondaire, padding: '2px 8px', fontSize: '11px', marginLeft: '8px' }}
+                      onClick={() => maj(i, { article_id: a.identique.article.id, designation: '' })}>Utiliser cet article</button>
+                  )}
+                  {a.identique.article.actif === false && ' Il est désactivé : réactive-le depuis le catalogue.'}
+                </div>
+              )}
+              {!l.article_id && !a.identique && a.proches.length > 0 && (
+                <div style={{ marginTop: '8px', padding: '8px 10px', borderRadius: '6px', background: '#fff8e1', color: '#8d6e00', fontSize: '12px' }}>
+                  ⚠️ Un article très proche existe déjà : {a.proches.map((x, k) => (
+                    <span key={x.article.id}>{k > 0 && ', '}<b>{x.article.designation}</b></span>
+                  ))}.
+                  <label style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={l.confirmer_similaire} onChange={e => maj(i, { confirmer_similaire: e.target.checked })} />
+                    C'est bien un article différent
+                  </label>
+                </div>
+              )}
+              <div style={{ textAlign: 'right', fontSize: '12px', color: '#555', marginTop: '8px' }}>
+                Montant de la ligne : <b>{fmt((Number(l.quantite) || 0) * (Number(l.prix_unitaire_ht) || 0))} Ar HT</b>
+              </div>
+            </div>
+          );
+        })}
+
+        <button type="button" style={styles.boutonSecondaire} onClick={() => setLignes(ls => [...ls, ligneVide()])}>
+          ➕ Ajouter une ligne
+        </button>
+
+        <div style={{ marginTop: '14px', padding: '10px 12px', borderRadius: '6px', fontSize: '13px',
+          background: Math.abs(ecart) < 0.01 ? '#e8f5e9' : '#fff8e1', color: Math.abs(ecart) < 0.01 ? '#2e7d32' : '#8d6e00' }}>
+          Facture : <b>{fmt(montantFacture)} Ar HT</b> · Lignes : <b>{fmt(totalLignes)} Ar HT</b>
+          {Math.abs(ecart) >= 0.01 && <> · Écart : <b>{ecart > 0 ? '+' : ''}{fmt(ecart)} Ar</b> (tout n'est pas forcément du stock : frais, services…)</>}
+          <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.85 }}>
+            Le stock est valorisé hors TVA : la TVA déductible reste comptabilisée à part.
+          </div>
+        </div>
+
+        {retour && (
+          <div style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '6px', background: '#ffebee', color: '#c62828', fontSize: '13px' }}>
+            {retour.message}
+            {retour.code === 'ENTREE_DEJA_FAITE' && (
+              <div style={{ marginTop: '8px' }}>
+                <button type="button" style={styles.boutonSecondaire}
+                  onClick={() => { setForcerNouvelle(true); enregistrer(true); }}>Enregistrer quand même</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button style={styles.boutonSecondaire} onClick={onCancel}>Plus tard</button>
+          <button style={{ ...styles.boutonPrimaire, opacity: enCours || !toutValide ? 0.5 : 1 }}
+            disabled={enCours || !toutValide}
+            onClick={() => enregistrer(forcerNouvelle)}>
+            {enCours ? '⏳...' : 'Entrer en stock'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StocksPage() {
   const { entreprise } = useAuth();
   const [onglet, setOnglet] = useState('etat');

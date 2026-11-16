@@ -191,7 +191,8 @@ export const stockService = {
   getMouvements: (entreprise_id, params) => api.get(`/stocks/mouvements/${entreprise_id}`, { params }),
   enregistrerMouvement: (data) => api.post('/stocks/mouvements', data),
   getEtat: (entreprise_id) => api.get(`/stocks/etat/${entreprise_id}`),
-  getValorisation: (article_id) => api.get(`/stocks/valorisation-fifo/${article_id}`)
+  getValorisation: (article_id) => api.get(`/stocks/valorisation-fifo/${article_id}`),
+  entreeAchat: (data) => api.post('/stocks/entrees-achat', data)
 };
 export const immobilisationService = {
   getAll: (entreprise_id) => api.get(`/immobilisations/${entreprise_id}`),
