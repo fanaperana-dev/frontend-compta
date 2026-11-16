@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { fournisseurService, fournisseurListeService } from '../services/api';
+import { fournisseurService, fournisseurListeService, immobilisationService } from '../services/api';
+import { FormulaireImmobilisation, prochaineReferenceImmobilisation } from './ImmobilisationsPage';
 import useSoumission from '../hooks/useSoumission';
+
+// Catégories de dépenses qui donnent lieu à une immobilisation : 20 (incorporelles) et 21 (corporelles)
+const estCategorieImmobilisation = (categorie) => /^\s*(20|21)\s*-/.test(String(categorie || ''));
 
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
@@ -743,6 +747,8 @@ export default function FacturesFournisseurs() {
   const [page, setPage] = useState(1);
   const parPage = 20;
   const [modalOuvert, setModalOuvert] = useState(null);
+  const [immoAPrefill, setImmoAPrefill] = useState(null);   // { donnees, bandeau } : fiche d'immobilisation proposée après la création d'une facture
+  const immoCreee = useRef(false);
   const [factureSelectionnee, setFactureSelectionnee] = useState(null);
   const [modalPaiement, setModalPaiement] = useState(null);
   const [montantPaiement, setMontantPaiement] = useState('');
@@ -805,6 +811,7 @@ export default function FacturesFournisseurs() {
         statut: form.montant_paye >= form.montant ? 'PAYEE' : form.montant_paye > 0 ? 'PAIEMENT_PARTIEL' : 'EN_ATTENTE'
       };
       let factureId;
+      let factureCreee = null;
 
       if (factureSelectionnee) {
         await fournisseurService.modifier(factureSelectionnee.id, donnees);
@@ -812,7 +819,8 @@ export default function FacturesFournisseurs() {
         toast.success('Facture modifiée !');
       } else {
         const res = await fournisseurService.creer(donnees);
-        factureId = res.data.data.id;
+        factureCreee = res.data.data;
+        factureId = factureCreee.id;
         toast.success('Facture créée !');
       }
 
@@ -853,12 +861,74 @@ export default function FacturesFournisseurs() {
         });
       }
 
-      setModalOuvert(null);
       setFactureSelectionnee(null);
       chargerDonnees();
+
+      // Facture classée en immobilisation (20 ou 21) : on ouvre aussitôt la fiche d'immobilisation, préremplie
+      if (factureCreee && estCategorieImmobilisation(form.categorie)) {
+        await ouvrirFicheImmobilisation(factureCreee, form);
+        return;
+      }
+      setModalOuvert(null);
     } catch (err) {
       toast.error('Erreur sauvegarde.');
     }
+  }
+
+  // Reprend dans la fiche d'immobilisation tout ce qui a été saisi sur la facture
+  async function ouvrirFicheImmobilisation(facture, form) {
+    let reference = '';
+    try {
+      const res = await immobilisationService.getAll(entreprise.id);
+      reference = prochaineReferenceImmobilisation(res.data.data || []);
+    } catch (e) { /* la référence reste à saisir */ }
+
+    const codeCompte = String(form.sous_categorie || '').split(' - ')[0].trim();
+    const libelleCompte = String(form.sous_categorie || '').split(' - ').slice(1).join(' - ').trim();
+    // Valeur d'acquisition = montant HT : la TVA déductible n'entre pas dans le coût de l'immobilisation
+    // (elle est comptabilisée à part, 4456100). Entreprise non assujettie : le montant de la facture.
+    const valeur = Number(facture.montant_ht) > 0 ? Number(facture.montant_ht) : Number(facture.montant);
+    const dateFacture = String(form.date_facture || '').slice(0, 10);
+
+    immoCreee.current = false;
+    setImmoAPrefill({
+      bandeau: `Facture ${facture.numero} enregistrée. Complète la fiche d'immobilisation : les informations de la facture sont déjà reprises (fournisseur, catégorie, date, montant HT).`,
+      donnees: {
+        reference,
+        designation: form.commentaire || libelleCompte,
+        categorie: form.categorie,
+        numero_compte: codeCompte,
+        date_acquisition: dateFacture,
+        date_debut_amortissement: dateFacture,
+        date_fin_amortissement: '',
+        valeur_acquisition: valeur,
+        mode_amortissement: 'LINEAIRE',
+        fournisseur: form.fournisseur,
+        numero_facture: facture.numero
+      }
+    });
+    setModalOuvert('immobilisation');
+  }
+
+  async function creerImmobilisation(form) {
+    try {
+      await immobilisationService.creer({ ...form, entreprise_id: entreprise.id });
+      immoCreee.current = true;
+      toast.success('Immobilisation créée !');
+      return true;
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur création de l\'immobilisation.');
+      return false;   // le formulaire reste ouvert : rien n'est perdu
+    }
+  }
+
+  function fermerFicheImmobilisation() {
+    if (!immoCreee.current) {
+      toast.info('Immobilisation non créée : tu pourras l\'ajouter depuis la page Immobilisations.');
+    }
+    immoCreee.current = false;
+    setImmoAPrefill(null);
+    setModalOuvert(null);
   }
 
   async function changerStatut(id, statut) {
@@ -909,6 +979,15 @@ export default function FacturesFournisseurs() {
           tva={regimeTva}
           onSave={sauvegarderFacture}
           onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
+        />
+      )}
+
+      {modalOuvert === 'immobilisation' && immoAPrefill && (
+        <FormulaireImmobilisation
+          initial={immoAPrefill.donnees}
+          bandeau={immoAPrefill.bandeau}
+          onSave={creerImmobilisation}
+          onCancel={fermerFicheImmobilisation}
         />
       )}
 

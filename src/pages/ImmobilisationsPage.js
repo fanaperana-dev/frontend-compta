@@ -95,23 +95,32 @@ const comptesImmobilisations = {
   ]
 };
 
-function FormulaireImmobilisation({ immo, onSave, onCancel }) {
+// Prochaine référence libre au format des existantes (IMM-033 après IMM-032)
+export function prochaineReferenceImmobilisation(liste) {
+  const numeros = (liste || []).map(i => /^IMM-(\d+)$/.exec(String(i.reference || ''))).filter(Boolean).map(m => Number(m[1]));
+  return `IMM-${String((numeros.length ? Math.max(...numeros) : 0) + 1).padStart(3, '0')}`;
+}
+
+// `immo` : immobilisation à modifier. `initial` : valeurs de départ d'une NOUVELLE immobilisation (ex. reprises d'une facture fournisseur).
+// `bandeau` : message affiché en haut du formulaire. `onSave` peut renvoyer false pour garder le formulaire ouvert (erreur).
+export function FormulaireImmobilisation({ immo, initial, bandeau, onSave, onCancel }) {
+  const src = immo || initial;
   const [form, setForm] = useState({
-    reference: immo?.reference || '',
-    designation: immo?.designation || '',
-    categorie: immo?.categorie || '',
+    reference: src?.reference || '',
+    designation: src?.designation || '',
+    categorie: src?.categorie || '',
     // categorie = la catégorie principale (ex: '20 - Immobilisations incorporelles')
-    numero_compte: immo?.numero_compte || '',
+    numero_compte: src?.numero_compte || '',
     // numero_compte = la sous-catégorie (ex: '203 - Frais de développement')
-    date_acquisition: immo?.date_acquisition || '',
-    date_debut_amortissement: immo?.date_debut_amortissement || '',
-    date_fin_amortissement: immo?.date_fin_amortissement || '',
-    valeur_acquisition: immo?.valeur_acquisition || 0,
-    mode_amortissement: immo?.mode_amortissement || 'LINEAIRE',
-    fournisseur: immo?.fournisseur || '',
-    numero_facture: immo?.numero_facture || '',
-    localisation: immo?.localisation || '',
-    type_immobilisation_detail: immo?.type_immobilisation_detail || ''
+    date_acquisition: src?.date_acquisition || '',
+    date_debut_amortissement: src?.date_debut_amortissement || '',
+    date_fin_amortissement: src?.date_fin_amortissement || '',
+    valeur_acquisition: src?.valeur_acquisition || 0,
+    mode_amortissement: src?.mode_amortissement || 'LINEAIRE',
+    fournisseur: src?.fournisseur || '',
+    numero_facture: src?.numero_facture || '',
+    localisation: src?.localisation || '',
+    type_immobilisation_detail: src?.type_immobilisation_detail || ''
   });
   const [enCours, setEnCours] = useState(false);
   // Calcul automatique durée et taux
@@ -130,6 +139,11 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
         <h3 style={{ color: '#004d5a', marginTop: 0 }}>
           {immo ? '✏️ Modifier immobilisation' : '➕ Nouvelle immobilisation'}
         </h3>
+        {bandeau && (
+          <div style={{ background: '#e8f5e9', border: '1px solid #2e7d32', borderRadius: '8px', padding: '10px', marginBottom: '15px', fontSize: '13px', color: '#1b5e20' }}>
+            {bandeau}
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
           <div>
             <label style={styles.label}>Référence *</label>
@@ -233,9 +247,9 @@ function FormulaireImmobilisation({ immo, onSave, onCancel }) {
              disabled={enCours}
              onClick={async () => {
               setEnCours(true);
-              await onSave(form);
+              const reussi = await onSave(form);
               setEnCours(false);
-              onCancel();
+              if (reussi !== false) onCancel();
              }}>
 
              {enCours ? '⏳...' : immo ? 'Modifier' : 'Créer'}
