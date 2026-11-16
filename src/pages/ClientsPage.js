@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Clients from './Clients';
 import Factures from './Factures';
+import { ProformasPage, AvoirsPage } from './FacturesOnglets';
 
 export default function ClientsPage() {
   const [ongletActif, setOngletActif] = useState('clients');
@@ -16,7 +17,9 @@ export default function ClientsPage() {
       }}>
         {[
           { id: 'clients', label: '👥 Liste clients' },
-          { id: 'factures', label: '🧾 Factures clients' }
+          { id: 'factures', label: '🧾 Factures clients' },
+          { id: 'proformas', label: '📄 Proforma' },
+          { id: 'avoirs', label: '↩️ Avoirs' }
         ].map(onglet => (
           <button
             key={onglet.id}
@@ -43,6 +46,8 @@ export default function ClientsPage() {
       {/* Contenu */}
       {ongletActif === 'clients' && <Clients />}
       {ongletActif === 'factures' && <Factures />}
+      {ongletActif === 'proformas' && <ProformasPage />}
+      {ongletActif === 'avoirs' && <AvoirsPage />}
     </div>
   );
 }

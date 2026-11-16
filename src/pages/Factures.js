@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import { factureService, clientService, mailService, paiementService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
 import { categoriesEtSousCategories } from '../utils/categoriesComptables';
-import { ProformasOnglet, AvoirsOnglet } from './FacturesOnglets';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -931,7 +930,6 @@ export default function Factures() {
   const [regimeTva, setRegimeTva] = useState({ assujettie: false, taux: 20 });
   const [triColonne, setTriColonne] = useState('numero_facture');
   const [triOrdre, setTriOrdre] = useState('desc');
-  const [onglet, setOnglet] = useState('factures'); // factures | proformas | avoirs
 
   const statuts = ['TOUS', 'CREE', 'ENVOYEE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE', 'ARCHIVEE'];
 
@@ -1398,35 +1396,6 @@ function exporterCSV() {
     <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>
   );
 
-  const barreOnglets = (
-    <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e0e0e0' }}>
-      {[['factures', '🧾 Factures'], ['proformas', '📄 Proforma'], ['avoirs', '↩️ Avoirs']].map(([cle, libelle]) => (
-        <button key={cle} onClick={() => setOnglet(cle)}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '10px 18px', fontSize: '14px',
-            fontWeight: onglet === cle ? 'bold' : 'normal', color: onglet === cle ? '#004d5a' : '#666',
-            borderBottom: onglet === cle ? '3px solid #004d5a' : '3px solid transparent', marginBottom: '-2px'
-          }}>
-          {libelle}
-        </button>
-      ))}
-    </div>
-  );
-
-  if (onglet !== 'factures') {
-    return (
-      <div>
-        {barreOnglets}
-        {onglet === 'proformas' ? (
-          <ProformasOnglet entreprise={entreprise} clients={clients} tva={regimeTva} noteDefaut={noteDefaut}
-            onFactureCreee={() => chargerDonnees()} />
-        ) : (
-          <AvoirsOnglet entreprise={entreprise} clients={clients} />
-        )}
-      </div>
-    );
-  }
-
   return (
     <div>
       {/* Modals */}
@@ -1471,8 +1440,6 @@ function exporterCSV() {
           onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
         />
       )}
-
-      {barreOnglets}
 
       {/* En-tête */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>

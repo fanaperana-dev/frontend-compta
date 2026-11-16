@@ -1,7 +1,8 @@
 // Onglets « Proforma » (devis) et « Avoirs » (remboursement d'un trop-perçu) de la page Factures.
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { proformaService, avoirService } from '../services/api';
+import { proformaService, avoirService, clientService, entrepriseService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import useSoumission from '../hooks/useSoumission';
 import { categoriesEtSousCategories } from '../utils/categoriesComptables';
 
@@ -599,4 +600,43 @@ export function AvoirsOnglet({ entreprise, clients }) {
       </div>
     </div>
   );
+}
+
+// ───────────── Pages autonomes (onglets de la page Clients : « Proforma » et « Avoirs ») ─────────────
+
+// Charge les clients (classés de A à Z) et le régime de TVA de l'entreprise connectée.
+function useDonneesEntreprise() {
+  const { entreprise } = useAuth();
+  const [clients, setClients] = useState([]);
+  const [tva, setTva] = useState({ assujettie: false, taux: 20 });
+  const [pret, setPret] = useState(false);
+  useEffect(() => {
+    let actif = true;
+    (async () => {
+      try {
+        const [c, e] = await Promise.all([clientService.getAll(entreprise.id), entrepriseService.getDetail(entreprise.id)]);
+        if (!actif) return;
+        setClients(trierClients(c.data.data || []));
+        setTva({ assujettie: e.data?.assujettie_tva === true, taux: Number(e.data?.taux_tva) || 20 });
+      } catch (err) {
+        toast.error('Erreur lors du chargement des clients.');
+      } finally {
+        if (actif) setPret(true);
+      }
+    })();
+    return () => { actif = false; };
+  }, [entreprise.id]);
+  return { entreprise, clients, tva, pret };
+}
+
+export function ProformasPage() {
+  const { entreprise, clients, tva, pret } = useDonneesEntreprise();
+  if (!pret) return <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>;
+  return <ProformasOnglet entreprise={entreprise} clients={clients} tva={tva} />;
+}
+
+export function AvoirsPage() {
+  const { entreprise, clients, pret } = useDonneesEntreprise();
+  if (!pret) return <div style={{ textAlign: 'center', padding: '50px' }}>Chargement...</div>;
+  return <AvoirsOnglet entreprise={entreprise} clients={clients} />;
 }
