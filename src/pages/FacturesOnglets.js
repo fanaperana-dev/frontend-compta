@@ -1,7 +1,7 @@
 // Onglets « Proforma » (devis) et « Avoirs » (remboursement d'un trop-perçu) de la page Factures.
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { proformaService, avoirService, clientService, entrepriseService } from '../services/api';
+import { proformaService, avoirService, clientService, entrepriseService, pdfLienService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import useSoumission from '../hooks/useSoumission';
 import { categoriesEtSousCategories } from '../utils/categoriesComptables';
@@ -41,12 +41,13 @@ function Pastille({ statut }) {
   return <span style={{ background: c.bg, color: c.color, padding: '3px 8px', borderRadius: '10px', fontSize: '12px', whiteSpace: 'nowrap' }}>{c.label}</span>;
 }
 
-// Ouvre le PDF dans un nouvel onglet (la fenêtre est ouverte tout de suite pour ne pas être bloquée par le navigateur)
-async function ouvrirPdf(appel) {
+// Ouvre le PDF dans un nouvel onglet (la fenêtre est ouverte tout de suite pour ne pas être bloquée par le navigateur).
+// Le serveur fournit un lien temporaire dont le nom de fichier est le numéro du document (PRF-0001.pdf, AVR-0001.pdf).
+async function ouvrirPdf(type, id) {
   const fenetre = window.open('', '_blank');
   try {
-    const res = await appel();
-    const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+    const res = await pdfLienService.creer(type, id);
+    const url = pdfLienService.adresse(res.data.url);
     if (fenetre) fenetre.location.href = url; else window.open(url, '_blank');
   } catch (err) {
     if (fenetre) fenetre.close();
@@ -383,7 +384,7 @@ export function ProformasOnglet({ entreprise, clients, tva, noteDefaut, onFactur
                   <td style={{ ...S.td, textAlign: 'right', whiteSpace: 'nowrap' }}>{fr(p.montant_total)} Ar</td>
                   <td style={S.td}><Pastille statut={p.statut} /></td>
                   <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
-                    <button style={S.petit} title="Visualiser le proforma" onClick={() => ouvrirPdf(() => proformaService.pdf(p.id))}>👁️</button>
+                    <button style={S.petit} title="Visualiser le proforma" onClick={() => ouvrirPdf('PROFORMA', p.id)}>👁️</button>
                     <button disabled={!!envoiId} title={envoiId === p.id ? 'Envoi en cours...' : 'Envoyer par e-mail'} onClick={() => envoyer(p)}
                       style={{ ...S.petit, ...(envoiId ? { opacity: 0.4, cursor: 'not-allowed', background: '#eee' } : {}) }}>{envoiId === p.id ? '⏳' : '📧'}</button>
                     {ouvert && <button style={S.petit} title="Modifier" onClick={() => setModal({ type: 'form', proforma: p })}>✏️</button>}
@@ -589,7 +590,7 @@ export function AvoirsOnglet({ entreprise, clients }) {
                 <td style={S.td}>{a.mode_paiement}</td>
                 <td style={{ ...S.td, textAlign: 'right', whiteSpace: 'nowrap' }}>{fr(a.montant)} Ar</td>
                 <td style={{ ...S.td, whiteSpace: 'nowrap' }}>
-                  <button style={S.petit} title="Visualiser l'avoir" onClick={() => ouvrirPdf(() => avoirService.pdf(a.id))}>👁️</button>
+                  <button style={S.petit} title="Visualiser l'avoir" onClick={() => ouvrirPdf('AVOIR', a.id)}>👁️</button>
                   <button disabled={!!envoiId} title={envoiId === a.id ? 'Envoi en cours...' : 'Envoyer par e-mail'} onClick={() => envoyer(a)}
                       style={{ ...S.petit, ...(envoiId ? { opacity: 0.4, cursor: 'not-allowed', background: '#eee' } : {}) }}>{envoiId === a.id ? '⏳' : '📧'}</button>
                 </td>

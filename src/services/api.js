@@ -87,6 +87,12 @@ export const factureService = {
     api.patch(`/factures/${id}/annuler`, { motif })
 };
 
+// Lien temporaire d'ouverture d'un PDF (le fichier s'enregistre alors sous son numéro : FAC-001.pdf, PRF-0001.pdf, AVR-0001.pdf)
+export const pdfLienService = {
+  creer: (type, id) => api.post('/pdf-liens', { type, id }),
+  adresse: (url) => `${API_URL.replace(/\/api$/, '')}${url}`
+};
+
 // PROFORMAS (devis)
 export const proformaService = {
   getAll: (entreprise_id) => api.get(`/proformas/${entreprise_id}`),
