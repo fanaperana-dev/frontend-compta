@@ -928,7 +928,8 @@ export default function FacturesFournisseurs() {
       articles = res.data.data || [];
     } catch (e) { /* la liste des articles existants reste vide : tout sera proposé en nouvel article */ }
 
-    const ht = Number(facture.montant_ht) > 0 ? Number(facture.montant_ht) : Number(facture.montant);
+    // Entreprise assujettie : le stock se valorise hors TVA (HT) ; sinon, au montant à payer au fournisseur
+    const ht = regimeTva.assujettie && Number(facture.montant_ht) > 0 ? Number(facture.montant_ht) : Number(facture.montant);
     const tauxTva = regimeTva.assujettie && Number(facture.montant_ht) > 0 && Number(facture.montant_tva) > 0
       ? Math.round((Number(facture.montant_tva) / Number(facture.montant_ht)) * 10000) / 100
       : 0;
@@ -937,13 +938,14 @@ export default function FacturesFournisseurs() {
     entreeStockFaite.current = false;
     setEntreeStockAPrefill({
       articles,
-      bandeau: `Facture ${facture.numero} enregistrée. Indique les articles reçus : le fournisseur, la date et le montant HT sont déjà repris.`,
+      bandeau: `Facture ${facture.numero} enregistrée. Indique les articles reçus : le fournisseur, la date et le montant sont déjà repris.`,
       initial: {
         numero_facture: facture.numero,
         fournisseur: form.fournisseur,
         fournisseur_id: form.fournisseur_id || null,
         date: String(form.date_facture || '').slice(0, 10),
         montant_ht: ht,
+        assujettie: !!regimeTva.assujettie,
         taux_tva: tauxTva,
         designation: form.commentaire || libelleSous,
         compte_stock: proposition.compte

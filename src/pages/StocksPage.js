@@ -343,6 +343,8 @@ function FormulaireMouvement({ articles, onSave, onCancel }) {
 // onSave(payload) → { ok: true } ou { ok: false, code, message } ; le formulaire reste ouvert tant que ça échoue.
 export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave, onCancel }) {
   const actifs = articles.filter(a => a.actif !== false);
+  const assujettie = initial?.assujettie !== false;      // sinon : entreprise non assujettie, on raisonne en montant à payer
+  const unitMontant = assujettie ? 'HT' : 'à payer';
   const ligneVide = (extra = {}) => ({
     article_id: '', designation: '', compte_stock: initial?.compte_stock || '', unite: 'pièce', reference: '',
     quantite: 1, prix_unitaire_ht: 0, confirmer_similaire: false, ...extra
@@ -405,7 +407,7 @@ export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave,
       lignes: lignes.map(l => ({
         quantite: Number(l.quantite),
         prix_unitaire_ht: Number(l.prix_unitaire_ht),
-        taux_tva: Number(initial?.taux_tva) || 0,
+        taux_tva: assujettie ? (Number(initial?.taux_tva) || 0) : 0,
         ...(l.article_id
           ? { article_id: l.article_id }
           : { nouvel_article: {
@@ -447,7 +449,7 @@ export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave,
                     onChange={e => maj(i, { quantite: e.target.value })} />
                 </div>
                 <div>
-                  <label style={styles.label}>Prix unitaire HT *</label>
+                  <label style={styles.label}>{assujettie ? 'Prix unitaire HT *' : 'Prix unitaire (à payer) *'}</label>
                   <input style={styles.input} type="number" min="0" step="any" value={l.prix_unitaire_ht}
                     onChange={e => maj(i, { prix_unitaire_ht: e.target.value })} />
                 </div>
@@ -518,7 +520,7 @@ export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave,
                 </div>
               )}
               <div style={{ textAlign: 'right', fontSize: '12px', color: '#555', marginTop: '8px' }}>
-                Montant de la ligne : <b>{fmt((Number(l.quantite) || 0) * (Number(l.prix_unitaire_ht) || 0))} Ar HT</b>
+                Montant de la ligne : <b>{fmt((Number(l.quantite) || 0) * (Number(l.prix_unitaire_ht) || 0))} Ar {unitMontant}</b>
               </div>
             </div>
           );
@@ -530,10 +532,12 @@ export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave,
 
         <div style={{ marginTop: '14px', padding: '10px 12px', borderRadius: '6px', fontSize: '13px',
           background: Math.abs(ecart) < 0.01 ? '#e8f5e9' : '#fff8e1', color: Math.abs(ecart) < 0.01 ? '#2e7d32' : '#8d6e00' }}>
-          Facture : <b>{fmt(montantFacture)} Ar HT</b> · Lignes : <b>{fmt(totalLignes)} Ar HT</b>
+          Facture : <b>{fmt(montantFacture)} Ar {unitMontant}</b> · Lignes : <b>{fmt(totalLignes)} Ar {unitMontant}</b>
           {Math.abs(ecart) >= 0.01 && <> · Écart : <b>{ecart > 0 ? '+' : ''}{fmt(ecart)} Ar</b> (tout n'est pas forcément du stock : frais, services…)</>}
           <div style={{ fontSize: '11px', marginTop: '4px', opacity: 0.85 }}>
-            Le stock est valorisé hors TVA : la TVA déductible reste comptabilisée à part.
+            {assujettie
+              ? 'Le stock est valorisé hors TVA : la TVA déductible reste comptabilisée à part.'
+              : 'Entreprise non assujettie à la TVA : le stock est valorisé au montant à payer au fournisseur.'}
           </div>
         </div>
 
