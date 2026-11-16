@@ -288,7 +288,7 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tv
     montant_is: facture?.montant_is || 0,
     // Entreprise assujettie : on saisit le HT ; le TTC et le montant à payer en découlent
     montant_ht: facture
-      ? Number(facture.montant_ht != null ? facture.montant_ht : (Number(facture.montant) + Number(facture.montant_is || 0) - Number(facture.montant_tva || 0)))
+      ? Number(facture.montant_ht != null ? facture.montant_ht : (Number(facture.montant) - Number(facture.montant_tva || 0)))
       : 0,
     mode_paiement: facture?.mode_paiement || '',
     date_facture: facture?.date_facture
@@ -305,7 +305,7 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tv
 
   const TAUX_IS = 5;
   const arrondi = (x) => Math.round(Number(x) * 100) / 100;
-  // Recalcule TVA (présaisie à 20 %), TTC et montant à payer à partir du HT, de la TVA et de l'IS
+  // Recalcule TVA (présaisie à 20 %), TTC et montant à payer à partir du HT et de la TVA (l'IS est indicatif : il ne change pas le montant à payer)
   function majMontants(patch, options = {}) {
     const f = { ...form, ...patch };
     const ht = Number(f.montant_ht) || 0;
@@ -313,7 +313,7 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tv
       if (isAuto && !options.sansIs) f.montant_is = arrondi(ht * TAUX_IS / 100);
       else if (!tvaManuelle && !(Number(f.montant_is) > 0)) f.montant_tva = arrondi(ht * (tva?.taux || 20) / 100);
     }
-    f.montant = arrondi(ht + (Number(f.montant_tva) || 0) - (Number(f.montant_is) || 0));
+    f.montant = arrondi(ht + (Number(f.montant_tva) || 0));
     setForm(f);
   }
   const appliquerIs = () => {
@@ -440,7 +440,7 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tv
                 <input style={styles.input} type="number" value={form.montant_is}
                   onChange={e => { setIsAuto(false); majMontants({ montant_is: Number(e.target.value) || 0 }); }} />
                 <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
-                  Fournisseur non assujetti à la TVA : l'IS est retenu sur le total de la prestation, il ne s'ajoute pas.{' '}
+                  Fournisseur non assujetti à la TVA : l'IS est indiqué pour information, il ne change pas le montant à payer.{' '}
                   {Number(form.montant_is) > 0 ? (
                     <button type="button" style={{ background: 'none', border: 'none', color: '#c62828', cursor: 'pointer', padding: 0, fontSize: '11px', textDecoration: 'underline' }}
                       onClick={retirerIs}>Retirer l'IS</button>
@@ -1114,7 +1114,7 @@ export default function FacturesFournisseurs() {
                       {Number(f.montant || 0).toLocaleString('fr-FR')} Ar
                       {Number(f.montant_is) > 0 && (
                         <div style={{ fontSize: '11px', fontWeight: 'normal', color: '#888' }}>
-                          après IS retenu {Number(f.montant_is).toLocaleString('fr-FR')}
+                          dont IS {Number(f.montant_is).toLocaleString('fr-FR')} (information)
                         </div>
                       )}
                       {Number(f.montant_tva) > 0 && (
