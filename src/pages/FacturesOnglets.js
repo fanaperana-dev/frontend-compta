@@ -5,7 +5,7 @@ import { proformaService, avoirService, clientService, entrepriseService, pdfLie
 import { useAuth } from '../context/AuthContext';
 import useSoumission from '../hooks/useSoumission';
 import { categoriesEtSousCategories } from '../utils/categoriesComptables';
-import { BlocTotauxFacture } from './Factures';
+import { BlocTotauxFacture, estVenteDeBiens, useArticlesStock, SelecteurArticleLigne } from './Factures';
 
 const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 const MODES_REMBOURSEMENT = ['Virement bancaire', 'Chèque', 'Espèces', 'Airtel money', 'Orange money', 'Mvola', 'Autre'];
@@ -209,14 +209,20 @@ function FormulaireCategorisation({ proforma, onSave, onCancel }) {
   const [categorie, setCategorie] = useState('');
   const [sousCategorie, setSousCategorie] = useState('');
   const [confirme, setConfirme] = useState(false);
+  const [articlesChoisis, setArticlesChoisis] = useState({});   // id de la ligne du proforma → article du stock
   const expire = proforma.statut === 'EXPIREE';
   const sousCategories = categoriesEtSousCategories[categorie] || [];
+  // Vente de biens : on peut relier chaque ligne à un article du stock, qui sortira du stock à la création de la facture
+  const venteDeBiens = estVenteDeBiens(sousCategorie);
+  const articlesStock = useArticlesStock(proforma.entreprise_id, venteDeBiens);
+  const lignesProforma = proforma.lignes_proforma || [];
 
   function envoyer(e) {
     e.preventDefault();
     if (!categorie) return toast.error('Choisissez la catégorie comptable.');
     if (expire && !confirme) return toast.error('Confirmez la validation du proforma expiré.');
-    soumettre(() => onSave({ categorie, sous_categorie: sousCategorie || undefined, confirmer_expire: expire ? true : undefined }));
+    soumettre(() => onSave({ categorie, sous_categorie: sousCategorie || undefined, confirmer_expire: expire ? true : undefined,
+      articles_lignes: venteDeBiens && Object.keys(articlesChoisis).length > 0 ? articlesChoisis : undefined }));
   }
 
   return (
@@ -248,6 +254,21 @@ function FormulaireCategorisation({ proforma, onSave, onCancel }) {
               <option value="">Sélectionner une sous-catégorie</option>
               {sousCategories.map(sc => <option key={sc} value={sc}>{sc}</option>)}
             </select>
+          </div>
+        )}
+        {venteDeBiens && lignesProforma.length > 0 && (
+          <div style={{ marginTop: '15px' }}>
+            <label style={S.label}>Articles du stock vendus (facultatif)</label>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px' }}>
+              Relie une ligne à un article du stock pour que la quantité sorte du stock à la création de la facture. Une ligne sans article ne touche pas au stock.
+            </div>
+            {lignesProforma.map(l => (
+              <div key={l.id} style={{ marginBottom: '8px' }}>
+                <div style={{ fontSize: '13px' }}><strong>{l.description}</strong> — quantité : {Number(l.quantite).toLocaleString('fr-FR')}</div>
+                <SelecteurArticleLigne ligne={{ article_id: articlesChoisis[l.id] || null, quantite: l.quantite }} articles={articlesStock}
+                  onChoisir={a => setArticlesChoisis(c => { const n = { ...c }; if (a) n[l.id] = a.id; else delete n[l.id]; return n; })} />
+              </div>
+            ))}
           </div>
         )}
         <BoutonsFormulaire onCancel={onCancel} enCours={enCours} libelle="Valider et créer la facture" />

@@ -132,10 +132,10 @@ export function BlocTotauxFacture({ total, tva, appliquerIs, setAppliquerIs }) {
 }
 
 // Ventes de biens (701 produits finis, 702 intermédiaires, 703 résiduels, 707 marchandises) : les lignes peuvent sortir un article du stock
-const estVenteDeBiens = (sousCategorie) => /^\s*(701|702|703|707)\b/.test(String(sousCategorie || ''));
+export const estVenteDeBiens = (sousCategorie) => /^\s*(701|702|703|707)\b/.test(String(sousCategorie || ''));
 
 // Articles actifs du stock, chargés seulement pour une vente de biens
-function useArticlesStock(entreprise_id, actif) {
+export function useArticlesStock(entreprise_id, actif) {
   const [articles, setArticles] = useState([]);
   useEffect(() => {
     if (!actif || !entreprise_id) return undefined;
@@ -149,7 +149,7 @@ function useArticlesStock(entreprise_id, actif) {
 }
 
 // Choix de l'article du stock pour une ligne. Le prix de vente reste celui saisi sur la facture (indépendant du stock).
-function SelecteurArticleLigne({ ligne, articles, onChoisir }) {
+export function SelecteurArticleLigne({ ligne, articles, onChoisir }) {
   const article = articles.find(a => a.id === ligne.article_id);
   const qte = Number(ligne.quantite) || 0;
   const insuffisant = article && qte > Number(article.stock_actuel);
