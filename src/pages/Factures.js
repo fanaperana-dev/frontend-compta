@@ -213,8 +213,14 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
   // Choix d'un article : lien exact avec le stock ; la désignation se remplit si elle est vide, le prix reste à saisir
   function choisirArticle(index, article) {
     const nouvLignes = [...form.lignes];
+    const ancien = articlesStock.find(a => a.id === nouvLignes[index].article_id);
+    const prixActuel = Number(nouvLignes[index].prix_unitaire) || 0;
+    // Prix de vente par défaut de l'article, proposé seulement si le prix n'a pas été saisi (ou était celui de l'article précédent) ; toujours modifiable
+    const proposer = article && Number(article.prix_vente_defaut) > 0
+      && (prixActuel === 0 || (ancien && prixActuel === Number(ancien.prix_vente_defaut)));
     nouvLignes[index] = { ...nouvLignes[index], article_id: article ? article.id : null,
-      description: article && !String(nouvLignes[index].description || '').trim() ? article.designation : nouvLignes[index].description };
+      description: article && !String(nouvLignes[index].description || '').trim() ? article.designation : nouvLignes[index].description,
+      ...(proposer ? { prix_unitaire: Number(article.prix_vente_defaut) } : {}) };
     setForm({ ...form, lignes: nouvLignes });
   }
 
@@ -860,8 +866,14 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel, tva 
 
   function choisirArticle(index, article) {
     const nouvLignes = [...form.lignes];
+    const ancien = articlesStock.find(a => a.id === nouvLignes[index].article_id);
+    const prixActuel = Number(nouvLignes[index].prix_unitaire) || 0;
+    // Prix de vente par défaut de l'article, proposé seulement si le prix n'a pas été saisi (ou était celui de l'article précédent) ; toujours modifiable
+    const proposer = article && Number(article.prix_vente_defaut) > 0
+      && (prixActuel === 0 || (ancien && prixActuel === Number(ancien.prix_vente_defaut)));
     nouvLignes[index] = { ...nouvLignes[index], article_id: article ? article.id : null,
-      description: article && !String(nouvLignes[index].description || '').trim() ? article.designation : nouvLignes[index].description };
+      description: article && !String(nouvLignes[index].description || '').trim() ? article.designation : nouvLignes[index].description,
+      ...(proposer ? { prix_unitaire: Number(article.prix_vente_defaut) } : {}) };
     setForm({ ...form, lignes: nouvLignes });
   }
 
