@@ -51,7 +51,8 @@ const typesMouvement = [
   { key: 'SORTIE_USAGE', label: '🔧 Sortie usage interne', couleur: '#6a1b9a' },
   { key: 'ANNULATION_VENTE', label: '↩️ Remise en stock (facture modifiée/annulée)', couleur: '#2e7d32' },
   { key: 'SORTIE_BON', label: '📤 Bon de sortie', couleur: '#ad1457' },
-  { key: 'ANNULATION_BON', label: '↩️ Bon de sortie annulé', couleur: '#2e7d32' }
+  { key: 'ANNULATION_BON', label: '↩️ Bon de sortie annulé', couleur: '#2e7d32' },
+  { key: 'ENTREE_INVENTAIRE', label: '📋 Surplus d\'inventaire', couleur: '#00838f' }
 ];
 
 // Formulaire article
@@ -378,7 +379,7 @@ function FormulaireMouvement({ articles, onSave, onCancel }) {
             <label style={styles.label}>Type de mouvement *</label>
             <select style={styles.input} value={form.type_mouvement}
               onChange={e => setForm({ ...form, type_mouvement: e.target.value })}>
-              {typesMouvement.filter(t => t.key.startsWith('ENTREE')).map(t => (
+              {typesMouvement.filter(t => t.key.startsWith('ENTREE') && t.key !== 'ENTREE_INVENTAIRE').map(t => (
                 <option key={t.key} value={t.key}>{t.label}</option>
               ))}
             </select>
@@ -669,6 +670,189 @@ export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave,
   );
 }
 
+// Inventaire physique : on compte les articles, puis la validation régularise les écarts
+// (manquants → bon de sortie « Régularisation d'inventaire » ; surplus → entrée au coût moyen).
+function OngletInventaire({ entreprise_id, onChange }) {
+  const [liste, setListe] = useState([]);
+  const [courant, setCourant] = useState(null);   // détail de l'inventaire en cours
+  const [comptes, setComptes] = useState({});     // article_id → texte saisi
+  const [enCours, setEnCours] = useState(false);
+
+  async function charger() {
+    try {
+      const res = await stockService.getInventaires(entreprise_id);
+      const inventaires = res.data.data || [];
+      setListe(inventaires);
+      const brouillon = inventaires.find(i => i.statut === 'BROUILLON');
+      if (brouillon) {
+        const det = await stockService.getInventaire(entreprise_id, brouillon.id);
+        setCourant(det.data.data);
+        const saisies = {};
+        (det.data.data.lignes || []).forEach(l => { saisies[l.article_id] = l.stock_compte === null ? '' : String(l.stock_compte); });
+        setComptes(saisies);
+      } else {
+        setCourant(null);
+        setComptes({});
+      }
+    } catch (err) {
+      toast.error('Erreur chargement des inventaires.');
+    }
+  }
+  useEffect(() => { charger(); }, []);
+
+  async function agir(action, succes) {
+    setEnCours(true);
+    try {
+      const res = await action();
+      toast.success(succes || res?.data?.message || 'Fait.');
+      await charger();
+      if (onChange) onChange();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur.');
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  const lignes = courant?.lignes || [];
+  const comptagesAEnvoyer = () => lignes.map(l => ({ article_id: l.article_id, stock_compte: comptes[l.article_id] === '' || comptes[l.article_id] === undefined ? null : Number(comptes[l.article_id]) }));
+  const nbComptes = lignes.filter(l => comptes[l.article_id] !== '' && comptes[l.article_id] !== undefined).length;
+  const ecartDe = (l) => (comptes[l.article_id] === '' || comptes[l.article_id] === undefined ? null : Math.round((Number(comptes[l.article_id]) - l.stock_theorique) * 100) / 100);
+  const coutUnitaire = (l) => {
+    const a = l.articles || {};
+    return Number(a.stock_actuel) > 0 ? Number(a.valeur_stock) / Number(a.stock_actuel) : Number(a.prix_achat_net) || 0;
+  };
+  const stockBouge = lignes.some(l => l.stock_actuel !== null && Math.abs(l.stock_actuel - l.stock_theorique) > 0.0001);
+  const manquants = lignes.reduce((s, l) => { const e = ecartDe(l); return e !== null && e < 0 ? s + (-e) * coutUnitaire(l) : s; }, 0);
+  const surplus = lignes.reduce((s, l) => { const e = ecartDe(l); return e !== null && e > 0 ? s + e * coutUnitaire(l) : s; }, 0);
+
+  async function valider() {
+    if (!window.confirm(`Valider l'inventaire ${courant.numero} ? Les écarts seront régularisés dans le stock (${nbComptes} article(s) compté(s) sur ${lignes.length}). Les articles non comptés ne sont pas modifiés.`)) return;
+    await agir(async () => {
+      await stockService.enregistrerComptages(entreprise_id, courant.id, comptagesAEnvoyer());
+      return stockService.validerInventaire(entreprise_id, courant.id);
+    });
+  }
+
+  return (
+    <div style={styles.card}>
+      {!courant ? (
+        <div>
+          <div style={{ fontSize: '13px', color: '#555', marginBottom: '12px' }}>
+            L'inventaire compare le stock réellement compté au stock de l'outil. À la validation, les manquants passent par un bon de sortie
+            et les surplus entrent en stock, au coût moyen.
+          </div>
+          <button style={styles.boutonPrimaire} disabled={enCours}
+            onClick={() => agir(() => stockService.creerInventaire({ entreprise_id, date: new Date().toISOString().split('T')[0] }))}>
+            📋 Ouvrir un inventaire
+          </button>
+        </div>
+      ) : (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+            <div>
+              <strong style={{ color: '#004d5a' }}>{courant.numero}</strong> — en cours
+              <span style={{ fontSize: '12px', color: '#666', marginLeft: '10px' }}>{nbComptes} / {lignes.length} article(s) compté(s)</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button style={styles.boutonSecondaire} disabled={enCours}
+                onClick={() => agir(() => stockService.enregistrerComptages(entreprise_id, courant.id, comptagesAEnvoyer()), 'Comptages enregistrés.')}>
+                💾 Enregistrer
+              </button>
+              <button style={styles.boutonSecondaire} disabled={enCours}
+                onClick={() => agir(async () => {
+                  await stockService.enregistrerComptages(entreprise_id, courant.id, comptagesAEnvoyer());
+                  return stockService.actualiserInventaire(entreprise_id, courant.id);
+                }, 'Stock théorique actualisé : revérifie tes comptages.')}>
+                🔄 Actualiser le stock théorique
+              </button>
+              <button style={styles.boutonDanger} disabled={enCours}
+                onClick={() => { if (window.confirm('Annuler cet inventaire ? Les comptages saisis seront perdus.')) agir(() => stockService.annulerInventaire(entreprise_id, courant.id)); }}>
+                Annuler l'inventaire
+              </button>
+              <button style={{ ...styles.boutonPrimaire, opacity: (enCours || nbComptes === 0) ? 0.6 : 1 }} disabled={enCours || nbComptes === 0} onClick={valider}>
+                ✅ Valider l'inventaire
+              </button>
+            </div>
+          </div>
+          {stockBouge && (
+            <div style={{ background: '#fff3e0', border: '1px solid #ffb74d', borderRadius: '6px', padding: '8px 12px', fontSize: '12px', color: '#e65100', marginBottom: '12px' }}>
+              Le stock a changé depuis l'ouverture de l'inventaire (vente, bon de sortie…). Clique sur « Actualiser le stock théorique » et revérifie les articles concernés avant de valider.
+            </div>
+          )}
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f5f5f5' }}>
+                {['Réf.', 'Article', 'Unité', 'Stock théorique', 'Quantité comptée', 'Écart', 'Valeur de l\'écart (coût)'].map(h => (
+                  <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '12px', color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {lignes.map((l, i) => {
+                const e = ecartDe(l);
+                const bouge = l.stock_actuel !== null && Math.abs(l.stock_actuel - l.stock_theorique) > 0.0001;
+                return (
+                  <tr key={l.id} style={{ background: i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '8px 10px', fontSize: '12px' }}>{l.articles?.reference}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '13px' }}>{l.articles?.designation}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '12px' }}>{l.articles?.unite}</td>
+                    <td style={{ padding: '8px 10px', fontSize: '13px' }}>
+                      {Number(l.stock_theorique).toLocaleString('fr-FR')}
+                      {bouge && <span title={`Stock actuel : ${l.stock_actuel}`} style={{ color: '#e65100', marginLeft: '6px' }}>⚠️</span>}
+                    </td>
+                    <td style={{ padding: '8px 10px', width: '140px' }}>
+                      <input style={{ ...styles.input, padding: '6px' }} type="number" min="0" value={comptes[l.article_id] ?? ''}
+                        onChange={ev => setComptes({ ...comptes, [l.article_id]: ev.target.value })} placeholder="—" />
+                    </td>
+                    <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 'bold', color: e === null ? '#999' : e < 0 ? '#c62828' : e > 0 ? '#2e7d32' : '#555' }}>
+                      {e === null ? '—' : `${e > 0 ? '+' : ''}${e.toLocaleString('fr-FR')}`}
+                    </td>
+                    <td style={{ padding: '8px 10px', fontSize: '12px', color: '#666' }}>
+                      {e === null || e === 0 ? '—' : `${Math.round(Math.abs(e) * coutUnitaire(l)).toLocaleString('fr-FR')} Ar`}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div style={{ marginTop: '12px', fontSize: '13px', display: 'flex', gap: '24px' }}>
+            <span style={{ color: '#c62828' }}>Manquants : {Math.round(manquants).toLocaleString('fr-FR')} Ar</span>
+            <span style={{ color: '#2e7d32' }}>Surplus : {Math.round(surplus).toLocaleString('fr-FR')} Ar</span>
+          </div>
+        </div>
+      )}
+
+      {liste.filter(i => i.statut !== 'BROUILLON').length > 0 && (
+        <div style={{ marginTop: '24px' }}>
+          <h4 style={{ color: '#004d5a', margin: '0 0 8px 0' }}>Inventaires précédents</h4>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f5f5f5' }}>
+                {['N°', 'Date', 'État', 'Bon de sortie', 'Manquants (coût)', 'Surplus (coût)'].map(h => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontSize: '12px', color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {liste.filter(i => i.statut !== 'BROUILLON').map((i, k) => (
+                <tr key={i.id} style={{ background: k % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0', opacity: i.statut === 'ANNULE' ? 0.55 : 1 }}>
+                  <td style={{ padding: '8px 10px', fontSize: '12px', fontWeight: 'bold' }}>{i.numero}</td>
+                  <td style={{ padding: '8px 10px', fontSize: '12px' }}>{new Date(i.date_inventaire).toLocaleDateString('fr-FR')}</td>
+                  <td style={{ padding: '8px 10px', fontSize: '12px' }}>{i.statut === 'VALIDE' ? 'Validé' : 'Annulé'}</td>
+                  <td style={{ padding: '8px 10px', fontSize: '12px' }}>{i.bon_sortie_numero || '—'}</td>
+                  <td style={{ padding: '8px 10px', fontSize: '12px' }}>{Number(i.valeur_manquants).toLocaleString('fr-FR')} Ar</td>
+                  <td style={{ padding: '8px 10px', fontSize: '12px' }}>{Number(i.valeur_surplus).toLocaleString('fr-FR')} Ar</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function StocksPage() {
   const { entreprise } = useAuth();
   const [onglet, setOnglet] = useState('etat');
@@ -758,6 +942,19 @@ export default function StocksPage() {
       chargerDonnees();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erreur bon de sortie.');
+    }
+  }
+
+  // L'onglet s'ouvre tout de suite (sinon le navigateur bloque la fenêtre), puis reçoit le PDF
+  async function voirPdfBon(b) {
+    const fenetre = window.open('', '_blank');
+    try {
+      const res = await stockService.pdfBonSortie(entreprise.id, b.numero);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      if (fenetre) fenetre.location.href = url;
+    } catch (err) {
+      if (fenetre) fenetre.close();
+      toast.error('PDF du bon de sortie indisponible.');
     }
   }
 
@@ -867,7 +1064,8 @@ export default function StocksPage() {
           { key: 'etat', label: '📊 État du stock' },
           { key: 'articles', label: '📋 Catalogue articles' },
           { key: 'mouvements', label: '🔄 Historique mouvements' },
-          { key: 'bons', label: '📤 Bons de sortie' }
+          { key: 'bons', label: '📤 Bons de sortie' },
+          { key: 'inventaire', label: '📋 Inventaire' }
         ].map(o => (
           <button key={o.key} onClick={() => setOnglet(o.key)}
             style={{
@@ -1038,6 +1236,10 @@ export default function StocksPage() {
       )}
 
       {/* Onglet Mouvements */}
+      {onglet === 'inventaire' && (
+        <OngletInventaire entreprise_id={entreprise.id} onChange={chargerDonnees} />
+      )}
+
       {onglet === 'bons' && (
         <div style={styles.card}>
           {bons.length === 0 ? (
@@ -1063,6 +1265,7 @@ export default function StocksPage() {
                     <td style={{ padding: '10px', fontSize: '12px' }}>{Number(b.valeur).toLocaleString('fr-FR')} Ar</td>
                     <td style={{ padding: '10px', fontSize: '12px', color: b.annule ? '#c62828' : '#2e7d32' }}>{b.annule ? 'Annulé' : 'Valide'}</td>
                     <td style={{ padding: '10px' }}>
+                      <button style={{ ...styles.boutonSecondaire, padding: '4px 8px', fontSize: '12px', marginRight: '6px' }} onClick={() => voirPdfBon(b)}>📄 PDF</button>
                       {!b.annule && <button style={{ ...styles.boutonDanger, padding: '4px 8px', fontSize: '12px' }} onClick={() => annulerBon(b)}>Annuler</button>}
                     </td>
                   </tr>
@@ -1099,7 +1302,7 @@ export default function StocksPage() {
             <tbody>
               {mouvementsFiltres.map((m, i) => {
                 const type = typesMouvement.find(t => t.key === m.type_mouvement);
-                const estEntree = ['ENTREE_ACHAT', 'ENTREE_FABRICATION', 'ANNULATION_VENTE', 'ANNULATION_BON'].includes(m.type_mouvement);
+                const estEntree = ['ENTREE_ACHAT', 'ENTREE_FABRICATION', 'ANNULATION_VENTE', 'ANNULATION_BON', 'ENTREE_INVENTAIRE'].includes(m.type_mouvement);
                 return (
                   <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#fafafa',
                     borderBottom: '1px solid #f0f0f0' }}>
