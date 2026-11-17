@@ -2,7 +2,7 @@ import { formater2Decimales } from '../utils/excel2Decimales';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { factureService, clientService, mailService, paiementService } from '../services/api';
+import { factureService, clientService, mailService, paiementService, stockService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
 import { pdfLienService } from '../services/api';
 import { categoriesEtSousCategories } from '../utils/categoriesComptables';
@@ -131,6 +131,48 @@ export function BlocTotauxFacture({ total, tva, appliquerIs, setAppliquerIs }) {
   );
 }
 
+// Ventes de biens (701 produits finis, 702 intermédiaires, 703 résiduels, 707 marchandises) : les lignes peuvent sortir un article du stock
+const estVenteDeBiens = (sousCategorie) => /^\s*(701|702|703|707)\b/.test(String(sousCategorie || ''));
+
+// Articles actifs du stock, chargés seulement pour une vente de biens
+function useArticlesStock(entreprise_id, actif) {
+  const [articles, setArticles] = useState([]);
+  useEffect(() => {
+    if (!actif || !entreprise_id) return undefined;
+    let annule = false;
+    stockService.getArticles(entreprise_id)
+      .then(res => { if (!annule) setArticles((res.data?.data || []).filter(a => a.actif !== false)); })
+      .catch(() => { if (!annule) setArticles([]); });
+    return () => { annule = true; };
+  }, [entreprise_id, actif]);
+  return articles;
+}
+
+// Choix de l'article du stock pour une ligne. Le prix de vente reste celui saisi sur la facture (indépendant du stock).
+function SelecteurArticleLigne({ ligne, articles, onChoisir }) {
+  const article = articles.find(a => a.id === ligne.article_id);
+  const qte = Number(ligne.quantite) || 0;
+  const insuffisant = article && qte > Number(article.stock_actuel);
+  return (
+    <div style={{ marginTop: '4px' }}>
+      <select value={ligne.article_id || ''} onChange={e => onChoisir(articles.find(a => a.id === e.target.value) || null)}
+        style={{ width: '100%', padding: '4px', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc' }}>
+        <option value="">— Aucun article du stock (pas de sortie de stock) —</option>
+        {articles.map(a => (
+          <option key={a.id} value={a.id}>{a.designation} (stock : {Number(a.stock_actuel).toLocaleString('fr-FR')} {a.unite || ''})</option>
+        ))}
+      </select>
+      {article && (
+        <div style={{ fontSize: '11px', color: insuffisant ? '#c62828' : '#2e7d32', marginTop: '2px' }}>
+          {insuffisant
+            ? `Stock insuffisant : ${Number(article.stock_actuel).toLocaleString('fr-FR')} ${article.unite || ''} disponible(s)`
+            : `Sortira du stock : ${qte.toLocaleString('fr-FR')} ${article.unite || ''}`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefaut, tva }) {
   const [tropPercu, setTropPercu] = useState(0);
   const [sousCategories, setSousCategories] = useState([]);
@@ -153,6 +195,9 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
 
+  const venteDeBiens = estVenteDeBiens(form.sous_categorie);
+  const articlesStock = useArticlesStock(entreprise_id, venteDeBiens);
+
   function ajouterLigne() {
     setForm({
       ...form,
@@ -162,6 +207,14 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
 
   function supprimerLigne(index) {
     const nouvLignes = form.lignes.filter((_, i) => i !== index);
+    setForm({ ...form, lignes: nouvLignes });
+  }
+
+  // Choix d'un article : lien exact avec le stock ; la désignation se remplit si elle est vide, le prix reste à saisir
+  function choisirArticle(index, article) {
+    const nouvLignes = [...form.lignes];
+    nouvLignes[index] = { ...nouvLignes[index], article_id: article ? article.id : null,
+      description: article && !String(nouvLignes[index].description || '').trim() ? article.designation : nouvLignes[index].description };
     setForm({ ...form, lignes: nouvLignes });
   }
 
@@ -350,6 +403,9 @@ function FormulaireFacture({ clients, onSave, onCancel, entreprise_id, noteDefau
                         onChange={e => modifierLigne(i, 'description', e.target.value)}
                         placeholder="Description"
                       />
+                      {venteDeBiens && (
+                        <SelecteurArticleLigne ligne={ligne} articles={articlesStock} onChoisir={a => choisirArticle(i, a)} />
+                      )}
                     </td>
                     <td style={{ padding: '5px', width: '60px' }}>
                       <input
@@ -776,6 +832,8 @@ function FormulaireFactureMasse({ onSave, onCancel, noteDefaut, tva }) {
 // Modal modification facture
 function FormulaireModificationFacture({ facture, lignes, onSave, onCancel, tva }) {
   const { enCours: envoiEnCours, soumettre } = useSoumission();
+  const venteDeBiens = estVenteDeBiens(facture?.sous_categorie);
+  const articlesStock = useArticlesStock(facture?.entreprise_id, venteDeBiens);
   const [form, setForm] = useState({
     appliquer_is: Number(facture?.montant_is) > 0,
     lignes: lignes.length > 0 ? lignes.map(l => ({
@@ -783,7 +841,8 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel, tva 
       description: l.description,
       quantite: l.quantite,
       prix_unitaire: l.prix_unitaire,
-      remise_pourcent: l.remise_pourcent || 0
+      remise_pourcent: l.remise_pourcent || 0,
+      article_id: l.article_id || null
     })) : [{ description: '', quantite: 1, prix_unitaire: 0, remise_pourcent: 0 }]
   });
 
@@ -797,6 +856,13 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel, tva 
   function supprimerLigne(index) {
     if (form.lignes.length === 1) return;
     setForm({ ...form, lignes: form.lignes.filter((_, i) => i !== index) });
+  }
+
+  function choisirArticle(index, article) {
+    const nouvLignes = [...form.lignes];
+    nouvLignes[index] = { ...nouvLignes[index], article_id: article ? article.id : null,
+      description: article && !String(nouvLignes[index].description || '').trim() ? article.designation : nouvLignes[index].description };
+    setForm({ ...form, lignes: nouvLignes });
   }
 
   function modifierLigne(index, champ, valeur) {
@@ -850,6 +916,9 @@ function FormulaireModificationFacture({ facture, lignes, onSave, onCancel, tva 
                         onChange={e => modifierLigne(i, 'description', e.target.value)}
                         placeholder="Description"
                       />
+                      {venteDeBiens && (
+                        <SelecteurArticleLigne ligne={ligne} articles={articlesStock} onChoisir={a => choisirArticle(i, a)} />
+                      )}
                     </td>
                     <td style={{ padding: '5px', width: '60px' }}>
                       <input

@@ -48,7 +48,8 @@ const typesMouvement = [
   { key: 'ENTREE_ACHAT', label: '📦 Entrée achat fournisseur', couleur: '#2e7d32' },
   { key: 'ENTREE_FABRICATION', label: '🏭 Entrée fabrication interne', couleur: '#1565c0' },
   { key: 'SORTIE_VENTE', label: '🛒 Sortie vente client', couleur: '#e65100' },
-  { key: 'SORTIE_USAGE', label: '🔧 Sortie usage interne', couleur: '#6a1b9a' }
+  { key: 'SORTIE_USAGE', label: '🔧 Sortie usage interne', couleur: '#6a1b9a' },
+  { key: 'ANNULATION_VENTE', label: '↩️ Remise en stock (facture modifiée/annulée)', couleur: '#2e7d32' }
 ];
 
 // Formulaire article
@@ -275,7 +276,7 @@ function FormulaireMouvement({ articles, onSave, onCancel }) {
             <label style={styles.label}>Type de mouvement *</label>
             <select style={styles.input} value={form.type_mouvement}
               onChange={e => setForm({ ...form, type_mouvement: e.target.value })}>
-              {typesMouvement.map(t => (
+              {typesMouvement.filter(t => t.key !== 'ANNULATION_VENTE').map(t => (
                 <option key={t.key} value={t.key}>{t.label}</option>
               ))}
             </select>
@@ -926,7 +927,7 @@ export default function StocksPage() {
             <tbody>
               {mouvementsFiltres.map((m, i) => {
                 const type = typesMouvement.find(t => t.key === m.type_mouvement);
-                const estEntree = ['ENTREE_ACHAT', 'ENTREE_FABRICATION'].includes(m.type_mouvement);
+                const estEntree = ['ENTREE_ACHAT', 'ENTREE_FABRICATION', 'ANNULATION_VENTE'].includes(m.type_mouvement);
                 return (
                   <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#fafafa',
                     borderBottom: '1px solid #f0f0f0' }}>
