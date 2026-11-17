@@ -108,7 +108,8 @@ export function BlocTotauxFacture({ total, tva, appliquerIs, setAppliquerIs }) {
       </div>
     );
   }
-  // Entreprise non assujettie : IS retenu à la source (5 %) en option. Il ne s'ajoute pas : le montant à payer est le total moins l'IS.
+  // Entreprise non assujettie : ligne IS (5 %) en option, affichée sur le PDF à titre d'information.
+  // Elle ne change rien au calcul : le montant à payer reste le total.
   const totalPrestation = Number(total) || 0;
   const montantIs = Math.round(totalPrestation * 5) / 100;
   return (
@@ -117,17 +118,14 @@ export function BlocTotauxFacture({ total, tva, appliquerIs, setAppliquerIs }) {
         <div style={{ marginBottom: '6px' }}>
           <button type="button" onClick={() => setAppliquerIs(!appliquerIs)}
             style={{ background: 'none', border: 'none', color: appliquerIs ? '#c62828' : '#0097a7', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}>
-            {appliquerIs ? "Retirer l'IS" : 'Appliquer IS 5 %'}
+            {appliquerIs ? "Ne pas afficher la ligne IS" : 'Afficher la ligne IS (5 %)'}
           </button>
         </div>
       )}
       {appliquerIs && (
-        <>
-          <div style={ligne}><span>TOTAL DE LA PRESTATION</span><strong>{fr(totalPrestation)} Ar</strong></div>
-          <div style={ligne}><span>IS retenu à la source (5 %)</span><strong>-{fr(montantIs)} Ar</strong></div>
-        </>
+        <div style={{ ...ligne, color: '#666' }}><span>IS (5 %) — à titre d'information</span><span>{fr(montantIs)} Ar</span></div>
       )}
-      <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{appliquerIs ? 'NET' : 'MONTANT'} À PAYER : {fr(appliquerIs ? totalPrestation - montantIs : totalPrestation)} Ar</div>
+      <div style={{ fontSize: '16px', fontWeight: 'bold' }}>MONTANT À PAYER : {fr(totalPrestation)} Ar</div>
       <div style={{ fontSize: '11px', color: '#888' }}>Entreprise non assujettie à la TVA</div>
     </div>
   );
