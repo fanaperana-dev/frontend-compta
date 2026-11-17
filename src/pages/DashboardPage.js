@@ -20,50 +20,89 @@ const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
 
-const alertesFiscales = [
-  { code: 'CNAPS_T1', debut: { mois: 3, jour: 1 }, fin: { mois: 3, jour: 30 },
+// Régime fiscal de l'entreprise, déduit de la TVA :
+//  - non assujettie à la TVA → impôt synthétique (IS), IRSA tous les deux mois
+//  - assujettie à la TVA      → impôt sur les revenus (IR), IRSA tous les mois
+// regime : 'TOUS' (toutes les entreprises), 'SYNTHETIQUE' ou 'REEL'
+export const alertesFiscales = [
+  { regime: 'TOUS', code: 'CNAPS_T1', debut: { mois: 3, jour: 1 }, fin: { mois: 3, jour: 30 },
     message: 'Déclaration 1er trimestre CNAPS, FMFP, OSTIE à faire avant le 30 avril',
     couleur: '#1565c0', icone: '🏦' },
-  { code: 'CNAPS_T2', debut: { mois: 6, jour: 1 }, fin: { mois: 6, jour: 31 },
+  { regime: 'TOUS', code: 'CNAPS_T2', debut: { mois: 6, jour: 1 }, fin: { mois: 6, jour: 31 },
     message: 'Déclaration 2ème trimestre CNAPS, FMFP, OSTIE à faire avant le 31 juillet',
     couleur: '#1565c0', icone: '🏦' },
-  { code: 'CNAPS_T3', debut: { mois: 9, jour: 1 }, fin: { mois: 9, jour: 31 },
+  { regime: 'TOUS', code: 'CNAPS_T3', debut: { mois: 9, jour: 1 }, fin: { mois: 9, jour: 31 },
     message: 'Déclaration 3ème trimestre CNAPS, FMFP, OSTIE à faire avant le 31 octobre',
     couleur: '#1565c0', icone: '🏦' },
-  { code: 'CNAPS_T4', debut: { mois: 0, jour: 1 }, fin: { mois: 0, jour: 31 },
+  { regime: 'TOUS', code: 'CNAPS_T4', debut: { mois: 0, jour: 1 }, fin: { mois: 0, jour: 31 },
     message: 'Déclaration 4ème trimestre CNAPS, FMFP, OSTIE à faire avant le 31 janvier',
     couleur: '#1565c0', icone: '🏦' },
-  { code: 'IRSA_B1', debut: { mois: 2, jour: 1 }, fin: { mois: 2, jour: 15 },
+  { regime: 'SYNTHETIQUE', code: 'IRSA_B1', debut: { mois: 2, jour: 1 }, fin: { mois: 2, jour: 15 },
     message: 'IRSA 1er bimestre (janvier–février) : déclaration et paiement à faire avant le 15 mars',
     couleur: '#c62828', icone: '💰' },
-  { code: 'IRSA_B2', debut: { mois: 4, jour: 1 }, fin: { mois: 4, jour: 15 },
+  { regime: 'SYNTHETIQUE', code: 'IRSA_B2', debut: { mois: 4, jour: 1 }, fin: { mois: 4, jour: 15 },
     message: 'IRSA 2ème bimestre (mars–avril) : déclaration et paiement à faire avant le 15 mai',
     couleur: '#c62828', icone: '💰' },
-  { code: 'IRSA_B3', debut: { mois: 6, jour: 1 }, fin: { mois: 6, jour: 15 },
+  { regime: 'SYNTHETIQUE', code: 'IRSA_B3', debut: { mois: 6, jour: 1 }, fin: { mois: 6, jour: 15 },
     message: 'IRSA 3ème bimestre (mai–juin) : déclaration et paiement à faire avant le 15 juillet',
     couleur: '#c62828', icone: '💰' },
-  { code: 'IRSA_B4', debut: { mois: 8, jour: 1 }, fin: { mois: 8, jour: 15 },
+  { regime: 'SYNTHETIQUE', code: 'IRSA_B4', debut: { mois: 8, jour: 1 }, fin: { mois: 8, jour: 15 },
     message: 'IRSA 4ème bimestre (juillet–août) : déclaration et paiement à faire avant le 15 septembre',
     couleur: '#c62828', icone: '💰' },
-  { code: 'IRSA_B5', debut: { mois: 10, jour: 1 }, fin: { mois: 10, jour: 15 },
+  { regime: 'SYNTHETIQUE', code: 'IRSA_B5', debut: { mois: 10, jour: 1 }, fin: { mois: 10, jour: 15 },
     message: 'IRSA 5ème bimestre (septembre–octobre) : déclaration et paiement à faire avant le 15 novembre',
     couleur: '#c62828', icone: '💰' },
-  { code: 'IRSA_B6', debut: { mois: 0, jour: 1 }, fin: { mois: 0, jour: 15 },
+  { regime: 'SYNTHETIQUE', code: 'IRSA_B6', debut: { mois: 0, jour: 1 }, fin: { mois: 0, jour: 15 },
     message: 'IRSA 6ème bimestre (novembre–décembre) : déclaration et paiement à faire avant le 15 janvier',
     couleur: '#c62828', icone: '💰' },
-  { code: 'IS_A1', debut: { mois: 5, jour: 1 }, fin: { mois: 5, jour: 15 },
-    message: 'Paiement 1er acompte Impôt Synthétique à faire avant le 15 juin',
+  { regime: 'SYNTHETIQUE', code: 'IS_A1', debut: { mois: 2, jour: 1 }, fin: { mois: 2, jour: 31 },
+    message: 'Paiement 1er acompte Impôt Synthétique à faire avant le 31 mars',
     couleur: '#e65100', icone: '📊' },
-  { code: 'IS_A2', debut: { mois: 11, jour: 1 }, fin: { mois: 11, jour: 15 },
-    message: 'Paiement 2ème acompte Impôt Synthétique à faire avant le 15 décembre',
+  { regime: 'SYNTHETIQUE', code: 'IS_A2', debut: { mois: 5, jour: 1 }, fin: { mois: 5, jour: 30 },
+    message: 'Paiement 2ème acompte Impôt Synthétique à faire avant le 30 juin',
     couleur: '#e65100', icone: '📊' },
-  { code: 'IR_GERANT', debut: { mois: 4, jour: 1 }, fin: { mois: 4, jour: 15 },
+  // IRSA mensuel : le mois M se déclare et se paie avant le 15 du mois suivant
+  ...moisListe.map((nom, i) => {
+    const suivant = (i + 1) % 12;
+    return {
+      regime: 'REEL', code: `IRSA_M${String(i + 1).padStart(2, '0')}`,
+      debut: { mois: suivant, jour: 1 }, fin: { mois: suivant, jour: 15 },
+      message: `IRSA ${nom} : déclaration et paiement à faire avant le 15 ${moisListe[suivant].toLowerCase()}`,
+      couleur: '#c62828', icone: '💰'
+    };
+  }),
+  // Acomptes d'impôt sur les revenus : par bimestre, au plus tard le 15 du dernier mois de la période (LFI 2026)
+  ...[['janvier–février', 1], ['mars–avril', 3], ['mai–juin', 5], ['juillet–août', 7], ['septembre–octobre', 9], ['novembre–décembre', 11]]
+    .map(([periode, mois], i) => ({
+      regime: 'REEL', code: `IR_AC_B${i + 1}`,
+      debut: { mois, jour: 1 }, fin: { mois, jour: 15 },
+      message: `Acompte Impôt sur les Revenus ${i + 1}${i === 0 ? 'er' : 'ème'} bimestre (${periode}) à payer avant le 15 ${moisListe[mois].toLowerCase()}`,
+      couleur: '#e65100', icone: '📊'
+    })),
+  { regime: 'REEL', code: 'IR_GERANT', debut: { mois: 4, jour: 1 }, fin: { mois: 4, jour: 15 },
     message: 'Déclaration Impôt sur le Revenu du gérant majoritaire à faire avant le 15 mai',
     couleur: '#6a1b9a', icone: '📋' },
-  { code: 'DROIT_COMM', debut: { mois: 3, jour: 1 }, fin: { mois: 3, jour: 30 },
+  { regime: 'TOUS', code: 'DROIT_COMM', debut: { mois: 3, jour: 1 }, fin: { mois: 3, jour: 30 },
     message: 'Droit de communication à déposer en avril',
     couleur: '#00695c', icone: '🗂️' }
 ];
+
+// Alertes visibles à une date donnée pour une entreprise (pure, testable)
+export function filtrerAlertes(alertes, { assujettie, fermees = [], date = new Date() }) {
+  const regime = assujettie ? 'REEL' : 'SYNTHETIQUE';
+  const moisActuel = date.getMonth();
+  const jourActuel = date.getDate();
+  return alertes.filter(alerte => {
+    if (alerte.regime !== 'TOUS' && alerte.regime !== regime) return false;
+    if (fermees.includes(alerte.code)) return false;
+    const apresDebut = moisActuel > alerte.debut.mois ||
+      (moisActuel === alerte.debut.mois && jourActuel >= alerte.debut.jour);
+    const avantFin = moisActuel < alerte.fin.mois ||
+      (moisActuel === alerte.fin.mois && jourActuel <= alerte.fin.jour);
+    return apresDebut && avantFin;
+  });
+}
+
 
 function FiltresMois({ moisSelectionnes, onToggle, onReset }) {
   return (
@@ -225,16 +264,9 @@ export default function DashboardPage() {
   }
 
   function getAlertesFiscalesActives() {
-    const aujourd_hui = new Date();
-    const moisActuel = aujourd_hui.getMonth();
-    const jourActuel = aujourd_hui.getDate();
-    return alertesFiscales.filter(alerte => {
-      if (alertesFermees.includes(alerte.code)) return false;
-      const apresDebut = moisActuel > alerte.debut.mois ||
-        (moisActuel === alerte.debut.mois && jourActuel >= alerte.debut.jour);
-      const avantFin = moisActuel < alerte.fin.mois ||
-        (moisActuel === alerte.fin.mois && jourActuel <= alerte.fin.jour);
-      return apresDebut && avantFin;
+    return filtrerAlertes(alertesFiscales, {
+      assujettie: entreprise?.assujettie_tva === true,
+      fermees: alertesFermees
     });
   }
 
