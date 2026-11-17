@@ -92,6 +92,17 @@ export const alertesFiscales = [
     couleur: '#00695c', icone: '🗂️' }
 ];
 
+// Véhicule ou moto acheté (d'après la description de la facture fournisseur) : la taxe sur les véhicules
+// à moteur est à déclarer et à payer immédiatement. L'alerte se ferme avec « Fait, fermer ».
+export function alerteDepuisVehicule(v) {
+  const desc = String(v.description || '').trim();
+  const court = desc.length > 80 ? `${desc.slice(0, 77)}…` : desc;
+  return {
+    code: v.code, couleur: '#455a64', icone: '🚗',
+    message: `Véhicule acheté (facture ${v.numero}${v.fournisseur ? ` — ${v.fournisseur}` : ''}${court ? `, « ${court} »` : ''}) : taxe sur les véhicules à moteur à déclarer et à payer immédiatement sur la plateforme dédiée`
+  };
+}
+
 // Alertes visibles à une date donnée pour une entreprise (pure, testable)
 export function filtrerAlertes(alertes, { assujettie, fermees = [], date = new Date() }) {
   const regime = assujettie ? 'REEL' : 'SYNTHETIQUE';
@@ -205,11 +216,25 @@ export default function DashboardPage() {
   const [annee, setAnnee] = useState(new Date().getFullYear());
   const [categoriesActives, setCategoriesActives] = useState([]);
   const [alertesFermees, setAlertesFermees] = useState([]);
+  const [vehiculesAcquis, setVehiculesAcquis] = useState([]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { chargerDonnees(); }, [moisSelectionnes, annee]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { chargerAlertesFermees(); }, []);
+  useEffect(() => { chargerAlertesFermees(); chargerVehiculesAcquis(); }, []);
+
+  async function chargerVehiculesAcquis() {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/dashboard/${entreprise.id}/vehicules-acquis`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      const data = await res.json();
+      if (data.success) setVehiculesAcquis(data.data || []);
+    } catch (err) {
+      console.error('Erreur chargement véhicules acquis.');
+    }
+  }
 
   async function chargerDonnees() {
     try {
@@ -269,10 +294,13 @@ export default function DashboardPage() {
   }
 
   function getAlertesFiscalesActives() {
-    return filtrerAlertes(alertesFiscales, {
+    const vehicules = vehiculesAcquis
+      .filter(v => !alertesFermees.includes(v.code))
+      .map(alerteDepuisVehicule);
+    return [...vehicules, ...filtrerAlertes(alertesFiscales, {
       assujettie: entreprise?.assujettie_tva === true,
       fermees: alertesFermees
-    });
+    })];
   }
 
   function toggleMois(mois) {
