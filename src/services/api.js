@@ -251,6 +251,16 @@ export const rhService = {
   modifierSalarie: (id, data) =>
     api.put(`/rh/salaries/${id}`, data),
 
+  // Historique d'un salarié (informatif, sans effet sur la paie)
+  getHistorique: (entreprise_id, salarie_id) =>
+    api.get(`/rh/historique/${entreprise_id}/${salarie_id}`),
+  ajouterHistorique: (entreprise_id, salarie_id, data) =>
+    api.post(`/rh/historique/${entreprise_id}/${salarie_id}`, data),
+  modifierHistorique: (entreprise_id, id, data) =>
+    api.put(`/rh/historique/${entreprise_id}/ligne/${id}`, data),
+  supprimerHistorique: (entreprise_id, id) =>
+    api.delete(`/rh/historique/${entreprise_id}/ligne/${id}`),
+
   getFichesPaie: (entreprise_id, params) =>
     api.get(`/rh/fiches-paie/${entreprise_id}`, { params }),
 

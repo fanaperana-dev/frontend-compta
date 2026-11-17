@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 import useSoumission from '../../hooks/useSoumission';
+import HistoriqueSalarie from './HistoriqueSalarie';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -539,6 +540,12 @@ export default function ListeSalaries({ cadre = false }) {
           onCancel={() => { setModalOuvert(null); setSalarieSelectionne(null); }}
         />
       )}
+      {modalOuvert === 'historique' && salarieSelectionne && (
+        <HistoriqueSalarie
+          salarie={salarieSelectionne}
+          onClose={() => { setModalOuvert(null); setSalarieSelectionne(null); }}
+        />
+      )}
       {modalOuvert === 'statut' && salarieSelectionne && (
         <ModalStatut
           salarie={salarieSelectionne}
@@ -669,6 +676,9 @@ export default function ListeSalaries({ cadre = false }) {
                         <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
                           onClick={() => { setSalarieSelectionne(s); setModalOuvert('statut'); }}
                           title="Changer statut">🔄</button>
+                        <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
+                          onClick={() => { setSalarieSelectionne(s); setModalOuvert('historique'); }}
+                          title="Historique (absences, sanctions…)">📜</button>
                         <button style={{
                           ...styles.boutonSecondaire, padding: '4px 8px',
                           color: s.actif ? '#2e7d32' : '#c62828',
