@@ -49,7 +49,9 @@ const typesMouvement = [
   { key: 'ENTREE_FABRICATION', label: '🏭 Entrée fabrication interne', couleur: '#1565c0' },
   { key: 'SORTIE_VENTE', label: '🛒 Sortie vente client', couleur: '#e65100' },
   { key: 'SORTIE_USAGE', label: '🔧 Sortie usage interne', couleur: '#6a1b9a' },
-  { key: 'ANNULATION_VENTE', label: '↩️ Remise en stock (facture modifiée/annulée)', couleur: '#2e7d32' }
+  { key: 'ANNULATION_VENTE', label: '↩️ Remise en stock (facture modifiée/annulée)', couleur: '#2e7d32' },
+  { key: 'SORTIE_BON', label: '📤 Bon de sortie', couleur: '#ad1457' },
+  { key: 'ANNULATION_BON', label: '↩️ Bon de sortie annulé', couleur: '#2e7d32' }
 ];
 
 // Formulaire article
@@ -233,6 +235,97 @@ function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArt
 }
 
 // Formulaire mouvement
+// Bon de sortie de stock : justifie une sortie sans facture de vente (valorisée au coût moyen, jamais au prix de vente)
+const motifsBonSortie = ['Usage interne', 'Casse / perte', 'Péremption / détérioration', 'Don / échantillon', 'Consommation pour la production', "Régularisation d'inventaire", 'Autre'];
+
+function FormulaireBonSortie({ articles, onSave, onCancel }) {
+  const { enCours: envoiEnCours, soumettre } = useSoumission();
+  const [form, setForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    motif: '',
+    detail: '',
+    lignes: [{ article_id: '', quantite: 1 }]
+  });
+  const actifs = articles.filter(a => a.actif !== false);
+
+  function modifierLigne(i, champ, valeur) {
+    setForm(f => ({ ...f, lignes: f.lignes.map((l, k) => (k === i ? { ...l, [champ]: valeur } : l)) }));
+  }
+  // Quantité totale demandée par article (un même article peut figurer sur plusieurs lignes)
+  const demande = {};
+  form.lignes.forEach(l => { if (l.article_id) demande[l.article_id] = (demande[l.article_id] || 0) + (Number(l.quantite) || 0); });
+  const depasse = actifs.filter(a => demande[a.id] > Number(a.stock_actuel));
+  const valide = form.motif && (form.motif !== 'Autre' || form.detail.trim())
+    && form.lignes.some(l => l.article_id && Number(l.quantite) > 0) && depasse.length === 0;
+
+  return (
+    <div style={styles.modal}>
+      <div style={styles.modalContent}>
+        <h3 style={{ color: '#004d5a', marginTop: 0 }}>📤 Bon de sortie de stock</h3>
+        <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+          Le stock ne diminue que par une facture de vente ou par un bon de sortie. Les articles sortent au coût d'achat moyen.
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div>
+              <label style={styles.label}>Motif *</label>
+              <select style={styles.input} value={form.motif} onChange={e => setForm({ ...form, motif: e.target.value })}>
+                <option value="">Choisir le motif</option>
+                {motifsBonSortie.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={styles.label}>Date</label>
+              <input style={styles.input} type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <label style={styles.label}>Précisions {form.motif === 'Autre' ? '*' : '(facultatif)'}</label>
+            <input style={styles.input} value={form.detail} onChange={e => setForm({ ...form, detail: e.target.value })}
+              placeholder="Ex. 2 cartons tombés pendant le transport" />
+          </div>
+          <div>
+            <label style={styles.label}>Articles sortis *</label>
+            {form.lignes.map((l, i) => {
+              const a = actifs.find(x => x.id === l.article_id);
+              return (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 36px', gap: '8px', marginBottom: '8px', alignItems: 'start' }}>
+                  <div>
+                    <select style={styles.input} value={l.article_id} onChange={e => modifierLigne(i, 'article_id', e.target.value)}>
+                      <option value="">Sélectionner un article</option>
+                      {actifs.map(x => (
+                        <option key={x.id} value={x.id}>{x.reference} — {x.designation} (stock : {Number(x.stock_actuel).toLocaleString('fr-FR')} {x.unite})</option>
+                      ))}
+                    </select>
+                    {a && demande[a.id] > Number(a.stock_actuel) && (
+                      <div style={{ fontSize: '11px', color: '#c62828' }}>Stock insuffisant : {Number(a.stock_actuel).toLocaleString('fr-FR')} {a.unite} disponible(s)</div>
+                    )}
+                  </div>
+                  <input style={styles.input} type="number" min="0" value={l.quantite} onChange={e => modifierLigne(i, 'quantite', e.target.value)} />
+                  <button type="button" style={{ ...styles.boutonDanger, padding: '4px 8px' }} disabled={form.lignes.length === 1}
+                    onClick={() => setForm(f => ({ ...f, lignes: f.lignes.filter((_, k) => k !== i) }))}>🗑️</button>
+                </div>
+              );
+            })}
+            <button type="button" style={styles.boutonSecondaire}
+              onClick={() => setForm(f => ({ ...f, lignes: [...f.lignes, { article_id: '', quantite: 1 }] }))}>+ Ajouter un article</button>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
+          <button style={{ ...styles.boutonPrimaire, opacity: (envoiEnCours || !valide) ? 0.6 : 1 }} disabled={envoiEnCours || !valide}
+            onClick={() => soumettre(() => onSave({
+              date: form.date, motif: form.motif, detail: form.detail.trim(),
+              lignes: form.lignes.filter(l => l.article_id && Number(l.quantite) > 0).map(l => ({ article_id: l.article_id, quantite: Number(l.quantite) }))
+            }))}>
+            Enregistrer le bon de sortie
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FormulaireMouvement({ articles, onSave, onCancel }) {
   const { enCours: envoiEnCours, soumettre } = useSoumission();
   const [form, setForm] = useState({
@@ -267,7 +360,7 @@ function FormulaireMouvement({ articles, onSave, onCancel }) {
   return (
     <div style={styles.modal}>
       <div style={styles.modalContent}>
-        <h3 style={{ color: '#004d5a', marginTop: 0 }}>📦 Enregistrer un mouvement</h3>
+        <h3 style={{ color: '#004d5a', marginTop: 0 }}>📦 Enregistrer une entrée en stock</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={styles.label}>Article *</label>
@@ -285,7 +378,7 @@ function FormulaireMouvement({ articles, onSave, onCancel }) {
             <label style={styles.label}>Type de mouvement *</label>
             <select style={styles.input} value={form.type_mouvement}
               onChange={e => setForm({ ...form, type_mouvement: e.target.value })}>
-              {typesMouvement.filter(t => t.key !== 'ANNULATION_VENTE').map(t => (
+              {typesMouvement.filter(t => t.key.startsWith('ENTREE')).map(t => (
                 <option key={t.key} value={t.key}>{t.label}</option>
               ))}
             </select>
@@ -581,6 +674,7 @@ export default function StocksPage() {
   const [onglet, setOnglet] = useState('etat');
   const [articles, setArticles] = useState([]);
   const [mouvements, setMouvements] = useState([]);
+  const [bons, setBons] = useState([]);
   const [etat, setEtat] = useState({ data: [], valeur_totale: 0, alertes: [] });
   const [loading, setLoading] = useState(true);
   const [modalOuvert, setModalOuvert] = useState(null);
@@ -593,11 +687,13 @@ export default function StocksPage() {
 
   async function chargerDonnees() {
     try {
-      const [articlesRes, mouvementsRes, etatRes] = await Promise.all([
+      const [articlesRes, mouvementsRes, etatRes, bonsRes] = await Promise.all([
         stockService.getArticles(entreprise.id),
         stockService.getMouvements(entreprise.id),
-        stockService.getEtat(entreprise.id)
+        stockService.getEtat(entreprise.id),
+        stockService.getBonsSortie(entreprise.id).catch(() => ({ data: { data: [] } }))
       ]);
+      setBons(bonsRes.data.data || []);
       setArticles(articlesRes.data.data || []);
       setMouvements(mouvementsRes.data.data || []);
       setEtat(etatRes.data);
@@ -653,6 +749,29 @@ export default function StocksPage() {
     }
   }
 
+  async function enregistrerBonSortie(form) {
+    try {
+      const res = await stockService.creerBonSortie({ ...form, entreprise_id: entreprise.id });
+      toast.success(res.data.message || 'Bon de sortie enregistré !');
+      setModalOuvert(null);
+      setOnglet('bons');
+      chargerDonnees();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur bon de sortie.');
+    }
+  }
+
+  async function annulerBon(b) {
+    if (!window.confirm(`Annuler le bon de sortie ${b.numero} ? Les articles seront remis en stock.`)) return;
+    try {
+      const res = await stockService.annulerBonSortie(entreprise.id, b.numero);
+      toast.success(res.data.message || 'Bon annulé.');
+      chargerDonnees();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur annulation du bon.');
+    }
+  }
+
   const articlesFiltres = articles.filter(a =>
     !recherche ||
     a.reference?.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -688,11 +807,18 @@ export default function StocksPage() {
         />
       )}
 
+      {modalOuvert === 'bon' && (
+        <FormulaireBonSortie articles={articles} onSave={enregistrerBonSortie} onCancel={() => setModalOuvert(null)} />
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: 0, color: '#004d5a' }}>📦 Stocks</h2>
         <div style={{ display: 'flex', gap: '10px' }}>
+          <button style={styles.boutonSecondaire} onClick={() => setModalOuvert('bon')}>
+            📤 Bon de sortie
+          </button>
           <button style={styles.boutonSecondaire} onClick={() => setModalOuvert('mouvement')}>
-            + Mouvement
+            + Entrée en stock
           </button>
           <button style={styles.boutonPrimaire} onClick={() => setModalOuvert('creer')}>
             + Nouvel article
@@ -740,7 +866,8 @@ export default function StocksPage() {
         {[
           { key: 'etat', label: '📊 État du stock' },
           { key: 'articles', label: '📋 Catalogue articles' },
-          { key: 'mouvements', label: '🔄 Historique mouvements' }
+          { key: 'mouvements', label: '🔄 Historique mouvements' },
+          { key: 'bons', label: '📤 Bons de sortie' }
         ].map(o => (
           <button key={o.key} onClick={() => setOnglet(o.key)}
             style={{
@@ -911,6 +1038,41 @@ export default function StocksPage() {
       )}
 
       {/* Onglet Mouvements */}
+      {onglet === 'bons' && (
+        <div style={styles.card}>
+          {bons.length === 0 ? (
+            <div style={{ color: '#888', fontSize: '13px' }}>Aucun bon de sortie. Le stock diminue uniquement par une facture de vente ou par un bon de sortie.</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f5f5f5' }}>
+                  {['N°', 'Date', 'Motif', 'Articles sortis', 'Valeur (coût)', 'État', ''].map(h => (
+                    <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '12px', color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {bons.map((b, i) => (
+                  <tr key={b.numero} style={{ background: i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0', opacity: b.annule ? 0.55 : 1 }}>
+                    <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>{b.numero}</td>
+                    <td style={{ padding: '10px', fontSize: '12px' }}>{b.date ? new Date(b.date).toLocaleDateString('fr-FR') : '—'}</td>
+                    <td style={{ padding: '10px', fontSize: '12px' }} title={b.description}>{b.motif || '—'}</td>
+                    <td style={{ padding: '10px', fontSize: '12px' }}>
+                      {b.lignes.map((l, k) => <div key={k}>{Number(l.quantite).toLocaleString('fr-FR')} {l.unite} — {l.designation}</div>)}
+                    </td>
+                    <td style={{ padding: '10px', fontSize: '12px' }}>{Number(b.valeur).toLocaleString('fr-FR')} Ar</td>
+                    <td style={{ padding: '10px', fontSize: '12px', color: b.annule ? '#c62828' : '#2e7d32' }}>{b.annule ? 'Annulé' : 'Valide'}</td>
+                    <td style={{ padding: '10px' }}>
+                      {!b.annule && <button style={{ ...styles.boutonDanger, padding: '4px 8px', fontSize: '12px' }} onClick={() => annulerBon(b)}>Annuler</button>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       {onglet === 'mouvements' && (
         <div style={styles.card}>
           <div style={{ marginBottom: '15px' }}>
@@ -937,7 +1099,7 @@ export default function StocksPage() {
             <tbody>
               {mouvementsFiltres.map((m, i) => {
                 const type = typesMouvement.find(t => t.key === m.type_mouvement);
-                const estEntree = ['ENTREE_ACHAT', 'ENTREE_FABRICATION', 'ANNULATION_VENTE'].includes(m.type_mouvement);
+                const estEntree = ['ENTREE_ACHAT', 'ENTREE_FABRICATION', 'ANNULATION_VENTE', 'ANNULATION_BON'].includes(m.type_mouvement);
                 return (
                   <tr key={m.id} style={{ background: i % 2 === 0 ? 'white' : '#fafafa',
                     borderBottom: '1px solid #f0f0f0' }}>
