@@ -82,6 +82,11 @@ export const alertesFiscales = [
   { regime: 'REEL', code: 'IR_GERANT', debut: { mois: 4, jour: 1 }, fin: { mois: 4, jour: 15 },
     message: 'Déclaration Impôt sur le Revenu du gérant majoritaire à faire avant le 15 mai',
     couleur: '#6a1b9a', icone: '📋' },
+  // LFI 2026 : déclaration et paiement sur la plateforme dédiée, au plus tard le 31 janvier
+  // pour les véhicules en service au 1er janvier (on suppose que toute entreprise a un véhicule)
+  { regime: 'TOUS', code: 'TAXE_VEHICULE', debut: { mois: 0, jour: 1 }, fin: { mois: 0, jour: 31 },
+    message: 'Taxe sur les véhicules à moteur : déclaration et paiement sur la plateforme dédiée à faire avant le 31 janvier',
+    couleur: '#455a64', icone: '🚗' },
   { regime: 'TOUS', code: 'DROIT_COMM', debut: { mois: 3, jour: 1 }, fin: { mois: 3, jour: 30 },
     message: 'Droit de communication à déposer en avril',
     couleur: '#00695c', icone: '🗂️' }
