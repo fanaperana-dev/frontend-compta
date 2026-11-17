@@ -60,6 +60,7 @@ function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArt
     compte_stock: article ? compteStockArticle(article) : '',
     unite: article?.unite || 'pièce',
     prix_achat_ht: article?.prix_achat_ht || 0,
+    prix_vente_defaut: article?.prix_vente_defaut || 0,
     taux_tva: article?.taux_tva || 0,
     remise_pourcent: article?.remise_pourcent || 0,
     methode_valorisation: article?.methode_valorisation || 'CMUP',
@@ -154,6 +155,14 @@ function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArt
             <label style={styles.label}>Prix achat HT (Ar)</label>
             <input style={styles.input} type="number" value={form.prix_achat_ht}
               onChange={e => setForm({ ...form, prix_achat_ht: e.target.value })} />
+          </div>
+          <div>
+            <label style={styles.label}>Prix de vente par défaut (Ar)</label>
+            <input style={styles.input} type="number" value={form.prix_vente_defaut}
+              onChange={e => setForm({ ...form, prix_vente_defaut: e.target.value })} />
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+              Proposé sur les factures (modifiable à chaque facture). Différent du prix d'achat : il n'entre pas dans la valeur du stock.
+            </div>
           </div>
           <div>
             <label style={styles.label}>Taux TVA (%)</label>
@@ -860,7 +869,7 @@ export default function StocksPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
-                {['Réf.', 'Désignation', 'Compte de stock', 'Prix HT', 'TVA', 'Remise',
+                {['Réf.', 'Désignation', 'Compte de stock', 'Prix achat HT', 'Prix de vente', 'TVA', 'Remise',
                   'Prix net', 'Stock', 'Méthode', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '12px',
                     color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
@@ -878,6 +887,7 @@ export default function StocksPage() {
                     {compteStockArticle(a) ? `${compteStockArticle(a)} - ${libelleCompte(compteStockArticle(a))}` : '⚠️ À choisir'}
                   </td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>{Number(a.prix_achat_ht).toLocaleString('fr-FR')} Ar</td>
+                  <td style={{ padding: '10px', fontSize: '12px' }}>{Number(a.prix_vente_defaut) > 0 ? `${Number(a.prix_vente_defaut).toLocaleString('fr-FR')} Ar` : '—'}</td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>{a.taux_tva}%</td>
                   <td style={{ padding: '10px', fontSize: '12px' }}>{a.remise_pourcent}%</td>
                   <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>
