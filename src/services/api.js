@@ -347,4 +347,10 @@ export const profilService = {
   sauvegarderConfigMail: (id, data) => api.post(`/entreprises/mon-profil/${id}/config-mail`, data),
   testerConfigMail: (id, data) => api.post(`/entreprises/mon-profil/${id}/config-mail/tester`, data)
 };
+export const utilisateurService = {
+  lister: () => api.get('/utilisateurs'),
+  creer: (data) => api.post('/utilisateurs', data),
+  modifier: (id, data) => api.put(`/utilisateurs/${id}`, data),
+  supprimer: (id) => api.delete(`/utilisateurs/${id}`)
+};
 export default api;

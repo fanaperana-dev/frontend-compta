@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ArivotekIcon from './ArivotekIcon';
 
-const menuItems = [
+export const menuItems = [
   { path: '/dashboard', icon: '📈', label: 'Dashboard', module: 'dashboard' },
   { path: '/clients', icon: '🧑‍💼', label: 'Clients', module: 'factures' },
   { path: '/paiements', icon: '💵', label: 'Divers', module: 'factures' },
@@ -19,7 +19,8 @@ const menuItems = [
   { path: '/comptabilite/bilan', icon: '⚖️', label: 'Bilan', module: 'comptabilite' },
   { path: '/comptabilite/grand-livre', icon: '📒', label: 'Grand Livre', module: 'comptabilite' },
   { path: '/comptabilite/tva', icon: '🧾', label: 'Déclaration de TVA', module: 'comptabilite', tva: true },
-  { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
+  { path: '/utilisateurs', icon: '👥', label: 'Utilisateurs', module: null, proprietaire: true },
+  { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null, proprietaire: true },
   
 ];
 const menuItemsAdmin = [
@@ -29,7 +30,7 @@ const menuItemsAdmin = [
 ];
 
 export default function Navigation({ children }) {
-  const { entreprise, deconnexion, moduleActif, isAdmin } = useAuth();
+  const { entreprise, deconnexion, moduleActif, isAdmin, utilisateur, ongletAutorise } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOuvert, setMenuOuvert] = useState(true);
@@ -115,6 +116,8 @@ export default function Navigation({ children }) {
           {menuItems.map(item => {
             if (item.module && !moduleActif(item.module)) return null;
             if (item.tva && !entreprise?.assujettie_tva) return null; // visible seulement pour une entreprise assujettie
+            if (item.proprietaire && utilisateur) return null; // réservé au compte principal
+            if (!item.proprietaire && !ongletAutorise(item.path)) return null; // onglet non coché pour cet utilisateur
 
             const actif = location.pathname === item.path;
 
@@ -230,7 +233,7 @@ export default function Navigation({ children }) {
               fontSize: '14px',
               color: '#666'
             }}>
-              👋 {entreprise?.nom}
+              👋 {utilisateur ? `${utilisateur.nom} — ${entreprise?.nom}` : entreprise?.nom}
             </div>
             <button
               onClick={deconnexion}

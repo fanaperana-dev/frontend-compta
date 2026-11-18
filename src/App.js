@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MiseAJourAuto from './components/MiseAJourAuto';
@@ -32,6 +32,8 @@ import ComptabiliteResultatPage from './pages/ComptabiliteResultatPage';
 import BilanPage from './pages/BilanPage';
 import GrandLivrePage from './pages/GrandLivrePage';
 import DeclarationTvaPage from './pages/DeclarationTvaPage';
+import UtilisateursPage from './pages/UtilisateursPage';
+import { menuItems } from './components/Navigation';
 import ComptabiliteResultatFonctionPage from './pages/ComptabiliteResultatFonctionPage';
 import CompteCourantAssociesPage from './pages/CompteCourantAssociesPage';
 import FluxTresoreriePage from './pages/FluxTresoreriePage';
@@ -45,9 +47,19 @@ function RouteAdmin({ children }) {
 }
 // Route protégée entreprise
 function RouteProtegee({ children }) {
-  const { token, isAdmin } = useAuth();
+  const { token, isAdmin, utilisateur, ongletAutorise } = useAuth();
+  const location = useLocation();
   if (!token) return <Navigate to="/login" />;
   if (isAdmin) return <Navigate to="/admin" />;
+  // Utilisateur de l'entreprise : on ne montre que les onglets cochés (accès direct par l'adresse compris)
+  if (utilisateur) {
+    const chemin = location.pathname;
+    if (!ongletAutorise(chemin)) {
+      const premier = menuItems.find((m) => !m.proprietaire && ongletAutorise(m.path));
+      if (premier && premier.path !== chemin) return <Navigate to={premier.path} replace />;
+      return <Navigation><div style={{ padding: '30px', color: '#666' }}>Aucun onglet n'est activé pour votre compte. Contactez le responsable de votre entreprise.</div></Navigation>;
+    }
+  }
   return <Navigation>{children}</Navigation>;
 }
 
@@ -180,6 +192,11 @@ function App() {
             </RouteProtegee>
           } />
          
+          <Route path="/utilisateurs" element={
+            <RouteProtegee>
+              <UtilisateursPage />
+            </RouteProtegee>
+          } />
           <Route path="/profil" element={
             <RouteProtegee>
               <ProfilPage />
