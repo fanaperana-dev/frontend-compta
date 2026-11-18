@@ -19,7 +19,6 @@ export const menuItems = [
   { path: '/comptabilite/bilan', icon: '⚖️', label: 'Bilan', module: 'comptabilite' },
   { path: '/comptabilite/grand-livre', icon: '📒', label: 'Grand Livre', module: 'comptabilite' },
   { path: '/comptabilite/tva', icon: '🧾', label: 'Déclaration de TVA', module: 'comptabilite', tva: true },
-  { path: '/utilisateurs', icon: '👥', label: 'Utilisateurs', module: null, proprietaire: true },
   { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null, proprietaire: true },
   
 ];

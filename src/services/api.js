@@ -348,9 +348,13 @@ export const profilService = {
   testerConfigMail: (id, data) => api.post(`/entreprises/mon-profil/${id}/config-mail/tester`, data)
 };
 export const utilisateurService = {
-  lister: () => api.get('/utilisateurs'),
-  creer: (data) => api.post('/utilisateurs', data),
-  modifier: (id, data) => api.put(`/utilisateurs/${id}`, data),
-  supprimer: (id) => api.delete(`/utilisateurs/${id}`)
+  // super-admin : gestion des utilisateurs d'une entreprise
+  lister: (entrepriseId) => api.get(`/entreprises/${entrepriseId}/utilisateurs`),
+  creer: (entrepriseId, data) => api.post(`/entreprises/${entrepriseId}/utilisateurs`, data),
+  modifier: (entrepriseId, id, data) => api.put(`/entreprises/${entrepriseId}/utilisateurs/${id}`, data),
+  resetMdp: (entrepriseId, id) => api.post(`/entreprises/${entrepriseId}/utilisateurs/${id}/reset-mdp`),
+  supprimer: (entrepriseId, id) => api.delete(`/entreprises/${entrepriseId}/utilisateurs/${id}`),
+  // utilisateur connecté : choisir son mot de passe après le provisoire
+  changerMonMotDePasse: (data) => api.post('/utilisateurs/moi/mot-de-passe', data)
 };
 export default api;

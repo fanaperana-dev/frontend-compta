@@ -32,7 +32,7 @@ import ComptabiliteResultatPage from './pages/ComptabiliteResultatPage';
 import BilanPage from './pages/BilanPage';
 import GrandLivrePage from './pages/GrandLivrePage';
 import DeclarationTvaPage from './pages/DeclarationTvaPage';
-import UtilisateursPage from './pages/UtilisateursPage';
+import ChangementMotDePasse from './pages/ChangementMotDePasse';
 import { menuItems } from './components/Navigation';
 import ComptabiliteResultatFonctionPage from './pages/ComptabiliteResultatFonctionPage';
 import CompteCourantAssociesPage from './pages/CompteCourantAssociesPage';
@@ -52,6 +52,7 @@ function RouteProtegee({ children }) {
   if (!token) return <Navigate to="/login" />;
   if (isAdmin) return <Navigate to="/admin" />;
   // Utilisateur de l'entreprise : on ne montre que les onglets cochés (accès direct par l'adresse compris)
+  if (utilisateur && utilisateur.doit_changer_mdp) return <ChangementMotDePasse />;
   if (utilisateur) {
     const chemin = location.pathname;
     if (!ongletAutorise(chemin)) {
@@ -192,11 +193,6 @@ function App() {
             </RouteProtegee>
           } />
          
-          <Route path="/utilisateurs" element={
-            <RouteProtegee>
-              <UtilisateursPage />
-            </RouteProtegee>
-          } />
           <Route path="/profil" element={
             <RouteProtegee>
               <ProfilPage />

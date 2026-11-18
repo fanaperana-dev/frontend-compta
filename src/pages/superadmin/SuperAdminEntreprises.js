@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { entrepriseService } from '../../services/api';
 import useSoumission from '../../hooks/useSoumission';
+import ModalUtilisateursEntreprise from './ModalUtilisateursEntreprise';
 
 const styles = {
   boutonPrimaire: {
@@ -230,6 +231,7 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
 
 // Modal détail entreprise
 function ModalDetailEntreprise({ entreprise, forfaits, onClose, onModifier, onChangerStatut, onResetMdp }) {
+  const [modalUtilisateurs, setModalUtilisateurs] = useState(false);
   const [motifSuspension, setMotifSuspension] = useState('');
   const [modalSuspension, setModalSuspension] = useState(false);
   const statut = couleurStatut(entreprise.statut);
@@ -237,6 +239,9 @@ function ModalDetailEntreprise({ entreprise, forfaits, onClose, onModifier, onCh
 
   return (
     <div style={styles.modal}>
+      {modalUtilisateurs && (
+        <ModalUtilisateursEntreprise entreprise={entreprise} forfaits={forfaits} onClose={() => setModalUtilisateurs(false)} />
+      )}
       <div style={{ ...styles.modalContent, width: '600px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <h3 style={{ color: '#004d5a', marginTop: 0 }}>🏢 {entreprise.nom}</h3>
@@ -286,6 +291,9 @@ function ModalDetailEntreprise({ entreprise, forfaits, onClose, onModifier, onCh
           </button>
           <button style={styles.boutonSecondaire} onClick={() => onResetMdp(entreprise.id)}>
             🔑 Réinitialiser mot de passe
+          </button>
+          <button style={styles.boutonSecondaire} onClick={() => setModalUtilisateurs(true)}>
+            👥 Utilisateurs
           </button>
           {entreprise.statut === 'ACTIF' ? (
             <button style={styles.boutonDanger} onClick={() => setModalSuspension(true)}>

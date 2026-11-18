@@ -149,9 +149,17 @@ useEffect(() => {
     return (utilisateur.onglets || []).includes(path);
   }
 
+  // Mise à jour de l'utilisateur connecté (ex. après le choix de son mot de passe)
+  function majUtilisateur(champs) {
+    const u = { ...utilisateur, ...champs };
+    localStorage.setItem('utilisateur', JSON.stringify(u));
+    setUtilisateur(u);
+  }
+
   return (
     <AuthContext.Provider value={{
       utilisateur,
+      majUtilisateur,
       ongletAutorise,
       entreprise,
       token,
