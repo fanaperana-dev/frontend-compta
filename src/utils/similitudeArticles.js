@@ -64,3 +64,32 @@ export function nettoyerDesignation(texte) {
   const t = String(texte || '').replace(/\s+/g, ' ').trim();
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 }
+
+// ───────────── Familles d'articles (ex. « Contenants » : bouteille, bocal, sac en plastique…) ─────────────
+// Une seule écriture par famille : « Contenant », « contenants » et « CONTENANTS » désignent la même famille.
+export function nettoyerFamille(texte) {
+  return String(texte || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+}
+
+// Familles déjà utilisées (écriture la plus fréquente de chacune), triées : sert d'aide à l'écriture
+export function listerFamilles(articles) {
+  const parForme = new Map();
+  for (const a of articles || []) {
+    const f = nettoyerFamille(a && a.famille);
+    if (!f) continue;
+    const forme = normaliserDesignation(f);
+    if (!parForme.has(forme)) parForme.set(forme, new Map());
+    const e = parForme.get(forme);
+    e.set(f, (e.get(f) || 0) + 1);
+  }
+  return [...parForme.values()]
+    .map(e => [...e.entries()].sort((x, y) => y[1] - x[1])[0][0])
+    .sort((x, y) => x.localeCompare(y, 'fr'));
+}
+
+// Famille déjà existante qui s'écrit comme la saisie (sinon null) : on propose de la reprendre
+export function familleExistante(saisie, familles) {
+  const forme = normaliserDesignation(nettoyerFamille(saisie));
+  if (!forme) return null;
+  return (familles || []).find(f => normaliserDesignation(f) === forme) || null;
+}

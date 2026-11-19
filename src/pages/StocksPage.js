@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { stockService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
-import { trouverSimilaires, nettoyerDesignation } from '../utils/similitudeArticles';
+import { trouverSimilaires, nettoyerDesignation, nettoyerFamille, listerFamilles, familleExistante, normaliserDesignation as normaliserFamille } from '../utils/similitudeArticles';
 import { groupesStock, compteStockArticle, groupeDeCompte, groupeStock, libelleCompte, texteCompte } from '../utils/comptesStock';
 
 const styles = {
@@ -55,11 +55,36 @@ const typesMouvement = [
   { key: 'ENTREE_INVENTAIRE', label: '📋 Surplus d\'inventaire', couleur: '#00838f' }
 ];
 
+
+// Champ « Famille » avec aide à l'écriture : les familles existantes sont proposées, une même famille ne s'écrit qu'une fois
+function ChampFamille({ valeur, onChange, articles, id }) {
+  const familles = listerFamilles(articles);
+  const existante = familleExistante(valeur, familles);
+  const differe = existante && existante !== nettoyerFamille(valeur);
+  return (
+    <div>
+      <label style={styles.label}>Famille (facultatif)</label>
+      <input style={styles.input} value={valeur} list={id}
+        placeholder="Ex. Contenants — choisis ou crée une famille"
+        onChange={e => onChange(e.target.value)} />
+      <datalist id={id}>
+        {familles.map(f => <option key={f} value={f} />)}
+      </datalist>
+      {differe && (
+        <div style={{ marginTop: '4px', fontSize: '11px', color: '#1565c0' }}>
+          La famille « {existante} » existe déjà : elle sera utilisée.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Formulaire article
 function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArticle }) {
   const [form, setForm] = useState({
     reference: article?.reference || '',
     designation: article?.designation || '',
+    famille: article?.famille || '',
     compte_stock: article ? compteStockArticle(article) : '',
     unite: article?.unite || 'pièce',
     prix_achat_ht: article?.prix_achat_ht || 0,
@@ -147,6 +172,8 @@ function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArt
               </div>
             )}
           </div>
+          <ChampFamille id="familles-article" valeur={form.famille} articles={articles}
+            onChange={v => setForm({ ...form, famille: v })} />
           <div>
             <label style={styles.label}>Unité</label>
             <select style={styles.input} value={form.unite}
@@ -222,6 +249,7 @@ function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArt
               const ok = await onSave({
                 ...form,
                 designation: nettoyerDesignation(form.designation),
+                famille: nettoyerFamille(form.famille),
                 confirmer_similaire: confirmeDifferent
               });
               setEnCours(false);
@@ -450,7 +478,7 @@ export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave,
   const assujettie = initial?.assujettie !== false;      // sinon : entreprise non assujettie, on raisonne en montant à payer
   const unitMontant = assujettie ? 'HT' : 'à payer';
   const ligneVide = (extra = {}) => ({
-    article_id: '', designation: '', compte_stock: initial?.compte_stock || '', unite: 'pièce', reference: '',
+    article_id: '', designation: '', famille: '', compte_stock: initial?.compte_stock || '', unite: 'pièce', reference: '',
     quantite: 1, prix_unitaire_ht: 0, confirmer_similaire: false, ...extra
   });
   const [lignes, setLignes] = useState(() => {
@@ -516,7 +544,7 @@ export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave,
           ? { article_id: l.article_id }
           : { nouvel_article: {
               designation: l.designation, compte_stock: l.compte_stock, unite: l.unite,
-              reference: l.reference, confirmer_similaire: l.confirmer_similaire
+              famille: nettoyerFamille(l.famille), reference: l.reference, confirmer_similaire: l.confirmer_similaire
             } })
       }))
     });
@@ -598,6 +626,12 @@ export function FormulaireEntreeStock({ initial, articles = [], bandeau, onSave,
                     <label style={styles.label}>Référence</label>
                     <input style={styles.input} value={l.reference} placeholder={prochaineRef(i)}
                       onChange={e => maj(i, { reference: e.target.value })} />
+                  </div>
+                  <div style={{ gridColumn: 'span 4' }}>
+                    {/* familles existantes + celles déjà tapées sur les autres lignes de cette entrée */}
+                    <ChampFamille id={`familles-entree-${i}`} valeur={l.famille}
+                      articles={[...articles, ...lignes.filter((_, k) => k !== i).map(x => ({ famille: x.famille }))]}
+                      onChange={v => maj(i, { famille: v })} />
                   </div>
                 </div>
               )}
@@ -866,6 +900,7 @@ export default function StocksPage() {
   const [recherche, setRecherche] = useState('');
   const [filtreArticle, setFiltreArticle] = useState('');
   const [filtreCompte, setFiltreCompte] = useState('');
+  const [regroupement, setRegroupement] = useState('compte');   // 'compte' | 'famille'
 
   useEffect(() => { chargerDonnees(); }, []);
 
@@ -972,7 +1007,8 @@ export default function StocksPage() {
   const articlesFiltres = articles.filter(a =>
     !recherche ||
     a.reference?.toLowerCase().includes(recherche.toLowerCase()) ||
-    a.designation?.toLowerCase().includes(recherche.toLowerCase())
+    a.designation?.toLowerCase().includes(recherche.toLowerCase()) ||
+    a.famille?.toLowerCase().includes(recherche.toLowerCase())
   );
 
   const mouvementsFiltres = mouvements.filter(m =>
@@ -1079,8 +1115,89 @@ export default function StocksPage() {
         ))}
       </div>
 
-      {/* Onglet État du stock : regroupé par compte de la classe 3, avec sous-totaux */}
       {onglet === 'etat' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', fontSize: '13px' }}>
+          <span style={{ color: '#555' }}>Regrouper par :</span>
+          {[{ k: 'compte', l: 'Compte comptable' }, { k: 'famille', l: 'Famille' }].map(o => (
+            <button key={o.k} onClick={() => setRegroupement(o.k)}
+              style={{ ...styles.boutonSecondaire, background: regroupement === o.k ? '#004d5a' : 'white',
+                color: regroupement === o.k ? 'white' : '#004d5a' }}>
+              {o.l}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Onglet État du stock, regroupé par famille, avec sous-totaux */}
+      {onglet === 'etat' && regroupement === 'famille' && (
+        <div style={styles.card}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f5f5f5' }}>
+                {['Réf.', 'Désignation', 'Unité', 'Stock actuel', 'Stock min.', 'Valeur stock'].map(h => (
+                  <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '12px',
+                    color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(etat.par_famille || []).map(g => {
+                const forme = g.famille ? normaliserFamille(g.famille) : null;
+                const lignes = (etat.data || []).filter(a =>
+                  (a.famille ? normaliserFamille(a.famille) : null) === forme);
+                return (
+                  <React.Fragment key={g.famille || '__sans'}>
+                    <tr style={{ background: '#e0f2f1' }}>
+                      <td colSpan={6} style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
+                        {g.famille || 'Sans famille'}
+                        <span style={{ fontWeight: 'normal', color: '#555', marginLeft: '10px', fontSize: '12px' }}>
+                          {g.nb_articles} article(s)
+                        </span>
+                      </td>
+                    </tr>
+                    {lignes.map((a, i) => {
+                      const sousMin = a.stock_actuel <= a.stock_minimum;
+                      return (
+                        <tr key={a.id} style={{ background: sousMin ? '#ffebee' : i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
+                          <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>{a.reference}</td>
+                          <td style={{ padding: '10px', fontSize: '13px' }}>{a.designation}</td>
+                          <td style={{ padding: '10px', fontSize: '12px' }}>{a.unite}</td>
+                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: sousMin ? '#c62828' : '#2e7d32' }}>
+                            {Number(a.stock_actuel).toLocaleString('fr-FR')}{sousMin && ' ⚠️'}
+                          </td>
+                          <td style={{ padding: '10px', fontSize: '12px' }}>{a.stock_minimum}</td>
+                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
+                            {Number(a.valeur_stock).toLocaleString('fr-FR')} Ar
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr style={{ borderBottom: '2px solid #b2dfdb' }}>
+                      <td colSpan={5} style={{ padding: '8px 10px', textAlign: 'right', fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+                        Sous-total {g.famille || 'sans famille'}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
+                        {Number(g.valeur).toLocaleString('fr-FR')} Ar
+                      </td>
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
+              {(etat.par_famille || []).length > 0 && (
+                <tr style={{ background: '#f5f5f5' }}>
+                  <td colSpan={5} style={{ padding: '10px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold' }}>Total du stock</td>
+                  <td style={{ padding: '10px', fontSize: '14px', fontWeight: 'bold', color: '#2e7d32' }}>
+                    {Number(etat.valeur_totale || 0).toLocaleString('fr-FR')} Ar
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Onglet État du stock : regroupé par compte de la classe 3, avec sous-totaux */}
+      {onglet === 'etat' && regroupement === 'compte' && (
         <div style={styles.card}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
             <label style={{ ...styles.label, margin: 0 }}>Compte</label>
@@ -1194,7 +1311,7 @@ export default function StocksPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f5f5f5' }}>
-                {['Réf.', 'Désignation', 'Compte de stock', 'Prix achat HT', 'Prix de vente', 'TVA', 'Remise',
+                {['Réf.', 'Désignation', 'Famille', 'Compte de stock', 'Prix achat HT', 'Prix de vente', 'TVA', 'Remise',
                   'Prix net', 'Stock', 'Méthode', 'Actions'].map(h => (
                   <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '12px',
                     color: '#555', borderBottom: '2px solid #e0e0e0' }}>{h}</th>
@@ -1207,6 +1324,7 @@ export default function StocksPage() {
                   borderBottom: '1px solid #f0f0f0', opacity: a.actif ? 1 : 0.5 }}>
                   <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>{a.reference}</td>
                   <td style={{ padding: '10px', fontSize: '13px' }}>{a.designation}</td>
+                  <td style={{ padding: '10px', fontSize: '12px', color: '#555' }}>{a.famille || '—'}</td>
                   <td style={{ padding: '10px', fontSize: '12px', color: compteStockArticle(a) ? '#666' : '#c62828' }}
                     title={compteStockArticle(a) ? libelleCompte(compteStockArticle(a)) : 'Compte à choisir : compté en 37 par défaut'}>
                     {compteStockArticle(a) ? `${compteStockArticle(a)} - ${libelleCompte(compteStockArticle(a))}` : '⚠️ À choisir'}
