@@ -208,7 +208,9 @@ function GraphiqueCategories({ data, couleur }) {
 }
 
 export default function DashboardPage() {
-  const { entreprise } = useAuth();
+  const { entreprise, moduleActif } = useAuth();
+  const stocksActifs = !moduleActif || moduleActif('stocks');
+  const [valeurStock, setValeurStock] = useState(null);   // valeur actuelle du stock (coût d'achat), null tant que non chargée
   const [ongletActif, setOngletActif] = useState('alertes');
   const [donnees, setDonnees] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -221,7 +223,20 @@ export default function DashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { chargerDonnees(); }, [moisSelectionnes, annee]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { chargerAlertesFermees(); chargerVehiculesAcquis(); }, []);
+  useEffect(() => { chargerAlertesFermees(); chargerVehiculesAcquis(); chargerValeurStock(); }, []);
+
+  async function chargerValeurStock() {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/stocks/etat/${entreprise.id}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      const data = await res.json();
+      if (data.success) setValeurStock(Number(data.valeur_totale) || 0);
+    } catch (err) {
+      console.error('Erreur chargement valeur du stock.');
+    }
+  }
 
   async function chargerVehiculesAcquis() {
     try {
@@ -549,7 +564,6 @@ export default function DashboardPage() {
             const soldeGlobal = graph.reduce((s, m) => s + Number(m.solde || 0), 0);
             const masseNet = graph.reduce((s, m) => s + Number(m.masseNet || 0), 0);
             const massePatronale = graph.reduce((s, m) => s + Number(m.massePatronale || 0), 0);
-            const resultatNet = totalRecettes - totalDepenses;
 
             return (
               <>
@@ -564,8 +578,10 @@ export default function DashboardPage() {
                     couleur="#1565c0" sousTitre="Salaires nets versés" />
                   <CarteChiffre titre="🏛️ Charges patronales" valeur={massePatronale}
                     couleur="#e65100" sousTitre="CNAPS + OSTIE patronal" />
-                  <CarteChiffre titre="📈 Résultat net" valeur={resultatNet}
-                    couleur={resultatNet >= 0 ? '#2e7d32' : '#c62828'} sousTitre="CA - Dépenses totales" />
+                  {stocksActifs && (
+                    <CarteChiffre titre="📦 Valeur du stock" valeur={valeurStock ?? 0}
+                      couleur="#00838f" sousTitre="Valeur actuelle au coût d'achat (indépendante de l'année et des mois choisis)" />
+                  )}
                 </div>
                 <div style={styles.card}>
                   <h3 style={{ color: '#004d5a', marginTop: 0, marginBottom: '20px' }}>
