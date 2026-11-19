@@ -219,9 +219,12 @@ export default function DashboardPage() {
   const [categoriesActives, setCategoriesActives] = useState([]);
   const [alertesFermees, setAlertesFermees] = useState([]);
   const [vehiculesAcquis, setVehiculesAcquis] = useState([]);
+  const [tresorerie, setTresorerie] = useState(null);   // montants par mois de l'onglet Trésorerie
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { chargerDonnees(); }, [moisSelectionnes, annee]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { chargerTresorerie(); }, [annee]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { chargerAlertesFermees(); chargerVehiculesAcquis(); chargerValeurStock(); }, []);
 
@@ -248,6 +251,20 @@ export default function DashboardPage() {
       if (data.success) setVehiculesAcquis(data.data || []);
     } catch (err) {
       console.error('Erreur chargement véhicules acquis.');
+    }
+  }
+
+  async function chargerTresorerie() {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/dashboard/${entreprise.id}/tresorerie?annee=${annee}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      const data = await res.json();
+      if (data.success) setTresorerie(data.data);
+      else toast.error(data.message || 'Erreur chargement trésorerie.');
+    } catch (err) {
+      toast.error('Erreur chargement trésorerie.');
     }
   }
 
@@ -400,107 +417,95 @@ export default function DashboardPage() {
       )}
 
 
-      {/* ONGLET — Trésorerie : retards et paiements en attente, fiches de paie manquantes */}
+      {/* ONGLET — Trésorerie : montants à encaisser / à payer par mois, marge estimative */}
       {ongletActif === 'tresorerie' && (
         <div>
-          {/* Factures clients en retard */}
           <div style={styles.card}>
-            <h3 style={{ color: '#c62828', marginTop: 0 }}>
-              ⚠️ Factures clients en retard ({donnees.alertes.facturesEnRetard.length})
-            </h3>
-            {donnees.alertes.facturesEnRetard.length === 0 ? (
-              <p style={{ color: '#2e7d32' }}>✅ Aucune facture en retard !</p>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: '#ffebee' }}>
-                    <th style={{ padding: '8px', textAlign: 'left' }}>N° Facture</th>
-                    <th style={{ padding: '8px', textAlign: 'left' }}>Client</th>
-                    <th style={{ padding: '8px', textAlign: 'right' }}>Montant</th>
-                    <th style={{ padding: '8px', textAlign: 'left' }}>Échéance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donnees.alertes.facturesEnRetard.map((f, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#004d5a' }}>{f.numero_facture}</td>
-                      <td style={{ padding: '8px' }}>{f.nom_client}</td>
-                      <td style={{ padding: '8px', textAlign: 'right', color: '#c62828', fontWeight: 'bold' }}>
-                        {Number(f.montant_total).toLocaleString('fr-FR')} Ar
-                      </td>
-                      <td style={{ padding: '8px', color: '#c62828' }}>
-                        {f.date_limite ? new Date(f.date_limite).toLocaleDateString('fr-FR') : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Année :</span>
+                <input type="number" value={annee} onChange={e => setAnnee(Number(e.target.value))}
+                  style={{ width: '80px', padding: '6px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '13px' }} />
+              </div>
+              <div>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginRight: '8px' }}>Mois :</span>
+                <FiltresMois moisSelectionnes={moisSelectionnes} onToggle={toggleMois} onReset={() => setMoisSelectionnes([])} />
+              </div>
+            </div>
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
+              Les montants sont classés par mois de la date de facture (salaires : mois de la fiche de paie). Sans mois coché, toute l'année est comptée.
+            </div>
           </div>
 
-          {/* Fournisseurs en attente */}
-          <div style={styles.card}>
-            <h3 style={{ color: '#e65100', marginTop: 0 }}>
-              🏭 Factures fournisseurs en attente ({donnees.alertes.fournEnAttente.length})
-            </h3>
-            {donnees.alertes.fournEnAttente.length === 0 ? (
-              <p style={{ color: '#2e7d32' }}>✅ Aucune facture en attente !</p>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: '#fff3e0' }}>
-                    <th style={{ padding: '8px', textAlign: 'left' }}>N° Facture</th>
-                    <th style={{ padding: '8px', textAlign: 'right' }}>Montant</th>
-                    <th style={{ padding: '8px', textAlign: 'left' }}>Échéance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donnees.alertes.fournEnAttente.map((f, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#004d5a' }}>{f.numero}</td>
-                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
-                        {Number(f.montant).toLocaleString('fr-FR')} Ar
-                      </td>
-                      <td style={{ padding: '8px', color: '#e65100' }}>
-                        {f.date_echeance ? new Date(f.date_echeance).toLocaleDateString('fr-FR') : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          {(() => {
+            const lignes = (tresorerie?.parMois || []).filter(m =>
+              moisSelectionnes.length === 0 || moisSelectionnes.includes(m.mois));
+            const somme = (k) => lignes.reduce((t, m) => t + Number(m[k] || 0), 0);
+            const margeCa = somme('marge_ca'), marge = somme('marge');
+            const taux = margeCa > 0 ? Math.round((marge / margeCa) * 1000) / 10 : null;
+            const nb = (k) => lignes.reduce((t, m) => t + Number(m[k] || 0), 0);
+            const colonnes = [
+              { k: 'retard', t: 'Clients en retard' }, { k: 'envoyees', t: 'Clients envoyées' },
+              { k: 'fournisseurs', t: 'Fournisseurs à payer' }, { k: 'tiers', t: 'Divers à payer' },
+              { k: 'salaires', t: 'Salaires à payer' }, { k: 'marge', t: 'Marge estimative' }
+            ];
+            if (!tresorerie) return <div style={styles.card}>Chargement…</div>;
+            return (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+                  <CarteChiffre titre="⚠️ Factures clients en retard" valeur={somme('retard')} couleur="#c62828"
+                    sousTitre={`${nb('nb_retard')} facture(s) · reste à encaisser`} />
+                  <CarteChiffre titre="📤 Factures clients envoyées" valeur={somme('envoyees')} couleur="#1565c0"
+                    sousTitre={`${nb('nb_envoyees')} facture(s) envoyée(s), pas encore payée(s)`} />
+                  <CarteChiffre titre="🏭 Factures fournisseurs à payer" valeur={somme('fournisseurs')} couleur="#e65100"
+                    sousTitre="En attente ou payées en partie (reste à payer)" />
+                  <CarteChiffre titre="🤝 Divers à payer" valeur={somme('tiers')} couleur="#6a1b9a"
+                    sousTitre="Dépenses « divers » en attente (reste à payer)" />
+                  <CarteChiffre titre="👥 Salaires à payer" valeur={somme('salaires')} couleur="#00838f"
+                    sousTitre="Net des fiches de paie non encore payées" />
+                  <CarteChiffre titre="📦 Marge estimative sur produits vendus" valeur={marge}
+                    couleur={marge >= 0 ? '#2e7d32' : '#c62828'}
+                    sousTitre={margeCa > 0
+                      ? `Estimation : prix de vente HT (${margeCa.toLocaleString('fr-FR')} Ar) − coût d'achat moyen sorti du stock${taux !== null ? ` · ${taux.toLocaleString('fr-FR')} %` : ''}`
+                      : "Estimation : prix de vente HT − coût d'achat des articles vendus. Aucune vente d'article du stock sur la période."} />
+                </div>
 
-          {/* Tiers en attente */}
-          <div style={styles.card}>
-            <h3 style={{ color: '#1565c0', marginTop: 0 }}>
-              🤝 Factures tiers en attente ({donnees.alertes.tiersEnAttente.length})
-            </h3>
-            {donnees.alertes.tiersEnAttente.length === 0 ? (
-              <p style={{ color: '#2e7d32' }}>✅ Aucune facture en attente !</p>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: '#e3f2fd' }}>
-                    <th style={{ padding: '8px', textAlign: 'left' }}>N° Facture</th>
-                    <th style={{ padding: '8px', textAlign: 'left' }}>Tiers</th>
-                    <th style={{ padding: '8px', textAlign: 'right' }}>Montant</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donnees.alertes.tiersEnAttente.map((f, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#004d5a' }}>{f.numero}</td>
-                      <td style={{ padding: '8px' }}>{f.tiers}</td>
-                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
-                        {Number(f.montant).toLocaleString('fr-FR')} Ar
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                <div style={styles.card}>
+                  <h3 style={{ color: '#004d5a', marginTop: 0 }}>📅 Détail par mois — {annee}</h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ background: '#f5f5f5' }}>
+                        <th style={{ padding: '8px', textAlign: 'left' }}>Mois</th>
+                        {colonnes.map(c => <th key={c.k} style={{ padding: '8px', textAlign: 'right' }}>{c.t}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lignes.map(m => (
+                        <tr key={m.mois} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                          <td style={{ padding: '8px', fontWeight: 'bold', color: '#004d5a' }}>{m.mois}</td>
+                          {colonnes.map(c => (
+                            <td key={c.k} style={{ padding: '8px', textAlign: 'right', color: Number(m[c.k]) ? '#333' : '#bbb' }}>
+                              {Number(m[c.k] || 0).toLocaleString('fr-FR')}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                      <tr style={{ background: '#f5f5f5', fontWeight: 'bold' }}>
+                        <td style={{ padding: '8px' }}>Total</td>
+                        {colonnes.map(c => (
+                          <td key={c.k} style={{ padding: '8px', textAlign: 'right' }}>{somme(c.k).toLocaleString('fr-FR')} Ar</td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
+                    La marge est une estimation : elle ne porte que sur les ventes dont les lignes de facture désignent un article du stock,
+                    avec le coût moyen de l'article au moment de la vente.
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {/* Salariés sans fiche de paie */}
           <div style={styles.card}>
