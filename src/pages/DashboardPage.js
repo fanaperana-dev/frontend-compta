@@ -447,7 +447,7 @@ export default function DashboardPage() {
             const colonnes = [
               { k: 'retard', t: 'Clients en retard' }, { k: 'envoyees', t: 'Clients envoyées' },
               { k: 'fournisseurs', t: 'Fournisseurs à payer' }, { k: 'tiers', t: 'Divers à payer' },
-              { k: 'salaires', t: 'Salaires à payer' }, { k: 'marge', t: 'Marge estimative' }
+              { k: 'salaires', t: 'Salaires à payer' }, { k: 'marge', t: 'Marge estimative HT' }
             ];
             if (!tresorerie) return <div style={styles.card}>Chargement…</div>;
             return (
@@ -463,11 +463,11 @@ export default function DashboardPage() {
                     sousTitre="Dépenses « divers » en attente (reste à payer)" />
                   <CarteChiffre titre="👥 Salaires à payer" valeur={somme('salaires')} couleur="#00838f"
                     sousTitre="Net des fiches de paie non encore payées" />
-                  <CarteChiffre titre="📦 Marge estimative sur produits vendus" valeur={marge}
+                  <CarteChiffre titre="📦 Marge estimative HT sur produits vendus" valeur={marge}
                     couleur={marge >= 0 ? '#2e7d32' : '#c62828'}
                     sousTitre={margeCa > 0
-                      ? `Estimation : prix de vente HT (${margeCa.toLocaleString('fr-FR')} Ar) − coût d'achat moyen sorti du stock${taux !== null ? ` · ${taux.toLocaleString('fr-FR')} %` : ''}`
-                      : "Estimation : prix de vente HT − coût d'achat des articles vendus. Aucune vente d'article du stock sur la période."} />
+                      ? `Estimation HT : prix de vente HT (${margeCa.toLocaleString('fr-FR')} Ar) − coût d'achat HT moyen sorti du stock${taux !== null ? ` · ${taux.toLocaleString('fr-FR')} %` : ''}`
+                      : "Estimation HT : prix de vente HT − coût d'achat HT des articles vendus. Aucune vente d'article du stock sur la période."} />
                 </div>
 
                 <div style={styles.card}>
@@ -499,7 +499,7 @@ export default function DashboardPage() {
                     </tbody>
                   </table>
                   <div style={{ fontSize: '11px', color: '#888', marginTop: '8px' }}>
-                    La marge est une estimation : elle ne porte que sur les ventes dont les lignes de facture désignent un article du stock,
+                    La marge est une estimation, hors taxes (HT) : elle ne porte que sur les ventes dont les lignes de facture désignent un article du stock,
                     avec le coût moyen de l'article au moment de la vente.
                   </div>
                 </div>
