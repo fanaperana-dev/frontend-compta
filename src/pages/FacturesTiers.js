@@ -242,8 +242,8 @@ const depenses = [
   'Dépenses caisse',
   'Dépenses Mvola',
   'Dépenses Orange money',
-  'Dépenses Airtel money',
-  'Dépense associé'
+  'Dépenses Airtel money'
+  // « Dépense associé » retiré : les mouvements de l'associé se saisissent dans l'onglet Compte courant associé
 ];
 
 const recettes = [
@@ -251,8 +251,8 @@ const recettes = [
   'Recette caisse',
   'Recette Mvola',
   'Recette Orange money',
-  'Recette Airtel money',
-  'Recette associé'
+  'Recette Airtel money'
+  // « Recette associé » retiré : voir l'onglet Compte courant associé
 ];
 
 // Nature de l'opération : impose le compte comptable pour l'IRSA et les cotisations sociales
@@ -538,9 +538,10 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
                 'Dépenses caisse',
                 'Dépenses Mvola',
                 'Dépenses Orange money',
-                'Dépenses Airtel money',
-                'Dépense associé'
+                'Dépenses Airtel money'
               ].map(d => <option key={d} value={d}>{d}</option>)}
+              {/* ancienne saisie : on garde la valeur affichée pour pouvoir la lire, sans la proposer pour une nouvelle saisie */}
+              {/associ/i.test(form.depense || '') && <option value={form.depense}>{form.depense} (ancien)</option>}
             </select>
           </div>
 
@@ -556,9 +557,9 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
                 'Recette caisse',
                 'Recette Mvola',
                 'Recette Orange money',
-                'Recette Airtel money',
-                'Recette associé'
+                'Recette Airtel money'
               ].map(r => <option key={r} value={r}>{r}</option>)}
+              {/associ/i.test(form.recette || '') && <option value={form.recette}>{form.recette} (ancien)</option>}
             </select>
           </div>
 
