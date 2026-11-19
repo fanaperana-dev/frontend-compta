@@ -264,7 +264,6 @@ const modesPaiement = [
     'Airtel money',
     'Orange money',
     'Mvola',
-    'Associé',
     'Autre'
   ];
 
@@ -506,6 +505,7 @@ function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tv
               {modesPaiement.map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
+              {/associ/i.test(form.mode_paiement || '') && <option value={form.mode_paiement}>{form.mode_paiement} (ancien)</option>}
             </select>
           </div>
 

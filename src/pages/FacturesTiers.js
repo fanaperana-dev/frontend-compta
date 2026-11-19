@@ -284,7 +284,6 @@ const modesPaiement = [
     'Airtel money',
     'Orange money',
     'Mvola', 
-    'Associé',
     'Autre'
 ];
 
@@ -523,6 +522,7 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
               onChange={e => setForm({ ...form, mode_paiement: e.target.value })}>
               <option value="">Sélectionner</option>
               {modesPaiement.map(m => <option key={m} value={m}>{m}</option>)}
+              {/associ/i.test(form.mode_paiement || '') && <option value={form.mode_paiement}>{form.mode_paiement} (ancien)</option>}
             </select>
           </div>
 

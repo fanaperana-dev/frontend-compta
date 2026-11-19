@@ -6,12 +6,12 @@ import ArivotekIcon from './ArivotekIcon';
 const menuItems = [
   { path: '/dashboard', icon: '📈', label: 'Dashboard', module: 'dashboard' },
   { path: '/clients', icon: '🧑‍💼', label: 'Clients', module: 'factures' },
-  { path: '/paiements', icon: '💵', label: 'Divers', module: 'factures' },
   { path: '/fournisseurs', icon: '🏢', label: 'Fournisseurs', module: 'fournisseurs' },
-  { path: '/comptabilite/compte-courant', icon: '🤝', label: 'Compte courant associés', module: 'comptabilite' },
+  { path: '/paiements', icon: '💵', label: 'Divers', module: 'factures' },
+  { path: '/rh', icon: '🧑‍🤝‍🧑', label: 'Ressources Humaines', module: 'rh' },
   { path: '/stocks', icon: '📦', label: 'Stocks', module: 'stocks' },
   { path: '/immobilisations', icon: '🏗️', label: 'Immobilisations', module: 'immobilisations' },
-  { path: '/rh', icon: '🧑‍🤝‍🧑', label: 'Ressources Humaines', module: 'rh' },
+  { path: '/comptabilite/compte-courant', icon: '🤝', label: 'Compte courant associés', module: 'comptabilite' },
   { path: '/journal', icon: '🔢', label: 'Journal', module: 'journal' },
   { path: '/comptabilite/resultat', icon: '📑', label: 'Compte de résultat', module: 'comptabilite' },
   { path: '/comptabilite/resultat-fonction', icon: '🧮', label: 'Résultat par fonction', module: 'comptabilite' },
@@ -20,7 +20,6 @@ const menuItems = [
   { path: '/comptabilite/grand-livre', icon: '📒', label: 'Grand Livre', module: 'comptabilite' },
   { path: '/comptabilite/tva', icon: '🧾', label: 'Déclaration de TVA', module: 'comptabilite', tva: true },
   { path: '/profil', icon: '⚙️', label: 'Mon profil', module: null },
-  
 ];
 const menuItemsAdmin = [
   { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },

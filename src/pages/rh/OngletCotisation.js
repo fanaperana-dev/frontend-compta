@@ -87,12 +87,12 @@ function moisDeColonne(d, i, moisTries) {
 }
 
 // ───────────── Paiement de la CNAPS / OSTIE / IRSA ─────────────
-const MODES_PAIEMENT = ['Virement bancaire', 'Carte bancaire', 'Chèque', 'Espèces', 'Airtel money', 'Orange money', 'Mvola', 'Associé', 'Autre'];
+const MODES_PAIEMENT = ['Virement bancaire', 'Carte bancaire', 'Chèque', 'Espèces', 'Airtel money', 'Orange money', 'Mvola', 'Autre'];
 // moyen de paiement -> compte de trésorerie de la dépense (mêmes valeurs que le formulaire Tiers)
 const DEPENSE_PAR_MODE = {
   'Virement bancaire': 'Dépenses banque', 'Carte bancaire': 'Dépenses banque', 'Chèque': 'Dépenses banque', 'Autre': 'Dépenses banque',
   'Espèces': 'Dépenses caisse', 'Mvola': 'Dépenses Mvola', 'Orange money': 'Dépenses Orange money',
-  'Airtel money': 'Dépenses Airtel money', 'Associé': 'Dépense associé'
+  'Airtel money': 'Dépenses Airtel money'
 };
 // onglet -> tiers, nature imposée côté back (compte 431 ou 447) et libellé du compte
 const PAIEMENT_PAR_TYPE = {
