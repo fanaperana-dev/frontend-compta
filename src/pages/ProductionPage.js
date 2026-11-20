@@ -33,6 +33,10 @@ const estProduitFabricable = (a) => a.actif !== false && ['33', '35'].includes(g
 
 const ar = (n) => `${Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} Ar`;
 const qte = (n) => Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 4 });
+// Autres recettes qui utilisent la même matière (ex. le lait : beurre, fromage, yaourt)
+const recettesUtilisant = (recettes, article_id, sauf) => (recettes || [])
+  .filter(r => r.actif && (!sauf || r.id !== sauf) && (r.ingredients || []).some(l => String(l.article_id) === String(article_id)))
+  .map(r => r.nom);
 const motsDe = (t) => normaliserDesignation(t).split(' ').filter(Boolean);
 
 // Champ de sélection d'article avec recherche (désignation, référence ou famille) : on choisit toujours un article du stock
@@ -99,7 +103,7 @@ function ChampFamille({ valeur, onChange, articles }) {
 const ligneVide = () => ({ article_id: '', quantite: '', unite: '' });
 const moVide = () => ({ libelle: '', nombre_personnes: 1, heures: '', taux_horaire: '' });
 
-function FormulaireRecette({ recette, articles, assujettie, onSave, onCancel }) {
+function FormulaireRecette({ recette, recettes, articles, assujettie, onSave, onCancel }) {
   const { enCours, soumettre } = useSoumission();
   const edition = !!recette;
   const [form, setForm] = useState({
@@ -278,6 +282,11 @@ function FormulaireRecette({ recette, articles, assujettie, onSave, onCancel }) 
                   <td style={{ ...cellule, width: '38%' }}>
                     <ChoixArticle articles={candidats(l.article_id)} valeur={l.article_id} onChange={id => choisirArticle(i, id)} />
                     {a && <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>Stock : {qte(a.stock_actuel)} {a.unite}</div>}
+                    {a && recettesUtilisant(recettes, a.id, recette?.id).length > 0 && (
+                      <div style={{ fontSize: '10px', color: '#6a1b9a', marginTop: '2px' }}>
+                        Aussi utilisé dans : {recettesUtilisant(recettes, a.id, recette?.id).join(', ')} (le stock est partagé)
+                      </div>
+                    )}
                   </td>
                   <td style={{ ...cellule, width: '16%' }}>
                     <input style={styles.inputPetit} type="number" min="0" step="any" value={l.quantite} onChange={e => majLigne(i, { quantite: e.target.value })} />
@@ -371,7 +380,7 @@ function FormulaireRecette({ recette, articles, assujettie, onSave, onCancel }) 
 
 const sourceTexte = { CMUP: 'coût moyen', DERNIER_PRIX: 'dernier prix', SANS_PRIX: '⚠️ sans prix' };
 
-function DetailRecette({ r }) {
+function DetailRecette({ r, recettes }) {
   const c = r.cout;
   if (!c) return <div style={{ padding: '12px', color: '#c62828', fontSize: '13px' }}>⚠️ {r.probleme}</div>;
   return (
@@ -379,17 +388,26 @@ function DetailRecette({ r }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
         <thead>
           <tr style={{ background: '#eef5f6' }}>
-            {['Ingrédient', 'Quantité (recette)', 'Dans l\'unité du stock', 'Coût unitaire', 'Coût', 'Stock actuel'].map(h => <th key={h} style={{ ...styles.th, fontSize: '11px', padding: '6px 8px' }}>{h}</th>)}
+            {['Ingrédient', 'Quantité (recette)', 'Dans l\'unité du stock', 'Prix moyen du stock', 'Coût', 'Dernier achat', 'Coût', 'Stock actuel'].map(h => <th key={h} style={{ ...styles.th, fontSize: '11px', padding: '6px 8px' }}>{h}</th>)}
           </tr>
         </thead>
         <tbody>
           {c.lignes.map(l => (
             <tr key={l.article_id} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: '6px 8px' }}>{l.designation} <span style={{ color: '#999' }}>({l.reference})</span></td>
+              <td style={{ padding: '6px 8px' }}>{l.designation} <span style={{ color: '#999' }}>({l.reference})</span>
+                {recettesUtilisant(recettes, l.article_id, r.id).length > 0 && (
+                  <div style={{ fontSize: '10px', color: '#6a1b9a' }}>aussi dans : {recettesUtilisant(recettes, l.article_id, r.id).join(', ')}</div>
+                )}
+              </td>
               <td style={{ padding: '6px 8px' }}>{qte(l.quantite_recette)} {l.unite_recette}</td>
               <td style={{ padding: '6px 8px' }}>{qte(l.besoin)} {l.unite}</td>
               <td style={{ padding: '6px 8px' }}>{ar(l.cout_unitaire)} / {l.unite} <span style={{ color: l.source_cout === 'SANS_PRIX' ? '#c62828' : '#999', fontSize: '10px' }}>({sourceTexte[l.source_cout]})</span></td>
               <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>{ar(l.cout)}</td>
+              <td style={{ padding: '6px 8px' }}>
+                {ar(l.cout_unitaire_recent)} / {l.unite}
+                <div style={{ fontSize: '10px', color: '#999' }}>{l.date_dernier_achat ? `acheté le ${new Date(l.date_dernier_achat).toLocaleDateString('fr-FR')}` : 'aucun achat : prix moyen'}</div>
+              </td>
+              <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>{ar(l.cout_recent)}</td>
               <td style={{ padding: '6px 8px' }}>{qte(l.stock_actuel)} {l.unite}</td>
             </tr>
           ))}
@@ -401,10 +419,16 @@ function DetailRecette({ r }) {
               <td style={{ padding: '6px 8px' }}>{ar(m.taux_horaire)} / h</td>
               <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>{ar(m.cout)}</td>
               <td style={{ padding: '6px 8px' }}>—</td>
+              <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>{ar(m.cout)}</td>
+              <td style={{ padding: '6px 8px' }}>—</td>
             </tr>
           ))}
         </tbody>
       </table>
+      <div style={{ marginTop: '8px', fontSize: '12px', display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+        <span>Total au prix moyen : <strong>{ar(c.cout_total)}</strong> → <strong>{ar(c.cout_unitaire)}</strong> / {r.produit_fini?.unite || 'unité'}</span>
+        <span>Total au dernier achat : <strong>{ar(c.cout_total_recent)}</strong> → <strong>{ar(c.cout_unitaire_recent)}</strong> / {r.produit_fini?.unite || 'unité'}</span>
+      </div>
       {r.notes && <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>📝 {r.notes}</div>}
     </div>
   );
@@ -490,6 +514,16 @@ export default function ProductionPage() {
             )}
           </div>
 
+          <details style={{ background: '#f3f8ff', border: '1px solid #cfe0f5', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '12px', color: '#333' }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 'bold', color: '#1565c0' }}>ℹ️ Comment lire les deux coûts ?</summary>
+            <ul style={{ margin: '8px 0 0', paddingLeft: '18px', lineHeight: 1.6 }}>
+              <li><strong>Prix moyen du stock</strong> : chaque matière est valorisée au prix moyen de ce qu'il y a actuellement en stock. C'est le coût retenu quand une production sort ses matières du stock.</li>
+              <li><strong>Dernier achat</strong> : chaque matière est valorisée au prix payé lors de sa dernière entrée en stock. C'est ce que coûterait de refaire la même production avec les prix du moment : utile pour fixer le prix de vente quand les prix montent ou baissent.</li>
+              <li>Ces deux coûts changent quand tu enregistres de nouveaux achats. <strong>Une production déjà réalisée garde son coût</strong> : il est figé le jour où elle est validée et ne bouge plus ensuite.</li>
+              <li>Une même matière peut servir dans plusieurs recettes (le lait dans le beurre, le fromage, le yaourt) : le prix est le même pour toutes, le stock est partagé, et une production lancée réserve ses matières pour qu'une autre ne les prenne pas.</li>
+            </ul>
+          </details>
+
           {affichees.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
               {recettes.length === 0
@@ -500,7 +534,7 @@ export default function ProductionPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f5f5f5' }}>
-                  {['', 'Code', 'Recette', 'Produit fini', 'Pour', 'Matières', 'Main-d\'œuvre', 'Coût total', 'Coût / unité', 'Prix de vente', 'Actions'].map(h => <th key={h} style={styles.th}>{h}</th>)}
+                  {['', 'Code', 'Recette', 'Produit fini', 'Pour', 'Matières', 'Main-d\'œuvre', 'Coût total', 'Coût / unité (prix moyen)', 'Coût / unité (dernier achat)', 'Prix de vente', 'Actions'].map(h => <th key={h} style={styles.th}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -527,6 +561,9 @@ export default function ProductionPage() {
                         <td style={{ ...styles.td, fontSize: '13px', fontWeight: 'bold', color: '#2e7d32' }}>
                           {c ? <>{ar(c.cout_unitaire)}{c.sans_prix.length > 0 && <span title={`Aucun prix connu pour : ${c.sans_prix.join(', ')}`} style={{ color: '#c62828', marginLeft: '4px' }}>⚠️</span>}</> : '—'}
                         </td>
+                        <td style={{ ...styles.td, fontSize: '13px', fontWeight: 'bold', color: '#1565c0' }}>
+                          {c ? ar(c.cout_unitaire_recent) : '—'}
+                        </td>
                         <td style={{ ...styles.td, fontSize: '12px' }}>
                           {pv > 0 ? <>{ar(pv)}{marge != null && <div style={{ fontSize: '10px', color: marge >= 0 ? '#2e7d32' : '#c62828' }} title="Écart entre le prix de vente enregistré sur l'article et le coût théorique">marge ≈ {marge} %</div>}</> : '—'}
                         </td>
@@ -537,7 +574,7 @@ export default function ProductionPage() {
                           </div>
                         </td>
                       </tr>
-                      {ouvertes[r.id] && <tr><td colSpan={11} style={{ padding: 0 }}><DetailRecette r={r} /></td></tr>}
+                      {ouvertes[r.id] && <tr><td colSpan={12} style={{ padding: 0 }}><DetailRecette r={r} recettes={recettes} /></td></tr>}
                     </React.Fragment>
                   );
                 })}
@@ -548,7 +585,7 @@ export default function ProductionPage() {
       )}
 
       {modal && (
-        <FormulaireRecette recette={modal.recette} articles={articles} assujettie={!!entreprise.assujettie_tva}
+        <FormulaireRecette recette={modal.recette} recettes={recettes} articles={articles} assujettie={!!entreprise.assujettie_tva}
           onSave={enregistrer} onCancel={() => setModal(null)} />
       )}
     </div>
