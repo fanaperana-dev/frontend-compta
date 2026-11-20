@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import ArivotekIcon from '../components/ArivotekIcon';
@@ -68,23 +68,19 @@ const styles = {
   }
 };
 
-const forfaits = [
-  {
-    key: 'Business',
-    label: 'Business',
-    description: 'Tous les modules : Clients, Factures, Fournisseurs, RH, Stocks, Immobilisations...'
-  },
-  {
-    key: 'Start',
-    label: 'Start',
-    description: 'Clients, Factures, Journal, Dashboard'
-  },
-  {
-    key: 'RH',
-    label: 'RH',
-    description: 'Ressources Humaines, Journal, Dashboard'
-  }
+// Formules affichées si la liste n'a pas pu être chargée (la vraie liste vient des forfaits du superadmin)
+const forfaitsParDefaut = [
+  { nom: 'RH', description: 'Gestion RH, tiers, journal et dashboard' },
+  { nom: 'Client', description: 'Clients, factures, journal et tableau de bord' },
+  { nom: 'Business', description: 'Tous les modules, sauf la production' },
+  { nom: 'Pro', description: 'Formule complète : tous les modules, production comprise' }
 ];
+
+const LIBELLES_MODULES = {
+  dashboard: 'Tableau de bord', clients: 'Clients', factures: 'Factures', fournisseurs: 'Fournisseurs',
+  paiements: 'Paiements', stocks: 'Stocks', production: 'Production', immobilisations: 'Immobilisations',
+  rh: 'Ressources humaines', journal: 'Journal', comptabilite: 'Comptabilité'
+};
 
 const polices = ['Arial', 'Times New Roman', 'Georgia', 'Verdana', 'Helvetica', 'Garamond', 'Trebuchet MS', 'Calibri'];
 
@@ -104,6 +100,12 @@ const couleursPredef = [
 export default function InscriptionPage() {
   const [etape, setEtape] = useState(1);
   const [enCours, setEnCours] = useState(false);
+  const [forfaits, setForfaits] = useState(forfaitsParDefaut);
+  useEffect(() => {
+    axios.get(`${API_URL}/api/inscription/forfaits`, { timeout: 15000 })
+      .then(res => { if (res.data?.data?.length) setForfaits(res.data.data); })
+      .catch(() => { /* on garde la liste par défaut */ });
+  }, []);
   const [form, setForm] = useState({
     // Infos générales
     nom: '',
@@ -530,20 +532,25 @@ export default function InscriptionPage() {
             <h3 style={styles.sectionTitle}>4. Choisissez votre forfait</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {forfaits.map(f => (
-                <div key={f.key}
-                  onClick={() => setForm({ ...form, forfait_souhaite: f.key })}
+                <div key={f.nom}
+                  onClick={() => setForm({ ...form, forfait_souhaite: f.nom })}
                   style={{
-                    border: form.forfait_souhaite === f.key
+                    border: form.forfait_souhaite === f.nom
                       ? '2px solid #004d5a' : '2px solid #e0e0e0',
                     borderRadius: '10px', padding: '15px', cursor: 'pointer',
-                    background: form.forfait_souhaite === f.key ? '#e3f2fd' : 'white'
+                    background: form.forfait_souhaite === f.nom ? '#e3f2fd' : 'white'
                   }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ color: '#004d5a', fontSize: '15px' }}>{f.key}</strong>
+                    <strong style={{ color: '#004d5a', fontSize: '15px' }}>Formule {f.nom}</strong>
                   </div>
                   <p style={{ color: '#666', fontSize: '12px', margin: '5px 0 0 0' }}>
                     {f.description}
                   </p>
+                  {Array.isArray(f.modules_actifs) && f.modules_actifs.length > 0 && (
+                    <p style={{ color: '#888', fontSize: '11px', margin: '6px 0 0 0' }}>
+                      Modules : {f.modules_actifs.map(m => LIBELLES_MODULES[m] || m).join(', ')}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
