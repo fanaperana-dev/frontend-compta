@@ -14,6 +14,7 @@ import FournisseursPage from './pages/FournisseursPage';
 import TiersPage from './pages/TiersPage';
 import RHPage from './pages/RHPage';
 import StocksPage from './pages/StocksPage';
+import ProductionPage from './pages/ProductionPage';
 import ImmobilisationsPage from './pages/ImmobilisationsPage';
 import JournalPage from './pages/JournalPage';
 import DashboardPage from './pages/DashboardPage';
@@ -112,6 +113,13 @@ function App() {
             <RouteProtegee>
               <ModuleProtege module="stocks">
                 <StocksPage />
+              </ModuleProtege>
+            </RouteProtegee>
+          } />
+          <Route path="/production" element={
+            <RouteProtegee>
+              <ModuleProtege module="stocks">
+                <ProductionPage />
               </ModuleProtege>
             </RouteProtegee>
           } />

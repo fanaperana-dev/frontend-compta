@@ -184,6 +184,14 @@ export const tiersService = {
   api.patch(`/tiers/${id}/paiement`, data)
 };
 //stocks
+export const productionService = {
+  getRecettes: (entreprise_id) => api.get(`/production/recettes/${entreprise_id}`),
+  creerRecette: (data) => api.post('/production/recettes', data),
+  modifierRecette: (id, data) => api.put(`/production/recettes/${id}`, data),
+  etatRecette: (id, actif) => api.put(`/production/recettes/${id}/etat`, { actif }),
+  calculRecette: (entreprise_id, id, quantite) => api.get(`/production/recettes/${entreprise_id}/${id}/calcul`, { params: { quantite } }),
+};
+
 export const stockService = {
   getArticles: (entreprise_id) => api.get(`/stocks/articles/${entreprise_id}`),
   creerArticle: (data) => api.post('/stocks/articles', data),
