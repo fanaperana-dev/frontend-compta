@@ -43,6 +43,7 @@ const tousLesModules = [
   { key: 'fournisseurs', label: '🏭 Fournisseurs' },
   { key: 'paiements', label: '💰 Paiements (Tiers)' },
   { key: 'stocks', label: '📦 Stocks' },
+  { key: 'production', label: '🏭 Production (recettes, fabrication)' },
   { key: 'immobilisations', label: '🏗️ Immobilisations' },
   { key: 'rh', label: '👤 Ressources Humaines' },
   { key: 'journal', label: '📒 Journal' },
@@ -54,7 +55,6 @@ function FormulaireForfait({ forfait, onSave, onCancel }) {
   const [form, setForm] = useState({
     nom: forfait?.nom || '',
     description: forfait?.description || '',
-    prix: forfait?.prix || 0,
     modules_actifs: forfait?.modules_actifs || [],
     actif: forfait?.actif !== undefined ? forfait.actif : true
   });
@@ -96,11 +96,6 @@ function FormulaireForfait({ forfait, onSave, onCancel }) {
             <textarea style={{ ...styles.input, height: '60px', resize: 'vertical' }}
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })} />
-          </div>
-          <div>
-            <label style={styles.label}>Prix (Ar/mois) *</label>
-            <input style={styles.input} type="number" value={form.prix}
-              onChange={e => setForm({ ...form, prix: Number(e.target.value) })} />
           </div>
           <div>
             <label style={styles.label}>Modules inclus</label>
@@ -220,9 +215,6 @@ export default function SuperAdminForfaits() {
               )}
             </div>
             <p style={{ color: '#666', fontSize: '13px', margin: '8px 0' }}>{f.description}</p>
-            <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#2e7d32', margin: '10px 0' }}>
-              {Number(f.prix).toLocaleString('fr-FR')} Ar<span style={{ fontSize: '13px', color: '#666' }}>/mois</span>
-            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '15px' }}>
               {(f.modules_actifs || []).map(m => {
                 const moduleInfo = tousLesModules.find(tm => tm.key === m);

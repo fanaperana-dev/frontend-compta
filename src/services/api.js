@@ -184,6 +184,24 @@ export const tiersService = {
   api.patch(`/tiers/${id}/paiement`, data)
 };
 //stocks
+export const productionService = {
+  getRecettes: (entreprise_id) => api.get(`/production/recettes/${entreprise_id}`),
+  creerRecette: (data) => api.post('/production/recettes', data),
+  modifierRecette: (id, data) => api.put(`/production/recettes/${id}`, data),
+  etatRecette: (id, actif) => api.put(`/production/recettes/${id}/etat`, { actif }),
+  calculRecette: (entreprise_id, id, quantite) => api.get(`/production/recettes/${entreprise_id}/${id}/calcul`, { params: { quantite } }),
+  getTableauBord: (entreprise_id) => api.get(`/production/tableau-de-bord/${entreprise_id}`),
+  getSuivi: (entreprise_id, params) => api.get(`/production/suivi/${entreprise_id}`, { params }),
+  getProductions: (entreprise_id) => api.get(`/production/productions/${entreprise_id}`),
+  getProduction: (entreprise_id, id) => api.get(`/production/productions/${entreprise_id}/${id}`),
+  creerProduction: (data) => api.post('/production/productions', data),
+  modifierProduction: (id, data) => api.put(`/production/productions/${id}`, data),
+  lancerProduction: (id) => api.post(`/production/productions/${id}/lancer`),
+  validerProduction: (id, data) => api.post(`/production/productions/${id}/valider`, data),
+  annulerProduction: (id) => api.post(`/production/productions/${id}/annuler`),
+  pdfProduction: (entreprise_id, id) => api.get(`/production/productions/${entreprise_id}/${id}/pdf`, { responseType: 'blob' }),
+};
+
 export const stockService = {
   getArticles: (entreprise_id) => api.get(`/stocks/articles/${entreprise_id}`),
   creerArticle: (data) => api.post('/stocks/articles', data),
