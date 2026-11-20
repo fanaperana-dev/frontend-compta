@@ -190,6 +190,7 @@ export const productionService = {
   modifierRecette: (id, data) => api.put(`/production/recettes/${id}`, data),
   etatRecette: (id, actif) => api.put(`/production/recettes/${id}/etat`, { actif }),
   calculRecette: (entreprise_id, id, quantite) => api.get(`/production/recettes/${entreprise_id}/${id}/calcul`, { params: { quantite } }),
+  getSuivi: (entreprise_id, params) => api.get(`/production/suivi/${entreprise_id}`, { params }),
   getProductions: (entreprise_id) => api.get(`/production/productions/${entreprise_id}`),
   getProduction: (entreprise_id, id) => api.get(`/production/productions/${entreprise_id}/${id}`),
   creerProduction: (data) => api.post('/production/productions', data),
