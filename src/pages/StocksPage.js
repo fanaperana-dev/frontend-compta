@@ -79,6 +79,62 @@ function ChampFamille({ valeur, onChange, articles, id }) {
   );
 }
 
+
+// Alertes : même règle que le serveur (un seuil à 0 = pas de seuil)
+const estSousMinimum = (a) => Number(a.stock_minimum) > 0 && Number(a.stock_disponible ?? a.stock_actuel) <= Number(a.stock_minimum);
+const estALiquider = (a) => Number(a.stock_maximum) > 0 && Number(a.stock_actuel) >= Number(a.stock_maximum);
+
+// Mention « dont X réservé » : matières réservées par une production lancée (pas encore sorties du stock)
+function InfoReserve({ a }) {
+  if (!(Number(a.stock_reserve) > 0)) return null;
+  return (
+    <div style={{ fontSize: '10px', fontWeight: 'normal', color: '#6a1b9a' }}
+      title="Réservé pour une production en cours : indisponible pour un bon de sortie ou une vente">
+      dont {Number(a.stock_reserve).toLocaleString('fr-FR')} réservé · dispo {Number(a.stock_disponible).toLocaleString('fr-FR')}
+    </div>
+  );
+}
+
+// Bandeaux d'alerte : sous le minimum (ruptures d'abord) et à liquider ; liste repliée au-delà de 8 articles
+function BandeauxAlertes({ etat }) {
+  const [toutVoir, setToutVoir] = useState({ min: false, max: false });
+  const LIMITE = 8;
+  const bloc = (cle, liste, fond, couleur, titre, pastille) => {
+    if (!liste || liste.length === 0) return null;
+    const visibles = toutVoir[cle] ? liste : liste.slice(0, LIMITE);
+    return (
+      <div style={{ background: fond, borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
+        <strong style={{ color: couleur }}>{titre} ({liste.length}) :</strong>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px', alignItems: 'center' }}>
+          {visibles.map(a => pastille(a))}
+          {liste.length > LIMITE && (
+            <button type="button" style={{ ...styles.boutonSecondaire, padding: '3px 10px', fontSize: '11px' }}
+              onClick={() => setToutVoir(v => ({ ...v, [cle]: !v[cle] }))}>
+              {toutVoir[cle] ? 'Réduire' : `Voir tout (${liste.length})`}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+  return (
+    <div style={{ marginBottom: '8px' }}>
+      {bloc('min', etat.alertes, '#ffebee', '#c62828', '⚠️ Articles sous le stock minimum', a => (
+        <span key={a.id} title={Number(a.stock_reserve) > 0 ? `${a.stock_reserve} réservé(s) pour une production` : undefined}
+          style={{ background: a.niveau === 'RUPTURE' ? '#c62828' : '#ffcdd2', color: a.niveau === 'RUPTURE' ? 'white' : '#c62828',
+            padding: '4px 10px', borderRadius: '12px', fontSize: '12px' }}>
+          {a.niveau === 'RUPTURE' ? '⛔ ' : ''}{a.designation} ({Number(a.stock_disponible ?? a.stock_actuel)}/{a.stock_minimum} {a.unite}{a.niveau === 'RUPTURE' ? ', rupture' : ''})
+        </span>
+      ))}
+      {bloc('max', etat.alertes_liquidation, '#fff3e0', '#e65100', '🏷️ Articles à liquider (stock maximum atteint)', a => (
+        <span key={a.id} style={{ background: '#ffe0b2', color: '#e65100', padding: '4px 10px', borderRadius: '12px', fontSize: '12px' }}>
+          {a.designation} ({Number(a.stock_actuel)}/{a.stock_maximum} {a.unite}, +{Number(a.depassement)})
+        </span>
+      ))}
+    </div>
+  );
+}
+
 // Formulaire article
 function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArticle }) {
   const [form, setForm] = useState({
@@ -94,6 +150,7 @@ function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArt
     methode_valorisation: article?.methode_valorisation || 'CMUP',
     stock_initial: article?.stock_initial || 0,
     stock_minimum: article?.stock_minimum || 0,
+    stock_maximum: article?.stock_maximum || 0,
     actif: article?.actif !== undefined ? article.actif : true
   });
   const [enCours, setEnCours] = useState(false);
@@ -234,8 +291,17 @@ function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArt
           )}
           <div>
             <label style={styles.label}>Stock minimum (alerte)</label>
-            <input style={styles.input} type="number" value={form.stock_minimum}
+            <input style={styles.input} type="number" min="0" value={form.stock_minimum}
               onChange={e => setForm({ ...form, stock_minimum: e.target.value })} />
+            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>0 = pas d'alerte de stock bas.</div>
+          </div>
+          <div>
+            <label style={styles.label}>Stock maximum (alerte de liquidation)</label>
+            <input style={styles.input} type="number" min="0" value={form.stock_maximum}
+              onChange={e => setForm({ ...form, stock_maximum: e.target.value })} />
+            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+              Quand le stock atteint ce maximum, l'article est signalé « à liquider ». 0 = pas de maximum.
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
@@ -245,6 +311,9 @@ function FormulaireArticle({ article, articles = [], onSave, onCancel, onVoirArt
             disabled={enCours || bloque}
             onClick={async () => {
               if (!form.compte_stock) { toast.error('Choisis le compte de stock de l\'article.'); return; }
+              if (Number(form.stock_maximum) > 0 && Number(form.stock_maximum) <= Number(form.stock_minimum)) {
+                toast.error('Le stock maximum doit être supérieur au stock minimum.'); return;
+              }
               setEnCours(true);
               const ok = await onSave({
                 ...form,
@@ -1060,7 +1129,7 @@ export default function StocksPage() {
       </div>
 
       {/* Indicateurs */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
         <div style={{ ...styles.card, marginBottom: 0, borderLeft: '4px solid #004d5a' }}>
           <div style={{ fontSize: '13px', color: '#666' }}>📦 Articles actifs</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#004d5a' }}>{articles.filter(a => a.actif).length}</div>
@@ -1072,27 +1141,21 @@ export default function StocksPage() {
           </div>
         </div>
         <div style={{ ...styles.card, marginBottom: 0, borderLeft: '4px solid #c62828' }}>
-          <div style={{ fontSize: '13px', color: '#666' }}>⚠️ Alertes stock</div>
+          <div style={{ fontSize: '13px', color: '#666' }}>⚠️ Sous le minimum</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#c62828' }}>
             {etat.alertes?.length || 0}
+          </div>
+        </div>
+        <div style={{ ...styles.card, marginBottom: 0, borderLeft: '4px solid #e65100' }}>
+          <div style={{ fontSize: '13px', color: '#666' }}>🏷️ À liquider</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e65100' }}>
+            {etat.alertes_liquidation?.length || 0}
           </div>
         </div>
       </div>
 
       {/* Alertes */}
-      {etat.alertes?.length > 0 && (
-        <div style={{ background: '#ffebee', borderRadius: '8px', padding: '12px', marginBottom: '20px' }}>
-          <strong style={{ color: '#c62828' }}>⚠️ Articles sous le stock minimum :</strong>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-            {etat.alertes.map(a => (
-              <span key={a.id} style={{ background: '#ffcdd2', color: '#c62828',
-                padding: '4px 10px', borderRadius: '12px', fontSize: '12px' }}>
-                {a.designation} ({a.stock_actuel}/{a.stock_minimum} {a.unite})
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <BandeauxAlertes etat={etat} />
 
       {/* Onglets */}
       <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '2px solid #e0e0e0' }}>
@@ -1156,14 +1219,15 @@ export default function StocksPage() {
                       </td>
                     </tr>
                     {lignes.map((a, i) => {
-                      const sousMin = a.stock_actuel <= a.stock_minimum;
+                      const sousMin = estSousMinimum(a);
+                        const aLiquider = estALiquider(a);
                       return (
-                        <tr key={a.id} style={{ background: sousMin ? '#ffebee' : i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
+                        <tr key={a.id} style={{ background: sousMin ? '#ffebee' : aLiquider ? '#fff3e0' : i % 2 === 0 ? 'white' : '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
                           <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>{a.reference}</td>
                           <td style={{ padding: '10px', fontSize: '13px' }}>{a.designation}</td>
                           <td style={{ padding: '10px', fontSize: '12px' }}>{a.unite}</td>
                           <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: sousMin ? '#c62828' : '#2e7d32' }}>
-                            {Number(a.stock_actuel).toLocaleString('fr-FR')}{sousMin && ' ⚠️'}
+                            {Number(a.stock_actuel).toLocaleString('fr-FR')}{sousMin && ' ⚠️'}{aLiquider && ' 🏷️'}<InfoReserve a={a} />
                           </td>
                           <td style={{ padding: '10px', fontSize: '12px' }}>{a.stock_minimum}</td>
                           <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
@@ -1243,9 +1307,10 @@ export default function StocksPage() {
                         const cmup = a.stock_actuel > 0
                           ? (a.valeur_stock / a.stock_actuel).toFixed(2)
                           : a.prix_achat_net;
-                        const sousMin = a.stock_actuel <= a.stock_minimum;
+                        const sousMin = estSousMinimum(a);
+                        const aLiquider = estALiquider(a);
                         return (
-                          <tr key={a.id} style={{ background: sousMin ? '#ffebee' : i % 2 === 0 ? 'white' : '#fafafa',
+                          <tr key={a.id} style={{ background: sousMin ? '#ffebee' : aLiquider ? '#fff3e0' : i % 2 === 0 ? 'white' : '#fafafa',
                             borderBottom: '1px solid #f0f0f0' }}>
                             <td style={{ padding: '10px', fontSize: '12px', fontWeight: 'bold' }}>{a.reference}</td>
                             <td style={{ padding: '10px', fontSize: '13px' }}>{a.designation}</td>
@@ -1257,7 +1322,7 @@ export default function StocksPage() {
                             <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold',
                               color: sousMin ? '#c62828' : '#2e7d32' }}>
                               {Number(a.stock_actuel).toLocaleString('fr-FR')}
-                              {sousMin && ' ⚠️'}
+                              {sousMin && ' ⚠️'}{aLiquider && ' 🏷️'}<InfoReserve a={a} />
                             </td>
                             <td style={{ padding: '10px', fontSize: '12px' }}>{a.stock_minimum}</td>
                             <td style={{ padding: '10px', fontSize: '12px' }}>
