@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { entrepriseService } from '../../services/api';
+import { calculerTarifNet, ar, libelleRemise } from '../../utils/tarifEntreprise';
 import useSoumission from '../../hooks/useSoumission';
 
 const styles = {
@@ -68,6 +69,10 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
     delai_paiement_defaut: entreprise?.delai_paiement_defaut || 30,
     info_paiement: entreprise?.info_paiement || '',
     forfait_id: entreprise?.forfait_id || '',
+    tarif_mensuel: entreprise?.tarif_mensuel ?? 0,
+    remise_type: entreprise?.remise_type || 'AUCUNE',
+    remise_valeur: entreprise?.remise_valeur ?? 0,
+    remise_motif: entreprise?.remise_motif || '',
     taux_majoration_ferie: entreprise?.taux_majoration_ferie || 1.50,
     assujettie_tva: entreprise?.assujettie_tva === true,
   });
@@ -109,6 +114,49 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
                 </option>
               ))}
             </select>
+          </div>
+          <div style={{ gridColumn: 'span 2', border: '1px solid #e0e0e0', borderRadius: '8px', padding: '12px', background: '#fafcfc' }}>
+            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#004d5a', marginBottom: '8px' }}>💰 Tarif mensuel de ce client</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={styles.label}>Tarif (Ar/mois)</label>
+                <input style={styles.input} type="number" min="0" step="any" value={form.tarif_mensuel}
+                  onChange={e => setForm({ ...form, tarif_mensuel: e.target.value })} />
+              </div>
+              <div>
+                <label style={styles.label}>Remise</label>
+                <select style={styles.input} value={form.remise_type}
+                  onChange={e => setForm({ ...form, remise_type: e.target.value, remise_valeur: e.target.value === 'AUCUNE' ? 0 : form.remise_valeur })}>
+                  <option value="AUCUNE">Aucune</option>
+                  <option value="POURCENT">En pourcentage (%)</option>
+                  <option value="MONTANT">Montant fixe (Ar)</option>
+                </select>
+              </div>
+              <div>
+                <label style={styles.label}>{form.remise_type === 'POURCENT' ? 'Remise (%)' : 'Remise (Ar)'}</label>
+                <input style={styles.input} type="number" min="0" step="any" value={form.remise_valeur}
+                  disabled={form.remise_type === 'AUCUNE'}
+                  onChange={e => setForm({ ...form, remise_valeur: e.target.value })} />
+              </div>
+              {form.remise_type !== 'AUCUNE' && (
+                <div style={{ gridColumn: 'span 3' }}>
+                  <label style={styles.label}>Motif de la remise (facultatif)</label>
+                  <input style={styles.input} value={form.remise_motif} placeholder="Ex. offre de lancement, fidélité…"
+                    onChange={e => setForm({ ...form, remise_motif: e.target.value })} />
+                </div>
+              )}
+            </div>
+            {(() => {
+              const t = calculerTarifNet(form.tarif_mensuel, form.remise_type, form.remise_valeur);
+              const invalide = (form.remise_type === 'POURCENT' && Number(form.remise_valeur) > 100) || (form.remise_type === 'MONTANT' && Number(form.remise_valeur) > Number(form.tarif_mensuel));
+              return (
+                <div style={{ fontSize: '12px', marginTop: '8px', color: invalide ? '#c62828' : '#555' }}>
+                  {invalide
+                    ? '⚠️ La remise dépasse le tarif : elle sera refusée à l\'enregistrement.'
+                    : <>Tarif net : <strong style={{ color: '#2e7d32', fontSize: '14px' }}>{ar(t.net)}</strong> / mois{t.remise > 0 && <> (remise de {ar(t.remise)} sur {ar(t.tarif)})</>}</>}
+                </div>
+              );
+            })()}
           </div>
           <div>
             <label style={styles.label}>Téléphone</label>
@@ -255,6 +303,14 @@ function ModalDetailEntreprise({ entreprise, forfaits, onClose, onModifier, onCh
           <div><strong>RCS :</strong> {entreprise.rcs || '—'} — <strong>Capital :</strong> {entreprise.capital || '—'}</div>
           <div><strong>TVA :</strong> {entreprise.assujettie_tva ? `Assujettie (${Number(entreprise.taux_tva) || 20} %)` : 'Non assujettie'} — <strong>Code adhérent OSTIE :</strong> {entreprise.code_adherent_ostie || '—'}</div>
           <div><strong>Forfait :</strong> {forfait ? forfait.nom : 'Non défini'}</div>
+          {(() => {
+            const t = calculerTarifNet(entreprise.tarif_mensuel, entreprise.remise_type, entreprise.remise_valeur);
+            return (
+              <div>
+                <strong>Tarif mensuel :</strong> {Number(entreprise.tarif_mensuel) > 0 ? <><strong style={{ color: '#2e7d32' }}>{ar(t.net)}</strong>{t.remise > 0 && <span style={{ color: '#666' }}> (tarif {ar(t.tarif)} − remise {libelleRemise(entreprise.remise_type, entreprise.remise_valeur)} = {ar(t.remise)}{entreprise.remise_motif ? ` · ${entreprise.remise_motif}` : ''})</span>}</> : 'Non défini'}
+              </div>
+            );
+          })()}
           {entreprise.statut === 'SUSPENDU' && (
             <div style={{ background: '#ffebee', padding: '10px', borderRadius: '8px', color: '#c62828' }}>
               <strong>Motif suspension :</strong> {entreprise.motif_suspension || 'Non précisé'}<br/>
