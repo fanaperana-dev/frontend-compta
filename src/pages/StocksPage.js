@@ -52,6 +52,8 @@ const typesMouvement = [
   { key: 'ANNULATION_VENTE', label: '↩️ Remise en stock (facture modifiée/annulée)', couleur: '#2e7d32' },
   { key: 'SORTIE_BON', label: '📤 Bon de sortie', couleur: '#ad1457' },
   { key: 'ANNULATION_BON', label: '↩️ Bon de sortie annulé', couleur: '#2e7d32' },
+  { key: 'SORTIE_PRODUCTION', label: '🏭 Matières utilisées en production', couleur: '#6a1b9a' },
+  { key: 'ANNULATION_PRODUCTION', label: '↩️ Production : retour arrière', couleur: '#2e7d32' },
   { key: 'ENTREE_INVENTAIRE', label: '📋 Surplus d\'inventaire', couleur: '#00838f' }
 ];
 

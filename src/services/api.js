@@ -190,6 +190,14 @@ export const productionService = {
   modifierRecette: (id, data) => api.put(`/production/recettes/${id}`, data),
   etatRecette: (id, actif) => api.put(`/production/recettes/${id}/etat`, { actif }),
   calculRecette: (entreprise_id, id, quantite) => api.get(`/production/recettes/${entreprise_id}/${id}/calcul`, { params: { quantite } }),
+  getProductions: (entreprise_id) => api.get(`/production/productions/${entreprise_id}`),
+  getProduction: (entreprise_id, id) => api.get(`/production/productions/${entreprise_id}/${id}`),
+  creerProduction: (data) => api.post('/production/productions', data),
+  modifierProduction: (id, data) => api.put(`/production/productions/${id}`, data),
+  lancerProduction: (id) => api.post(`/production/productions/${id}/lancer`),
+  validerProduction: (id, data) => api.post(`/production/productions/${id}/valider`, data),
+  annulerProduction: (id) => api.post(`/production/productions/${id}/annuler`),
+  pdfProduction: (entreprise_id, id) => api.get(`/production/productions/${entreprise_id}/${id}/pdf`, { responseType: 'blob' }),
 };
 
 export const stockService = {

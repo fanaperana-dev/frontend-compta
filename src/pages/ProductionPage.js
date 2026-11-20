@@ -7,20 +7,8 @@ import { trouverSimilaires, nettoyerDesignation, nettoyerFamille, listerFamilles
 import { groupeDeCompte, libelleCompte } from '../utils/comptesStock';
 import { unitesProposees, convertir, unitesCompatibles } from '../utils/unitesProduction';
 import { apercuCout } from '../utils/coutRecette';
-
-const styles = {
-  boutonPrimaire: { background: 'white', color: '#004d5a', border: '2px solid #004d5a', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' },
-  boutonSecondaire: { background: 'white', color: '#004d5a', border: '2px solid #004d5a', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' },
-  boutonDanger: { background: 'white', color: '#c62828', border: '2px solid #c62828', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' },
-  input: { width: '100%', padding: '10px', border: '2px solid #e0e0e0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' },
-  inputPetit: { width: '100%', padding: '7px', border: '2px solid #e0e0e0', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', outline: 'none' },
-  label: { display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#333', fontSize: '13px' },
-  card: { background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', marginBottom: '20px' },
-  modal: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modalContent: { background: 'white', borderRadius: '12px', padding: '28px', width: '860px', maxWidth: '96vw', maxHeight: '92vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
-  th: { padding: '10px', textAlign: 'left', fontSize: '12px', color: '#555', borderBottom: '2px solid #e0e0e0' },
-  td: { padding: '10px', fontSize: '13px' },
-};
+import { styles, ar, qte } from './productionCommun';
+import OngletProductions from './OngletProductions';
 
 // Comptes proposés pour un produit fabriqué (même règle que le serveur)
 const COMPTES_PRODUIT = [
@@ -31,8 +19,6 @@ const COMPTES_PRODUIT = [
 ];
 const estProduitFabricable = (a) => a.actif !== false && ['33', '35'].includes(groupeDeCompte(a.compte_stock));
 
-const ar = (n) => `${Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} Ar`;
-const qte = (n) => Number(n || 0).toLocaleString('fr-FR', { maximumFractionDigits: 4 });
 // Autres recettes qui utilisent la même matière (ex. le lait : beurre, fromage, yaourt)
 const recettesUtilisant = (recettes, article_id, sauf) => (recettes || [])
   .filter(r => r.actif && (!sauf || r.id !== sauf) && (r.ingredients || []).some(l => String(l.article_id) === String(article_id)))
@@ -496,7 +482,7 @@ export default function ProductionPage() {
       </div>
 
       <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '2px solid #e0e0e0' }}>
-        {[{ key: 'recettes', label: '📖 Recettes' }].map(o => (
+        {[{ key: 'recettes', label: '📖 Recettes' }, { key: 'productions', label: '🏭 Productions' }].map(o => (
           <button key={o.key} onClick={() => setOnglet(o.key)}
             style={{ padding: '10px 16px', border: 'none', cursor: 'pointer', borderBottom: onglet === o.key ? '3px solid #004d5a' : '3px solid transparent',
               background: 'transparent', color: onglet === o.key ? '#004d5a' : '#666', fontWeight: onglet === o.key ? 'bold' : 'normal', fontSize: '13px' }}>{o.label}</button>
@@ -583,6 +569,8 @@ export default function ProductionPage() {
           )}
         </div>
       )}
+
+      {onglet === 'productions' && <OngletProductions entreprise={entreprise} recettes={recettes} />}
 
       {modal && (
         <FormulaireRecette recette={modal.recette} recettes={recettes} articles={articles} assujettie={!!entreprise.assujettie_tva}
