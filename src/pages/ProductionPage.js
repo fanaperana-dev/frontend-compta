@@ -100,6 +100,7 @@ function FormulaireRecette({ recette, recettes, articles, assujettie, onSave, on
     produit_fini_id: recette ? String(recette.produit_fini_id) : '',
     nouveau: { designation: '', unite: 'pot', compte_stock: '355', famille: '', prix_vente_defaut: '', confirmer_similaire: false },
     quantite_reference: recette ? Number(recette.quantite_reference) : '',
+    unite_reference: '',          // unité choisie pour la quantité de référence ('' = celle du produit fini)
     notes: recette?.notes || '',
     ingredients: recette ? recette.ingredients.map(l => ({ article_id: String(l.article_id), quantite: Number(l.quantite), unite: l.unite })) : [ligneVide()],
     main_oeuvre: recette ? recette.main_oeuvre.map(m => ({ libelle: m.libelle, nombre_personnes: Number(m.nombre_personnes), heures: Number(m.heures), taux_horaire: Number(m.taux_horaire) })) : [],
@@ -115,7 +116,17 @@ function FormulaireRecette({ recette, recettes, articles, assujettie, onSave, on
   const idsUtilises = new Set(form.ingredients.map(l => l.article_id).filter(Boolean));
   const candidats = (idCourant) => articles.filter(a => a.actif !== false && String(a.id) !== String(form.produit_fini_id)
     && (String(a.id) === String(idCourant) || !idsUtilises.has(String(a.id))));
-  const apercu = apercuCout(form, parId, assujettie);
+  // Unité de la quantité de référence : celle du produit fini, ou une unité de la même famille (ex. produit en litre → ml, cl, l).
+  // On convertit dans l'unité du produit avant d'enregistrer : le stock et les coûts restent dans l'unité de l'article.
+  const optionsUnite = uniteProduit ? unitesProposees(uniteProduit) : [];
+  const uniteRef = form.unite_reference && unitesCompatibles(form.unite_reference, uniteProduit) ? form.unite_reference : uniteProduit;
+  const quantiteRefProduit = (() => {
+    const q = Number(form.quantite_reference);
+    if (!(q > 0) || !uniteProduit || uniteRef === uniteProduit) return q;
+    const c = convertir(q, uniteRef, uniteProduit);
+    return c == null ? q : Math.round(c * 1e6) / 1e6;
+  })();
+  const apercu = apercuCout({ ...form, quantite_reference: quantiteRefProduit }, parId, assujettie);
 
   // Doublon du nouveau produit (même règle que le catalogue) : identique = bloqué, proche = confirmation
   const similaires = form.mode === 'nouveau' ? trouverSimilaires(nettoyerDesignation(form.nouveau.designation), articles) : [];
@@ -152,7 +163,7 @@ function FormulaireRecette({ recette, recettes, articles, assujettie, onSave, on
       if (!(Number(mo[i].nombre_personnes) > 0) || !(Number(mo[i].heures) > 0)) return toast.error(`Main-d'œuvre ${i + 1} : personnes et heures doivent être supérieures à 0.`);
     }
     const payload = {
-      nom: form.nom, notes: form.notes, quantite_reference: Number(form.quantite_reference),
+      nom: form.nom, notes: form.notes, quantite_reference: quantiteRefProduit,
       ...(form.mode === 'existant'
         ? { produit_fini_id: form.produit_fini_id }
         : { nouveau_produit: { ...form.nouveau, designation: nettoyerDesignation(form.nouveau.designation), prix_vente_defaut: Number(form.nouveau.prix_vente_defaut) || 0 } }),
@@ -185,8 +196,23 @@ function FormulaireRecette({ recette, recettes, articles, assujettie, onSave, on
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input style={styles.input} type="number" min="0" step="any" value={form.quantite_reference}
                 placeholder="Ex. 10" onChange={e => maj({ quantite_reference: e.target.value })} />
-              <span style={{ fontSize: '13px', color: '#555', whiteSpace: 'nowrap' }}>{uniteProduit || 'unité du produit'}</span>
+              {form.mode === 'nouveau' ? (
+                <>
+                  <input style={{ ...styles.input, width: '110px' }} value={form.nouveau.unite} list="unites-produit" placeholder="Unité" title="Unité du produit fini"
+                    onChange={e => majNouveau({ unite: e.target.value })} />
+                  <datalist id="unites-produit">{['pot', 'pièce', 'kg', 'g', 'litre', 'ml', 'boîte', 'sachet', 'bouteille', 'carton'].map(u => <option key={u} value={u} />)}</datalist>
+                </>
+              ) : optionsUnite.length > 1 ? (
+                <select style={{ ...styles.input, width: '110px' }} value={uniteRef} onChange={e => maj({ unite_reference: e.target.value })}>
+                  {optionsUnite.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+              ) : (
+                <span style={{ fontSize: '13px', color: '#555', whiteSpace: 'nowrap' }}>{uniteProduit || '← choisis d\'abord le produit fini'}</span>
+              )}
             </div>
+            {uniteRef !== uniteProduit && quantiteRefProduit > 0 && (
+              <div style={{ fontSize: '11px', color: '#1565c0', marginTop: '3px' }}>= {qte(quantiteRefProduit)} {uniteProduit} (unité du produit en stock)</div>
+            )}
             <div style={{ fontSize: '11px', color: '#777', marginTop: '3px' }}>
               Les quantités ci-dessous sont celles qu'il faut pour fabriquer cette quantité. L'outil les ajustera à la quantité demandée à chaque production.
             </div>
@@ -219,11 +245,6 @@ function FormulaireRecette({ recette, recettes, articles, assujettie, onSave, on
                 <input style={styles.input} value={form.nouveau.designation} placeholder="Ex. Confiture d'ananas 100 ml"
                   onChange={e => majNouveau({ designation: e.target.value, confirmer_similaire: false })} />
               </div>
-              <div>
-                <label style={styles.label}>Unité</label>
-                <input style={styles.input} value={form.nouveau.unite} list="unites-produit" onChange={e => majNouveau({ unite: e.target.value })} />
-                <datalist id="unites-produit">{['pot', 'pièce', 'kg', 'g', 'litre', 'ml', 'boîte', 'sachet', 'bouteille', 'carton'].map(u => <option key={u} value={u} />)}</datalist>
-              </div>
               <div style={{ gridColumn: '1 / 3' }}>
                 <label style={styles.label}>Compte de stock</label>
                 <select style={styles.input} value={form.nouveau.compte_stock} onChange={e => majNouveau({ compte_stock: e.target.value })}>
@@ -255,7 +276,7 @@ function FormulaireRecette({ recette, recettes, articles, assujettie, onSave, on
         </div>
 
         {/* Ingrédients */}
-        <h3 style={{ margin: '0 0 8px', color: '#004d5a', fontSize: '15px' }}>🧂 Ingrédients (pour {form.quantite_reference ? qte(form.quantite_reference) : '…'} {uniteProduit})</h3>
+        <h3 style={{ margin: '0 0 8px', color: '#004d5a', fontSize: '15px' }}>🧂 Ingrédients (pour {form.quantite_reference ? qte(form.quantite_reference) : '…'} {uniteRef})</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '6px' }}>
           <thead>
             <tr>{['Article du stock', 'Quantité', 'Unité', 'Coût estimé', ''].map(h => <th key={h} style={{ ...styles.th, padding: '6px 4px' }}>{h}</th>)}</tr>
@@ -343,7 +364,7 @@ function FormulaireRecette({ recette, recettes, articles, assujettie, onSave, on
           <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', fontSize: '13px' }}>
             <div>Matières : <strong>{ar(apercu.matieres)}</strong></div>
             <div>Main-d'œuvre : <strong>{ar(apercu.mainOeuvre)}</strong></div>
-            <div>Total pour {form.quantite_reference ? qte(form.quantite_reference) : '…'} {uniteProduit} : <strong>{ar(apercu.total)}</strong></div>
+            <div>Total pour {form.quantite_reference ? qte(form.quantite_reference) : '…'} {uniteRef} : <strong>{ar(apercu.total)}</strong></div>
             <div style={{ color: '#2e7d32', fontSize: '15px' }}>Coût par {uniteProduit || 'unité'} : <strong>{ar(apercu.unitaire)}</strong></div>
           </div>
           <div style={{ fontSize: '11px', color: '#555', marginTop: '6px' }}>
