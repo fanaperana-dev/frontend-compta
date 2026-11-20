@@ -10,6 +10,7 @@ import { apercuCout } from '../utils/coutRecette';
 import { styles, ar, qte } from './productionCommun';
 import OngletProductions from './OngletProductions';
 import OngletSuivi from './OngletSuivi';
+import OngletTableauBord from './OngletTableauBord';
 
 // Comptes proposés pour un produit fabriqué (même règle que le serveur)
 const COMPTES_PRODUIT = [
@@ -423,7 +424,7 @@ function DetailRecette({ r, recettes }) {
 
 export default function ProductionPage() {
   const { entreprise } = useAuth();
-  const [onglet, setOnglet] = useState('recettes');
+  const [onglet, setOnglet] = useState('tableau');
   const [recettes, setRecettes] = useState([]);
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -483,7 +484,7 @@ export default function ProductionPage() {
       </div>
 
       <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '2px solid #e0e0e0' }}>
-        {[{ key: 'recettes', label: '📖 Recettes' }, { key: 'productions', label: '🏭 Productions' }, { key: 'suivi', label: '📈 Suivi des coûts' }].map(o => (
+        {[{ key: 'tableau', label: '📊 Tableau de bord' }, { key: 'recettes', label: '📖 Recettes' }, { key: 'productions', label: '🏭 Productions' }, { key: 'suivi', label: '📈 Suivi des coûts' }].map(o => (
           <button key={o.key} onClick={() => setOnglet(o.key)}
             style={{ padding: '10px 16px', border: 'none', cursor: 'pointer', borderBottom: onglet === o.key ? '3px solid #004d5a' : '3px solid transparent',
               background: 'transparent', color: onglet === o.key ? '#004d5a' : '#666', fontWeight: onglet === o.key ? 'bold' : 'normal', fontSize: '13px' }}>{o.label}</button>
@@ -573,6 +574,7 @@ export default function ProductionPage() {
 
       {onglet === 'productions' && <OngletProductions entreprise={entreprise} recettes={recettes} />}
       {onglet === 'suivi' && <OngletSuivi entreprise={entreprise} recettes={recettes} />}
+      {onglet === 'tableau' && <OngletTableauBord entreprise={entreprise} onAller={setOnglet} />}
 
       {modal && (
         <FormulaireRecette recette={modal.recette} recettes={recettes} articles={articles} assujettie={!!entreprise.assujettie_tva}
