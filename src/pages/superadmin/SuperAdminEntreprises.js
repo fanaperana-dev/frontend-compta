@@ -105,7 +105,7 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
               <option value="">Sélectionner un forfait</option>
               {forfaits.map(f => (
                 <option key={f.id} value={f.id}>
-                  {f.nom} — {Number(f.prix).toLocaleString('fr-FR')} Ar/mois
+                  {f.nom}
                 </option>
               ))}
             </select>
@@ -254,7 +254,7 @@ function ModalDetailEntreprise({ entreprise, forfaits, onClose, onModifier, onCh
           <div><strong>NIF :</strong> {entreprise.nif || '—'} — <strong>STAT :</strong> {entreprise.stat || '—'}</div>
           <div><strong>RCS :</strong> {entreprise.rcs || '—'} — <strong>Capital :</strong> {entreprise.capital || '—'}</div>
           <div><strong>TVA :</strong> {entreprise.assujettie_tva ? `Assujettie (${Number(entreprise.taux_tva) || 20} %)` : 'Non assujettie'} — <strong>Code adhérent OSTIE :</strong> {entreprise.code_adherent_ostie || '—'}</div>
-          <div><strong>Forfait :</strong> {forfait ? `${forfait.nom} (${Number(forfait.prix).toLocaleString('fr-FR')} Ar/mois)` : 'Non défini'}</div>
+          <div><strong>Forfait :</strong> {forfait ? forfait.nom : 'Non défini'}</div>
           {entreprise.statut === 'SUSPENDU' && (
             <div style={{ background: '#ffebee', padding: '10px', borderRadius: '8px', color: '#c62828' }}>
               <strong>Motif suspension :</strong> {entreprise.motif_suspension || 'Non précisé'}<br/>
