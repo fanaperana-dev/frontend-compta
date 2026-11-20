@@ -10,7 +10,7 @@ const menuItems = [
   { path: '/paiements', icon: '💵', label: 'Divers', module: 'factures' },
   { path: '/rh', icon: '🧑‍🤝‍🧑', label: 'Ressources Humaines', module: 'rh' },
   { path: '/stocks', icon: '📦', label: 'Stocks', module: 'stocks' },
-  { path: '/production', icon: '🏭', label: 'Production', module: 'stocks' },
+  { path: '/production', icon: '🏭', label: 'Production', module: 'production' },
   { path: '/immobilisations', icon: '🏗️', label: 'Immobilisations', module: 'immobilisations' },
   { path: '/comptabilite/compte-courant', icon: '🤝', label: 'Compte courant associés', module: 'comptabilite' },
   { path: '/journal', icon: '🔢', label: 'Journal', module: 'journal' },

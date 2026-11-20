@@ -118,7 +118,7 @@ function App() {
           } />
           <Route path="/production" element={
             <RouteProtegee>
-              <ModuleProtege module="stocks">
+              <ModuleProtege module="production">
                 <ProductionPage />
               </ModuleProtege>
             </RouteProtegee>

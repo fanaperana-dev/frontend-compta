@@ -43,6 +43,7 @@ const tousLesModules = [
   { key: 'fournisseurs', label: '🏭 Fournisseurs' },
   { key: 'paiements', label: '💰 Paiements (Tiers)' },
   { key: 'stocks', label: '📦 Stocks' },
+  { key: 'production', label: '🏭 Production (recettes, fabrication)' },
   { key: 'immobilisations', label: '🏗️ Immobilisations' },
   { key: 'rh', label: '👤 Ressources Humaines' },
   { key: 'journal', label: '📒 Journal' },
