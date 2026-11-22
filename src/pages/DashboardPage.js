@@ -120,6 +120,29 @@ export function filtrerAlertes(alertes, { assujettie, fermees = [], date = new D
 }
 
 
+// Échéances à venir : alertes du régime de l'entreprise dont la période s'ouvre dans les `mois` prochains
+// (celles déjà ouvertes sont affichées à part, dans « en cours »). Fonction pure, testable.
+export function echeancesAVenir(alertes, { assujettie, fermees = [], date = new Date(), mois = 3 }) {
+  const regime = assujettie ? 'REEL' : 'SYNTHETIQUE';
+  const debutJour = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const limite = new Date(debutJour.getFullYear(), debutJour.getMonth() + mois, debutJour.getDate());
+  const out = [];
+  alertes.forEach(a => {
+    if (a.regime !== 'TOUS' && a.regime !== regime) return;
+    if (fermees.includes(a.code)) return;
+    for (const an of [debutJour.getFullYear(), debutJour.getFullYear() + 1]) {
+      const ouvre = new Date(an, a.debut.mois, a.debut.jour);
+      const ferme = new Date(an, a.fin.mois, a.fin.jour);
+      if (ferme < debutJour) continue;               // période passée
+      if (ouvre <= debutJour) break;                 // déjà en cours : pas « à venir »
+      if (ouvre <= limite) out.push({ ...a, ouvre, ferme });
+      break;
+    }
+  });
+  return out.sort((x, y) => x.ouvre - y.ouvre);
+}
+
+
 function FiltresMois({ moisSelectionnes, onToggle, onReset }) {
   return (
     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -410,9 +433,39 @@ export default function DashboardPage() {
           {getAlertesFiscalesActives().length === 0 && (
             <div style={styles.card}>
               <h3 style={{ color: '#004d5a', marginTop: 0 }}>📅 Obligations fiscales</h3>
-              <p style={{ color: '#2e7d32', margin: 0 }}>✅ Aucune obligation fiscale en cours.</p>
+              <p style={{ color: '#2e7d32', margin: 0 }}>✅ Rien à déclarer ni à payer aujourd'hui. Voir le calendrier ci-dessous.</p>
             </div>
           )}
+
+          {(() => {
+            const aVenir = echeancesAVenir(alertesFiscales, { assujettie: entreprise?.assujettie_tva === true, fermees: alertesFermees });
+            const fmt = (d) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+            return (
+              <div style={styles.card}>
+                <h3 style={{ color: '#004d5a', marginTop: 0 }}>🗓️ Calendrier — 3 prochains mois</h3>
+                {aVenir.length === 0 ? (
+                  <p style={{ color: '#666', margin: 0, fontSize: '13px' }}>Aucune échéance ne s'ouvre dans les 3 prochains mois.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {aVenir.map(a => (
+                      <div key={`${a.code}-${a.ouvre.getFullYear()}`} style={{
+                        display: 'flex', gap: '12px', alignItems: 'center', padding: '10px 14px',
+                        borderRadius: '8px', borderLeft: `4px solid ${a.couleur}`, background: `${a.couleur}0d`
+                      }}>
+                        <span style={{ fontSize: '18px' }}>{a.icone}</span>
+                        <div style={{ fontSize: '13px', color: '#333' }}>
+                          <strong>{fmt(a.ouvre)} → {fmt(a.ferme)}</strong> — {a.message}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ fontSize: '11px', color: '#888', marginTop: '10px' }}>
+                  Calendrier indicatif selon le régime de l'entreprise (TVA : IR / IRSA mensuel ; sinon IS / IRSA bimestriel). L'état « fait » est une simple mémoire, il ne vérifie pas la déclaration.
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -566,6 +619,8 @@ export default function DashboardPage() {
             );
             const totalRecettes = graph.reduce((s, m) => s + Number(m.recettes || 0), 0);
             const totalDepenses = graph.reduce((s, m) => s + Number(m.depenses || 0), 0);
+            const autresProduits = graph.reduce((s, m) => s + Number(m.autresProduits || 0), 0);
+            const horsResultat = donnees.totaux?.horsResultat || [];
             const soldeGlobal = graph.reduce((s, m) => s + Number(m.solde || 0), 0);
             const masseNet = graph.reduce((s, m) => s + Number(m.masseNet || 0), 0);
             const massePatronale = graph.reduce((s, m) => s + Number(m.massePatronale || 0), 0);
@@ -573,12 +628,13 @@ export default function DashboardPage() {
             return (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                  <CarteChiffre titre="💰 Chiffre d'affaires" valeur={totalRecettes} couleur="#2e7d32"
-                    sousTitre="Encaissements clients (payées, archivées, partielles) + recettes tiers" />
-                  <CarteChiffre titre="💸 Total dépenses" valeur={totalDepenses} couleur="#c62828"
-                    sousTitre="Achats, immobilisations, dépenses tiers + salaires bruts et charges patronales" />
-                  <CarteChiffre titre="📊 Solde global" valeur={soldeGlobal}
-                    couleur={soldeGlobal >= 0 ? '#2149fa' : '#c62828'} />
+                  <CarteChiffre titre="💰 Chiffre d'affaires (70x)" valeur={totalRecettes} couleur="#2e7d32"
+                    sousTitre="Ventes encaissées hors TVA : comptes 70x uniquement" />
+                  <CarteChiffre titre="💸 Charges (comptes 6)" valeur={totalDepenses} couleur="#c62828"
+                    sousTitre="Achats et charges payés + salaires bruts et charges patronales, nets des recettes classées en 6" />
+                  <CarteChiffre titre="📊 Résultat estimé" valeur={soldeGlobal}
+                    couleur={soldeGlobal >= 0 ? '#2149fa' : '#c62828'}
+                    sousTitre={`CA + autres produits${autresProduits ? ` (${Math.round(autresProduits).toLocaleString('fr-FR')} Ar)` : ''} − charges, sur encaissements et paiements : ce n'est ni une trésorerie ni un résultat comptable définitif`} />
                   <CarteChiffre titre="👥 Masse salariale nette" valeur={masseNet}
                     couleur="#1565c0" sousTitre="Salaires nets versés" />
                   <CarteChiffre titre="🏛️ Charges patronales" valeur={massePatronale}
@@ -588,9 +644,28 @@ export default function DashboardPage() {
                       couleur="#00838f" sousTitre="Valeur actuelle au coût d'achat (indépendante de l'année et des mois choisis)" />
                   )}
                 </div>
+                {horsResultat.length > 0 && (
+                  <div style={styles.card}>
+                    <h3 style={{ color: '#004d5a', marginTop: 0, marginBottom: '6px' }}>🔁 Mouvements hors résultat — {annee} (année entière)</h3>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '10px' }}>
+                      Argent qui a bougé sans être un produit ni une charge : stocks, immobilisations, comptes d'associés et de tiers, virements entre caisse et banque.
+                    </div>
+                    <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+                      <thead><tr style={{ textAlign: 'left', color: '#666' }}>
+                        <th style={{ padding: '6px' }}>Nature</th><th style={{ padding: '6px', textAlign: 'right' }}>Entrées</th>
+                        <th style={{ padding: '6px', textAlign: 'right' }}>Sorties</th></tr></thead>
+                      <tbody>{horsResultat.map(h => (
+                        <tr key={h.nature} style={{ borderTop: '1px solid #eee' }}>
+                          <td style={{ padding: '6px' }}>{h.nature}</td>
+                          <td style={{ padding: '6px', textAlign: 'right' }}>{Math.round(h.entrees).toLocaleString('fr-FR')} Ar</td>
+                          <td style={{ padding: '6px', textAlign: 'right' }}>{Math.round(h.sorties).toLocaleString('fr-FR')} Ar</td>
+                        </tr>))}</tbody>
+                    </table>
+                  </div>
+                )}
                 <div style={styles.card}>
                   <h3 style={{ color: '#004d5a', marginTop: 0, marginBottom: '20px' }}>
-                    📈 Recettes vs Dépenses — {annee}
+                    📈 Chiffre d'affaires vs charges — {annee}
                   </h3>
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={donnees.graphiqueParMois} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -599,10 +674,10 @@ export default function DashboardPage() {
                       <YAxis tickFormatter={v => `${(v / 1000000).toFixed(1)}M`} fontSize={11} />
                       <Tooltip
                         formatter={(value, name) => [`${Number(value).toLocaleString('fr-FR')} Ar`,
-                          name === 'recettes' ? 'Recettes' : name === 'depenses' ? 'Dépenses' : 'Solde']}
+                          name === 'recettes' ? "Chiffre d'affaires" : name === 'depenses' ? 'Charges' : 'Résultat estimé']}
                         labelFormatter={l => `Mois : ${l}`}
                       />
-                      <Legend formatter={name => name === 'recettes' ? 'Recettes' : name === 'depenses' ? 'Dépenses' : 'Solde'} />
+                      <Legend formatter={name => name === 'recettes' ? "Chiffre d'affaires" : name === 'depenses' ? 'Charges' : 'Résultat estimé'} />
                       <Bar dataKey="recettes" fill="#2e7d32" radius={[4,4,0,0]} />
                       <Bar dataKey="depenses" fill="#c62828" radius={[4,4,0,0]} />
                       <Bar dataKey="solde" fill="#2149fa" radius={[4,4,0,0]} />
