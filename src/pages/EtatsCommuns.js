@@ -49,7 +49,7 @@ export function SelecteurAnnee({ annee, setAnnee }) {
   return (
     <select style={{ ...styles.input, width: '120px' }}
       value={annee} onChange={e => setAnnee(Number(e.target.value))}>
-      {Array.from({ length: 5 }, (_, i) => courante - 2 + i).map(a => (
+      {Array.from({ length: 5 }, (_, i) => courante - 2 + i).filter(a => a >= 2026).map(a => (
         <option key={a} value={a}>{a}</option>
       ))}
     </select>
