@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [utilisateur, setUtilisateur] = useState(null); // null = compte principal de l'entreprise (tous les onglets)
 
   // Vérifier si déjà connecté au chargement
   useEffect(() => {
@@ -19,6 +20,10 @@ export function AuthProvider({ children }) {
       setToken(tokenStocke);
       setEntreprise(JSON.parse(entrepriseStockee));
       setIsAdmin(adminStocke === 'true');
+      try {
+        const u = localStorage.getItem('utilisateur');
+        setUtilisateur(u ? JSON.parse(u) : null);
+      } catch (e) { setUtilisateur(null); }
     }
 
     setLoading(false);
@@ -35,9 +40,11 @@ useEffect(() => {
       localStorage.removeItem('token');
       localStorage.removeItem('entreprise');
       localStorage.removeItem('isAdmin');
+      localStorage.removeItem('utilisateur');
       setToken(null);
       setEntreprise(null);
       setIsAdmin(false);
+      setUtilisateur(null);
       alert('Vous avez été déconnecté automatiquement après 15 minutes d\'inactivité.');
     }, 15 * 60 * 1000); // 15 minutes
   }
@@ -59,17 +66,18 @@ useEffect(() => {
   async function connexion(email, mot_de_passe) {
   try {
     const response = await authService.connexion(email, mot_de_passe);
-    const { token, entreprise } = response.data;
-    console.log('[LOGIN] entreprise reçue:', entreprise);
-    
+    const { token, entreprise, utilisateur: util } = response.data;
 
     localStorage.setItem('token', token);
     localStorage.setItem('entreprise', JSON.stringify(entreprise));
     localStorage.setItem('isAdmin', 'false');
+    if (util) localStorage.setItem('utilisateur', JSON.stringify(util));
+    else localStorage.removeItem('utilisateur');
 
     setToken(token);
     setEntreprise(entreprise);
     setIsAdmin(false);
+    setUtilisateur(util || null);
 
     return { success: true };
   } catch (err) {
@@ -115,10 +123,12 @@ useEffect(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('entreprise');
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('utilisateur');
 
     setToken(null);
     setEntreprise(null);
     setIsAdmin(false);
+    setUtilisateur(null);
   }
 
   // Vérifier si un module est actif
@@ -132,8 +142,25 @@ useEffect(() => {
   return modules.includes(module);
 }
 
+  // Onglet visible ? Le compte principal voit tout ; un utilisateur ne voit que les onglets cochés pour lui
+  // (liste choisie par le propriétaire de l'entreprise, différente d'une entreprise à l'autre).
+  function ongletAutorise(path) {
+    if (isAdmin || !utilisateur) return true;
+    return (utilisateur.onglets || []).includes(path);
+  }
+
+  // Mise à jour de l'utilisateur connecté (ex. après le choix de son mot de passe)
+  function majUtilisateur(champs) {
+    const u = { ...utilisateur, ...champs };
+    localStorage.setItem('utilisateur', JSON.stringify(u));
+    setUtilisateur(u);
+  }
+
   return (
     <AuthContext.Provider value={{
+      utilisateur,
+      majUtilisateur,
+      ongletAutorise,
       entreprise,
       token,
       loading,
