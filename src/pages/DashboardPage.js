@@ -92,6 +92,10 @@ export const alertesFiscales = [
     couleur: '#00695c', icone: '🗂️' }
 ];
 
+// Taxe sur les véhicules à moteur : paiement en suspens pour le moment. Les alertes (taxe annuelle de janvier et
+// véhicule acheté) sont masquées, pas supprimées : passer cette valeur à true pour les réafficher.
+export const ALERTES_VEHICULE_ACTIVES = false;
+
 // Véhicule ou moto acheté (d'après la description de la facture fournisseur) : la taxe sur les véhicules
 // à moteur est à déclarer et à payer immédiatement. L'alerte se ferme avec « Fait, fermer ».
 export function alerteDepuisVehicule(v) {
@@ -348,11 +352,16 @@ export default function DashboardPage() {
     }
   }
 
+  // Calendrier fiscal sans la taxe véhicules tant qu'elle est masquée (voir ALERTES_VEHICULE_ACTIVES)
+  function calendrierAlertes() {
+    return ALERTES_VEHICULE_ACTIVES ? alertesFiscales : alertesFiscales.filter(a => a.code !== 'TAXE_VEHICULE');
+  }
+
   function getAlertesFiscalesActives() {
-    const vehicules = vehiculesAcquis
+    const vehicules = !ALERTES_VEHICULE_ACTIVES ? [] : vehiculesAcquis
       .filter(v => !alertesFermees.includes(v.code))
       .map(alerteDepuisVehicule);
-    return [...vehicules, ...filtrerAlertes(alertesFiscales, {
+    return [...vehicules, ...filtrerAlertes(calendrierAlertes(), {
       assujettie: entreprise?.assujettie_tva === true,
       fermees: alertesFermees
     })];
@@ -438,7 +447,7 @@ export default function DashboardPage() {
           )}
 
           {(() => {
-            const aVenir = echeancesAVenir(alertesFiscales, { assujettie: entreprise?.assujettie_tva === true, fermees: alertesFermees });
+            const aVenir = echeancesAVenir(calendrierAlertes(), { assujettie: entreprise?.assujettie_tva === true, fermees: alertesFermees });
             const fmt = (d) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
             return (
               <div style={styles.card}>
