@@ -235,6 +235,32 @@ const categoriesTiers = {
   '59 - Pertes de valeur sur comptes financiers': [
     '591 - Pertes de valeur sur valeurs en banque',
     '594 - Pertes de valeur sur régies d\'avances'
+  ],
+
+  // Charges sans facture de fournisseur (relevé de banque, avis de l'administration, décision de justice…)
+  '62 - Autres services extérieurs': [
+    '627 - Services bancaires et assimilés'
+  ],
+  '63 - Impôts, taxes et versements assimilés': [
+    '632 - Autres impôts, taxes et versements assimilés'
+  ],
+  '65 - Autres charges des activités ordinaires': [
+    '652 - Pertes sur cessions d\'actifs non courants',
+    '653 - Jetons de présence',
+    '654 - Pertes sur créances irrécouvrables',
+    '655 - Quote-part de résultat sur opérations faites en commun',
+    '656 - Amendes et pénalités, subventions accordées, dons et libéralités',
+    '657 - Charges exceptionnelles de gestion courante',
+    '658 - Autres charges de gestion courante'
+  ],
+  '66 - Charges financières': [
+    '661 - Charges d\'intérêts',
+    '666 - Pertes de change',
+    '668 - Autres charges financières'
+  ],
+  '69 - Impôts sur les bénéfices': [
+    '695 - Impôts sur les bénéfices basés sur le résultat des activités ordinaires',
+    '698 - Autres impôts sur les résultats'
   ]
 };
 
@@ -447,6 +473,11 @@ function FormulaireFactureTiers({ facture, tiers, entreprise_id, onSave, onCance
   }
 
   function verifierAvantEnregistrement() {
+    // une charge (classe 6) est toujours une dépense : on ne peut pas l'encaisser
+    if (/^\s*6/.test(String(form.categorie || '')) && form.recette && !form.depense) {
+      toast.error('Cette catégorie est une charge : choisissez le moyen de paiement dans « Dépenses », pas dans « Recettes ».');
+      return false;
+    }
     const n = naturesOperation.find(x => x.key === form.nature);
     if (!n || !n.key) return true;
     if (n.sens === 'depense' && !form.depense) { toast.error('Choisissez le moyen de paiement dans « Dépenses » (banque, caisse, Mvola...).'); return false; }

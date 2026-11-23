@@ -75,6 +75,10 @@ const styles = {
   }
 };
 
+// Seules les dépenses justifiées par une facture de fournisseur sont proposées ici.
+// Sont saisies ailleurs : frais bancaires, impôts et taxes, pertes, amendes, charges financières, impôt sur les bénéfices
+// (onglet Divers) ; salaires et cotisations (module RH) ; dotations aux amortissements (module Immobilisations) ;
+// variation de stock (module Stocks).
 const categoriesDepenses = {
   '20 - Immobilisations incorporelles': [
     '203 - Frais de développement immobilisés',
@@ -180,11 +184,10 @@ const categoriesDepenses = {
   '60 - Achats consommés': [
     '601 - Matières premières',
     '602 - Autres approvisionnements',
-    '603 - Variations des stocks',
     '604 - Achats d\'études et de prestations de service',
     '605 - Achats de matériel, équipements et travaux',
     '606 - Achats non stockés de matières et fournitures',
-    '607 - Rabais, remises et ristournes obtenus sur achats',
+    '607 - Achats de marchandises',
     '608 - Frais accessoires d\'achat',
     '609 - Rabais, remises, ristournes obtenus sur achats et services extérieurs'
   ],
@@ -206,51 +209,22 @@ const categoriesDepenses = {
     '624 - Transports de biens et transport collectif du personnel',
     '625 - Déplacements, missions et réceptions',
     '626 - Frais postaux et de télécommunications',
-    '627 - Services bancaires et assimilés',
     '628 - Cotisations et divers',
     '629 - Rabais, remises, ristournes obtenus sur autres services extérieurs'
   ],
-  '63 - Impôts, taxes et versements assimilés': [
-    '631 - Impôts, taxes et versements assimilés sur rémunérations',
-    '632 - Autres impôts, taxes et versements assimilés'
-  ],
   '64 - Charges de personnel': [
-    '641 - Rémunérations du personnel',
     '644 - Rémunérations des dirigeants',
-    '645 - Cotisations aux organismes sociaux',
     '646 - Rémunérations transférées de charges',
     '647 - Autres charges sociales',
     '648 - Autres charges de personnel'
   ],
   '65 - Autres charges des activités ordinaires': [
     '651 - Redevances pour concessions, brevets, licences, logiciels',
-    '652 - Pertes sur cessions d\'actifs non courants',
-    '653 - Jetons de présence',
-    '654 - Pertes sur créances irrécouvrables',
     '655 - Quote-part de résultat sur opérations faites en commun',
-    '656 - Amendes et pénalités, subventions accordées, dons et libéralités',
     '657 - Charges exceptionnelles de gestion courante',
     '658 - Autres charges de gestion courante'
   ],
-  '66 - Charges financières': [
-    '661 - Charges d\'intérêts',
-    '662 - Pertes de change liées à des participations',
-    '665 - Moins-values sur titres de placement',
-    '666 - Pertes de change',
-    '667 - Moins-values sur instruments financiers et assimilés',
-    '668 - Autres charges financières'
-  ],
-  '67 - Éléments extraordinaires (charges)': [],
-  '68 - Dotations aux amortissements, provisions, pertes de valeur': [
-    '681 - Dotations - actifs non courants',
-    '685 - Dotations d\'exploitation - actifs courants'
-  ],
-  '69 - Impôts sur les bénéfices': [
-    '691 - Impôt différé actif',
-    '692 - Impôt différé passif',
-    '695 - Impôts sur les bénéfices basés sur le résultat des activités ordinaires',
-    '698 - Autres impôts sur les résultats'
-  ]
+  '67 - Éléments extraordinaires (charges)': []
 };
 
 const modesPaiement = [
