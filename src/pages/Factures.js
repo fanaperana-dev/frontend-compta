@@ -1261,8 +1261,8 @@ function changerTri(colonne) {
   // Facture envoyée : le contenu est verrouillé, seule la catégorie / sous-catégorie se corrige
   async function classerFacture(id, categorie, sous_categorie) {
     try {
-      await factureService.modifier(id, { categorie, sous_categorie });
-      toast.success('Catégorie modifiée.');
+      const res = await factureService.modifier(id, { categorie, sous_categorie });
+      toast.success(res?.data?.message || 'Catégorie modifiée.');
       setModalOuvert(null);
       setFactureSelectionnee(null);
       chargerDonnees();
