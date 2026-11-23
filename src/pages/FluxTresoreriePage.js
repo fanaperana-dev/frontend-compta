@@ -15,7 +15,7 @@ export default function FluxTresoreriePage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: 0, color: '#004d5a' }}>💰 Tableau des flux de trésorerie <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#666', marginLeft: '10px' }}>{entreprise.assujettie_tva ? '(trésorerie réelle : la TVA collectée y reste tant qu’elle n’est pas reversée)' : ''}</span></h2>
-        <SelecteurAnnee annee={annee} setAnnee={setAnnee} />
+        <SelecteurAnnee annee={annee} setAnnee={setAnnee} entrepriseId={entreprise.id} />
       </div>
 
       {loading && <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>⏳ Chargement...</div>}

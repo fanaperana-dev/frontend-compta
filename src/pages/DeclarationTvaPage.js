@@ -109,7 +109,7 @@ export default function DeclarationTvaPage() {
           <select style={select} value={moisFin} onChange={e => setMoisFin(Number(e.target.value))}>
             {MOIS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
           </select>
-          <SelecteurAnnee annee={annee} setAnnee={setAnnee} />
+          <SelecteurAnnee annee={annee} setAnnee={setAnnee} entrepriseId={entreprise.id} />
         </div>
       </div>
 

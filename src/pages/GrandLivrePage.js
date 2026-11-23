@@ -24,7 +24,7 @@ export default function GrandLivrePage() {
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <input style={{ ...styles.input, width: '220px' }} placeholder="Filtrer par compte ou libellé..."
             value={filtre} onChange={e => setFiltre(e.target.value)} />
-          <SelecteurAnnee annee={annee} setAnnee={setAnnee} />
+          <SelecteurAnnee annee={annee} setAnnee={setAnnee} entrepriseId={entreprise.id} />
         </div>
       </div>
 

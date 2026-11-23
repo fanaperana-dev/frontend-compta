@@ -44,12 +44,27 @@ export function useEtat(vue, entrepriseId, annee) {
   return { etat, loading, recharger: () => setRev(x => x + 1) };
 }
 
-export function SelecteurAnnee({ annee, setAnnee }) {
+export function SelecteurAnnee({ annee, setAnnee, entrepriseId }) {
   const courante = new Date().getFullYear();
+  const [existantes, setExistantes] = useState(null);
+  useEffect(() => {
+    if (!entrepriseId) return undefined;
+    let annule = false;
+    api.get(`/comptabilite/etats/annees/${entrepriseId}`)
+      .then(res => { if (!annule) setExistantes(res.data.annees || []); })
+      .catch(() => { if (!annule) setExistantes(null); });
+    return () => { annule = true; };
+  }, [entrepriseId]);
+  // Années proposées : exercices existants de l'entreprise (jusqu'à N+1), l'année courante et l'année affichée.
+  // Sans réponse du serveur : 2026 (départ de la plateforme) jusqu'à N+1.
+  const base = existantes
+    ? existantes.filter(a => a <= courante + 1)
+    : Array.from({ length: 4 }, (_, i) => courante - 2 + i).filter(a => a >= 2026);
+  const annees = [...new Set([...base, courante, annee])].sort((x, y) => x - y);
   return (
     <select style={{ ...styles.input, width: '120px' }}
       value={annee} onChange={e => setAnnee(Number(e.target.value))}>
-      {Array.from({ length: 5 }, (_, i) => courante - 2 + i).filter(a => a >= 2026).map(a => (
+      {annees.map(a => (
         <option key={a} value={a}>{a}</option>
       ))}
     </select>
