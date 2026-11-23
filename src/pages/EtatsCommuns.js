@@ -120,6 +120,12 @@ export function BandeauEtat({ etat, annee }) {
           background: clos ? '#e8f5e9' : '#e3f2fd', color: clos ? '#2e7d32' : '#1565c0' }}>
           {clos ? `🔒 Exercice ${annee} clôturé` : `Exercice ${annee} en cours`}
         </span>
+        {etat.provisoire && (
+          <span style={{ padding: '3px 10px', borderRadius: '12px', fontWeight: 'bold', background: '#fff3e0', color: '#e65100' }}
+            title={`Les soldes d'ouverture de ${annee} reprennent l'exercice ${etat.provisoire.annee_precedente} à ce jour`}>
+            ⚠️ Ouverture provisoire — l'exercice {etat.provisoire.annee_precedente} n'est pas encore clôturé
+          </span>
+        )}
         <span>
           {maj ? `Mis à jour le ${maj}` : 'Pas encore calculé — le premier calcul a lieu cette nuit.'}
           {' '}(calcul automatique chaque jour)
