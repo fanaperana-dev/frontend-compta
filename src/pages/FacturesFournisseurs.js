@@ -1,15 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { fournisseurService, fournisseurListeService, immobilisationService, stockService } from '../services/api';
-import { FormulaireImmobilisation, prochaineReferenceImmobilisation } from './ImmobilisationsPage';
-import { FormulaireEntreeStock } from './StocksPage';
-import { propositionEntreeStock } from '../utils/comptesStock';
+import { fournisseurService, fournisseurListeService, stockService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
 import ModalClassementFacture from '../components/ModalClassementFacture';
-
-// Catégories de dépenses qui donnent lieu à une immobilisation : 20 (incorporelles) et 21 (corporelles)
-const estCategorieImmobilisation = (categorie) => /^\s*(20|21)\s*-/.test(String(categorie || ''));
+import ModalClassementLignes from '../components/ModalClassementLignes';
+import FormulaireFactureIntelligente from '../components/FormulaireFactureIntelligente';
 
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
@@ -279,369 +275,6 @@ function couleurStatut(statut) {
   return couleurs[statut] || { bg: '#f5f5f5', color: '#616161', label: statut };
 }
 
-// Formulaire facture fournisseur
-function FormulaireFactureFournisseur({ facture, fournisseurs, entreprise_id, tva, onSave, onCancel }) {
-  const [enCours, setEnCours] = useState(false);
-  const [form, setForm] = useState({
-    fournisseur_id: facture?.fournisseur_id || '',
-    fournisseur: facture?.fournisseur || '',
-    numero: facture?.numero || '',
-    categorie: facture?.categorie || '',
-    sous_categorie: facture?.sous_categorie || '',
-    montant: facture?.montant || 0,
-    montant_paye: facture?.montant_paye || 0,
-    montant_tva: facture?.montant_tva || 0,
-    montant_is: facture?.montant_is || 0,
-    // Entreprise assujettie : on saisit le HT ; le TTC et le montant à payer en découlent
-    montant_ht: facture
-      ? Number(facture.montant_ht != null ? facture.montant_ht : (Number(facture.montant) - Number(facture.montant_tva || 0)))
-      : 0,
-    mode_paiement: facture?.mode_paiement || '',
-    date_facture: facture?.date_facture
-      ? new Date(facture.date_facture).toISOString().split('T')[0]
-      : new Date().toISOString().split('T')[0],
-    date_echeance: facture?.date_echeance
-      ? new Date(facture.date_echeance).toISOString().split('T')[0]
-      : '',
-    commentaire: facture?.commentaire || ''
-  });
-
-  const [tvaManuelle, setTvaManuelle] = useState(!!facture);   // TVA modifiée à la main : on ne la présaisit plus
-  const [isAuto, setIsAuto] = useState(false);                  // IS calculé à 5 % : suit le montant HT
-
-  const TAUX_IS = 5;
-  const arrondi = (x) => Math.round(Number(x) * 100) / 100;
-  // Recalcule TVA (présaisie à 20 %), TTC et montant à payer à partir du HT et de la TVA (l'IS est indicatif : il ne change pas le montant à payer)
-  function majMontants(patch, options = {}) {
-    const f = { ...form, ...patch };
-    const ht = Number(f.montant_ht) || 0;
-    if (patch.montant_ht !== undefined) {
-      if (isAuto && !options.sansIs) f.montant_is = arrondi(ht * TAUX_IS / 100);
-      else if (!tvaManuelle && !(Number(f.montant_is) > 0)) f.montant_tva = arrondi(ht * (tva?.taux || 20) / 100);
-    }
-    f.montant = arrondi(ht + (Number(f.montant_tva) || 0));
-    setForm(f);
-  }
-  const appliquerIs = () => {
-    setIsAuto(true); setTvaManuelle(true);
-    majMontants({ montant_tva: 0, montant_is: arrondi((Number(form.montant_ht) || 0) * TAUX_IS / 100) });
-  };
-  const retirerIs = () => {
-    setIsAuto(false); setTvaManuelle(false);
-    majMontants({ montant_is: 0, montant_tva: arrondi((Number(form.montant_ht) || 0) * (tva?.taux || 20) / 100) });
-  };
-
-  const [sousCategories, setSousCategories] = useState([]);
-  const [fichierScan, setFichierScan] = useState(null);
-  const [fichiersJustificatifs, setFichiersJustificatifs] = useState([]);
- 
-
-  const resteAPayer = Math.max(0, Number(form.montant) - Number(form.montant_paye));
-
-  function handleFournisseurChange(e) {
-    const id = e.target.value;
-    const f = fournisseurs.find(f => f.id === id);
-    if (f) {
-      const dateF = new Date(form.date_facture);
-      const dateEch = new Date(dateF);
-      dateEch.setDate(dateEch.getDate() + (f.delai_paiement || 30));
-      setForm({
-        ...form,
-        fournisseur_id: id,
-        fournisseur: f.nom,
-        date_echeance: dateEch.toISOString().split('T')[0]
-      });
-    } else {
-      setForm({ ...form, fournisseur_id: '', fournisseur: '' });
-    }
-  }
-
-  function handleCategorieChange(e) {
-    const cat = e.target.value;
-    setForm({ ...form, categorie: cat, sous_categorie: '' });
-    setSousCategories(categoriesDepenses[cat] || []);
-  }
-
-  function handleAjouterJustificatif(e) {
-    const fichiers = Array.from(e.target.files);
-    setFichiersJustificatifs(prev => [...prev, ...fichiers]);
-    e.target.value = '';
-  }
-
-  function supprimerJustificatif(index) {
-    setFichiersJustificatifs(prev => prev.filter((_, i) => i !== index));
-  }
-
-  return (
-    <div style={styles.modal}>
-      <div style={styles.modalContent}>
-        <h3 style={{ color: '#004d5a', marginTop: 0 }}>
-          {facture ? '✏️ Modifier facture fournisseur' : '➕ Nouvelle facture fournisseur'}
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-
-          {/* Fournisseur */}
-          <div style={{ gridColumn: 'span 2' }}>
-            <label style={styles.label}>Fournisseur *</label>
-            <select
-              style={styles.input}
-              value={form.fournisseur_id}
-              onChange={handleFournisseurChange}
-            >
-              <option value="">Sélectionner un fournisseur</option>
-              {fournisseurs.filter(f => f.actif).map(f => (
-                <option key={f.id} value={f.id}>{f.nom}</option>
-              ))}
-            </select>
-          </div>
-
-          
-
-          {/* Date facture */}
-          <div>
-            <label style={styles.label}>Date facture *</label>
-            <input
-              style={styles.input}
-              type="date"
-              value={form.date_facture}
-              onChange={e => setForm({ ...form, date_facture: e.target.value })}
-            />
-          </div>
-
-          {/* Date échéance */}
-          <div>
-            <label style={styles.label}>Date échéance</label>
-            <input
-              style={styles.input}
-              type="date"
-              value={form.date_echeance}
-              onChange={e => setForm({ ...form, date_echeance: e.target.value })}
-            />
-          </div>
-
-          {tva?.assujettie ? (
-            <>
-              {/* Entreprise assujettie : HT saisi → TVA présaisie → TTC ; IS retenu en option */}
-              <div>
-                <label style={styles.label}>Montant HT (Ar) *</label>
-                <input style={styles.input} type="number" value={form.montant_ht}
-                  onChange={e => majMontants({ montant_ht: Number(e.target.value) })} />
-              </div>
-              <div>
-                <label style={styles.label}>TVA déductible (Ar)</label>
-                <input style={styles.input} type="number" value={form.montant_tva}
-                  onChange={e => { setTvaManuelle(true); majMontants({ montant_tva: Number(e.target.value) || 0 }); }} />
-                <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
-                  Présaisie à {tva.taux} % du HT ; modifiable. Laisser à 0 si le fournisseur n'est pas assujetti.
-                </div>
-              </div>
-              <div>
-                <label style={styles.label}>Montant TTC (Ar) = HT + TVA</label>
-                <input style={{ ...styles.input, background: '#f5f5f5' }} type="number" readOnly
-                  value={arrondi((Number(form.montant_ht) || 0) + (Number(form.montant_tva) || 0))} />
-              </div>
-              <div>
-                <label style={styles.label}>IS retenu à la source (Ar)</label>
-                <input style={styles.input} type="number" value={form.montant_is}
-                  onChange={e => { setIsAuto(false); majMontants({ montant_is: Number(e.target.value) || 0 }); }} />
-                <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
-                  Fournisseur non assujetti à la TVA : l'IS est indiqué pour information, il ne change pas le montant à payer.{' '}
-                  {Number(form.montant_is) > 0 ? (
-                    <button type="button" style={{ background: 'none', border: 'none', color: '#c62828', cursor: 'pointer', padding: 0, fontSize: '11px', textDecoration: 'underline' }}
-                      onClick={retirerIs}>Retirer l'IS</button>
-                  ) : (
-                    <button type="button" style={{ background: 'none', border: 'none', color: '#0097a7', cursor: 'pointer', padding: 0, fontSize: '11px', textDecoration: 'underline' }}
-                      onClick={appliquerIs}>Appliquer IS {TAUX_IS} %</button>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label style={styles.label}>Montant à payer au fournisseur (Ar)</label>
-                <input style={{ ...styles.input, background: '#f5f5f5', fontWeight: 'bold' }} type="number" readOnly value={form.montant} />
-              </div>
-            </>
-          ) : (
-            <div>
-              <label style={styles.label}>Montant total (Ar) *</label>
-              <input
-                style={styles.input}
-                type="number"
-                value={form.montant}
-                onChange={e => setForm({ ...form, montant: Number(e.target.value) })}
-              />
-            </div>
-          )}
-
-          {/* Montant déjà payé */}
-          <div>
-            <label style={styles.label}>Montant déjà payé (Ar)</label>
-            <input
-              style={styles.input}
-              type="number"
-              value={form.montant_paye}
-              onChange={e => setForm({ ...form, montant_paye: Number(e.target.value) })}
-            />
-          </div>
-
-          {/* Reste à payer — automatique */}
-          <div>
-            <label style={styles.label}>Reste à payer (Ar)</label>
-            <input
-              style={{ ...styles.input, background: '#f5f5f5', color: resteAPayer > 0 ? '#c62828' : '#2e7d32', fontWeight: 'bold' }}
-              value={resteAPayer.toLocaleString('fr-FR')}
-              readOnly
-            />
-          </div>
-
-          {/* Mode de paiement */}
-          <div>
-            <label style={styles.label}>Mode de paiement</label>
-            <select
-              style={styles.input}
-              value={form.mode_paiement}
-              onChange={e => setForm({ ...form, mode_paiement: e.target.value })}
-            >
-              <option value="">Sélectionner</option>
-              {modesPaiement.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-              {/associ/i.test(form.mode_paiement || '') && <option value={form.mode_paiement}>{form.mode_paiement} (ancien)</option>}
-            </select>
-          </div>
-
-          {/* Catégorie */}
-          <div>
-            <label style={styles.label}>Catégorie</label>
-            <select
-              style={styles.input}
-              value={form.categorie}
-              onChange={handleCategorieChange}
-            >
-              <option value="">Sélectionner une catégorie</option>
-              {Object.keys(categoriesDepenses).map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Sous-catégorie */}
-          {sousCategories.length > 0 && (
-            <div>
-              <label style={styles.label}>Sous-catégorie</label>
-              <select
-                style={styles.input}
-                value={form.sous_categorie}
-                onChange={e => setForm({ ...form, sous_categorie: e.target.value })}
-              >
-                <option value="">Sélectionner</option>
-                {sousCategories.map(sc => (
-                  <option key={sc} value={sc}>{sc}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Descriptif */}
-          <div style={{ gridColumn: 'span 2' }}>
-            <label style={styles.label}>Descriptif</label>
-            <textarea
-              style={{ ...styles.input, height: '80px', resize: 'vertical' }}
-              value={form.commentaire}
-              onChange={e => setForm({ ...form, commentaire: e.target.value })}
-              placeholder="Description de la facture..."
-            />
-          </div>
-
-          {/* Scan de la facture */}
-          <div style={{ gridColumn: 'span 2' }}>
-            <label style={styles.label}>📄 Scan de la facture (PDF ou image)</label>
-            <input
-              style={styles.input}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
-              onChange={e => setFichierScan(e.target.files[0])}
-            />
-            {fichierScan && (
-              <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0' }}>
-                Fichier sélectionné : {fichierScan.name}
-              </p>
-            )}
-          </div>
-
-          {/* Justificatifs de paiement */}
-          <div style={{ gridColumn: 'span 2' }}>
-            <label style={styles.label}>📎 Justificatifs de paiement (plusieurs fichiers possibles)</label>
-            <input
-              style={styles.input}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
-              multiple
-              onChange={handleAjouterJustificatif}
-            />
-            {fichiersJustificatifs.length > 0 && (
-              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {fichiersJustificatifs.map((f, i) => (
-                  <div key={i} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '6px 10px',
-                    background: '#f5f5f5',
-                    borderRadius: '6px',
-                    fontSize: '13px'
-                  }}>
-                    <span>📄 {f.name}</span>
-                    <button
-                      style={{ ...styles.boutonDanger, padding: '2px 8px' }}
-                      onClick={() => supprimerJustificatif(i)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
-
-        {/* Résumé paiement */}
-        {form.montant > 0 && (
-          <div style={{
-            background: resteAPayer === 0 ? '#e8f5e9' : '#fff3e0',
-            borderRadius: '8px',
-            padding: '12px',
-            marginTop: '15px',
-            fontSize: '13px'
-          }}>
-            <strong>Résumé :</strong><br />
-            Montant total : {Number(form.montant).toLocaleString('fr-FR')} Ar<br />
-            Montant payé : {Number(form.montant_paye).toLocaleString('fr-FR')} Ar<br />
-            <span style={{ color: resteAPayer > 0 ? '#c62828' : '#2e7d32', fontWeight: 'bold' }}>
-              Reste à payer : {resteAPayer.toLocaleString('fr-FR')} Ar
-            </span>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
-          <button style={styles.boutonSecondaire} onClick={onCancel}>Annuler</button>
-          <button
-            style={{ ...styles.boutonPrimaire, opacity: enCours ? 0.6 : 1 }}
-            disabled={enCours}
-            onClick={async () => {
-             setEnCours(true);
-             await onSave(form, fichierScan, fichiersJustificatifs);
-             setEnCours(false);
-            }}
-         >
-            {enCours ? '⏳ Enregistrement...' : (facture ? 'Modifier' : 'Créer')}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 function ModalJustificatifs({ facture, onClose }) {
   const justificatifs = Array.isArray(facture.justificatifs_url)
     ? facture.justificatifs_url
@@ -750,13 +383,12 @@ export default function FacturesFournisseurs() {
   const [page, setPage] = useState(1);
   const parPage = 20;
   const [modalOuvert, setModalOuvert] = useState(null);
-  const [immoAPrefill, setImmoAPrefill] = useState(null);   // { donnees, bandeau } : fiche d'immobilisation proposée après la création d'une facture
-  const immoCreee = useRef(false);
-  const [entreeStockAPrefill, setEntreeStockAPrefill] = useState(null);   // { initial, articles, bandeau } : entrée en stock proposée après une facture 601/602 ou classe 3
-  const entreeStockFaite = useRef(false);
+  const [articlesStock, setArticlesStock] = useState([]);   // articles existants : une ligne de stock peut les réapprovisionner
   const [factureSelectionnee, setFactureSelectionnee] = useState(null);
   const [modalPaiement, setModalPaiement] = useState(null);
   const [montantPaiement, setMontantPaiement] = useState('');
+  const [modePaiement, setModePaiement] = useState('');
+  const [datePaiement, setDatePaiement] = useState('');
 
   const statuts = ['TOUS', 'EN_ATTENTE', 'PAIEMENT_PARTIEL', 'PAYEE', 'EN_RETARD', 'ANNULEE'];
 
@@ -794,227 +426,75 @@ export default function FacturesFournisseurs() {
     });
   }
 
-  async function sauvegarderFacture(form, fichierScan, fichiersJustificatifs) {
+  async function ouvrirCreation() {
     try {
-      // Préparer les données
-    
-      const donnees = {
-       
-        entreprise_id: entreprise.id,
-        fournisseur_id: form.fournisseur_id,
-        fournisseur: form.fournisseur,
-        numero: form.numero,
-        categorie: form.categorie,
-        sous_categorie: form.sous_categorie,
-        montant: form.montant,
-        montant_paye: form.montant_paye,
-        ...(regimeTva.assujettie ? { montant_tva: form.montant_tva || 0, montant_is: form.montant_is || 0 } : {}),
-        mode_paiement: form.mode_paiement,
-        date_facture: form.date_facture,
-        date_echeance: form.date_echeance || null,
-        commentaire: form.commentaire,
-        statut: form.montant_paye >= form.montant ? 'PAYEE' : form.montant_paye > 0 ? 'PAIEMENT_PARTIEL' : 'EN_ATTENTE'
-      };
-      let factureId;
-      let factureCreee = null;
+      const res = await stockService.getArticles(entreprise.id);
+      setArticlesStock(res.data.data || []);
+    } catch (e) { setArticlesStock([]); /* tout sera proposé en nouvel article */ }
+    setModalOuvert('creer');
+  }
 
-      if (factureSelectionnee) {
-        await fournisseurService.modifier(factureSelectionnee.id, donnees);
-        factureId = factureSelectionnee.id;
-        toast.success('Facture modifiée !');
-      } else {
-        const res = await fournisseurService.creer(donnees);
-        factureCreee = res.data.data;
-        factureId = factureCreee.id;
-        toast.success('Facture créée !');
+  // Facture intelligente : une seule requête crée la facture, ses lignes, ses paiements, le stock et les immobilisations
+  async function sauvegarderFacture(payload, fichierScan, fichiersJustificatifs) {
+    try {
+      const res = await fournisseurService.creerIntelligente(payload);
+      const factureCreee = res.data.data;
+      toast.success(res.data.message || 'Facture créée !');
+      await envoyerPiecesJointes(factureCreee.id, fichierScan, fichiersJustificatifs);
+      setFactureSelectionnee(null);
+      setModalOuvert(null);
+      chargerDonnees();
+      return { ok: true };
+    } catch (err) {
+      const d = err.response?.data || {};
+      if (d.code === 'ENTREE_PARTIELLE') {
+        // la facture existe mais le stock s'est arrêté en route : on referme et on prévient
+        toast.error(d.message, { autoClose: false });
+        setModalOuvert(null);
+        chargerDonnees();
+        return { ok: true };
       }
+      // le formulaire reste ouvert avec le message du serveur : rien n'est perdu
+      return { ok: false, code: d.code, libelle: d.libelle, message: d.message || 'Erreur sauvegarde de la facture.' };
+    }
+  }
 
-      // Upload scan facture
+  async function envoyerPiecesJointes(factureId, fichierScan, fichiersJustificatifs) {
+    const entetes = { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` };
+    try {
       if (fichierScan) {
-  
         const base64 = await convertirFichierBase64(fichierScan);
         await fetch(`${API_URL}/api/fournisseurs/${factureId}/upload-scan`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            fichier_base64: base64,
-            nom_fichier: fichierScan.name,
-            type_mime: fichierScan.type
-          })
+          method: 'POST', headers: entetes,
+          body: JSON.stringify({ fichier_base64: base64, nom_fichier: fichierScan.name, type_mime: fichierScan.type })
         });
       }
-
-      // Upload justificatifs
       for (let i = 0; i < fichiersJustificatifs.length; i++) {
         const fichier = fichiersJustificatifs[i];
         const base64 = await convertirFichierBase64(fichier);
         await fetch(`${API_URL}/api/fournisseurs/${factureId}/upload-justificatif`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            fichier_base64: base64,
-            nom_fichier: fichier.name,
-            type_mime: fichier.type,
-            index: i + 1
-          })
+          method: 'POST', headers: entetes,
+          body: JSON.stringify({ fichier_base64: base64, nom_fichier: fichier.name, type_mime: fichier.type, index: i + 1 })
         });
       }
-
-      setFactureSelectionnee(null);
-      chargerDonnees();
-
-      // Facture classée en immobilisation (20 ou 21) : on ouvre aussitôt la fiche d'immobilisation, préremplie
-      if (factureCreee && estCategorieImmobilisation(form.categorie)) {
-        await ouvrirFicheImmobilisation(factureCreee, form);
-        return;
-      }
-      // Achat de matières / approvisionnements (601, 602) ou compte de la classe 3 : on propose aussitôt l'entrée en stock
-      const entreeStock = propositionEntreeStock(form.categorie, form.sous_categorie);
-      if (factureCreee && entreeStock.declenche) {
-        await ouvrirEntreeStock(factureCreee, form, entreeStock);
-        return;
-      }
-      setModalOuvert(null);
-    } catch (err) {
-      toast.error('Erreur sauvegarde.');
+    } catch (e) {
+      toast.warn('Facture créée, mais un document n\'a pas pu être envoyé : ajoute-le avec ➕📎.');
     }
   }
 
-  // Reprend dans la fiche d'immobilisation tout ce qui a été saisi sur la facture
-  async function ouvrirFicheImmobilisation(facture, form) {
-    let reference = '';
-    try {
-      const res = await immobilisationService.getAll(entreprise.id);
-      reference = prochaineReferenceImmobilisation(res.data.data || []);
-    } catch (e) { /* la référence reste à saisir */ }
-
-    const codeCompte = String(form.sous_categorie || '').split(' - ')[0].trim();
-    const libelleCompte = String(form.sous_categorie || '').split(' - ').slice(1).join(' - ').trim();
-    // Valeur d'acquisition = montant HT : la TVA déductible n'entre pas dans le coût de l'immobilisation
-    // (elle est comptabilisée à part, 4456100). Entreprise non assujettie : le montant de la facture.
-    const valeur = Number(facture.montant_ht) > 0 ? Number(facture.montant_ht) : Number(facture.montant);
-    const dateFacture = String(form.date_facture || '').slice(0, 10);
-
-    immoCreee.current = false;
-    setImmoAPrefill({
-      bandeau: `Facture ${facture.numero} enregistrée. Complète la fiche d'immobilisation : les informations de la facture sont déjà reprises (fournisseur, catégorie, date, montant HT).`,
-      donnees: {
-        reference,
-        designation: form.commentaire || libelleCompte,
-        categorie: form.categorie,
-        numero_compte: codeCompte,
-        date_acquisition: dateFacture,
-        date_debut_amortissement: dateFacture,
-        date_fin_amortissement: '',
-        valeur_acquisition: valeur,
-        mode_amortissement: 'LINEAIRE',
-        fournisseur: form.fournisseur,
-        numero_facture: facture.numero
-      }
-    });
-    setModalOuvert('immobilisation');
-  }
-
-  // Reprend de la facture ce qui sert à l'entrée en stock : fournisseur, numéro, date, montant HT, taux de TVA
-  async function ouvrirEntreeStock(facture, form, proposition) {
-    let articles = [];
-    try {
-      const res = await stockService.getArticles(entreprise.id);
-      articles = res.data.data || [];
-    } catch (e) { /* la liste des articles existants reste vide : tout sera proposé en nouvel article */ }
-
-    // Entreprise assujettie : le stock se valorise hors TVA (HT) ; sinon, au montant à payer au fournisseur
-    const ht = regimeTva.assujettie && Number(facture.montant_ht) > 0 ? Number(facture.montant_ht) : Number(facture.montant);
-    const tauxTva = regimeTva.assujettie && Number(facture.montant_ht) > 0 && Number(facture.montant_tva) > 0
-      ? Math.round((Number(facture.montant_tva) / Number(facture.montant_ht)) * 10000) / 100
-      : 0;
-    const libelleSous = String(form.sous_categorie || '').split(' - ').slice(1).join(' - ').trim();
-
-    entreeStockFaite.current = false;
-    setEntreeStockAPrefill({
-      articles,
-      bandeau: `Facture ${facture.numero} enregistrée. Indique les articles reçus : le fournisseur, la date et le montant sont déjà repris.`,
-      initial: {
-        numero_facture: facture.numero,
-        fournisseur: form.fournisseur,
-        fournisseur_id: form.fournisseur_id || null,
-        date: String(form.date_facture || '').slice(0, 10),
-        montant_ht: ht,
-        assujettie: !!regimeTva.assujettie,
-        taux_tva: tauxTva,
-        designation: form.commentaire || libelleSous,
-        compte_stock: proposition.compte
-      }
-    });
-    setModalOuvert('entree-stock');
-  }
-
-  async function enregistrerEntreeStock(payload) {
-    try {
-      const res = await stockService.entreeAchat({ ...payload, entreprise_id: entreprise.id });
-      entreeStockFaite.current = true;
-      toast.success(res.data?.message || 'Entrée en stock enregistrée !');
-      setEntreeStockAPrefill(null);
-      setModalOuvert(null);
-      return { ok: true };
-    } catch (err) {
-      // le formulaire reste ouvert avec le message du serveur : rien n'est perdu
-      return { ok: false, code: err.response?.data?.code, message: err.response?.data?.message || 'Erreur enregistrement de l\'entrée en stock.' };
-    }
-  }
-
-  function fermerEntreeStock() {
-    if (!entreeStockFaite.current) {
-      toast.info('Entrée en stock non enregistrée : tu pourras ajouter les articles depuis la page Stocks (Mouvements).');
-    }
-    entreeStockFaite.current = false;
-    setEntreeStockAPrefill(null);
-    setModalOuvert(null);
-  }
-
-  async function creerImmobilisation(form) {
-    try {
-      await immobilisationService.creer({ ...form, entreprise_id: entreprise.id });
-      immoCreee.current = true;
-      toast.success('Immobilisation créée !');
-      return true;
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Erreur création de l\'immobilisation.');
-      return false;   // le formulaire reste ouvert : rien n'est perdu
-    }
-  }
-
-  function fermerFicheImmobilisation() {
-    if (!immoCreee.current) {
-      toast.info('Immobilisation non créée : tu pourras l\'ajouter depuis la page Immobilisations.');
-    }
-    immoCreee.current = false;
-    setImmoAPrefill(null);
-    setModalOuvert(null);
+  // Ouvre l'écran de paiement ; ✅ le préremplit avec le reste à payer
+  function ouvrirPaiement(facture, solde = false) {
+    const reste = Math.max(0, Math.round((Number(facture.montant) - Number(facture.montant_paye || 0)) * 100) / 100);
+    setModalPaiement(facture);
+    setMontantPaiement(solde ? String(reste) : '');
+    setModePaiement('');
+    setDatePaiement(new Date().toISOString().split('T')[0]);
   }
 
   async function changerStatut(id, statut) {
 
     try {
         
-    // Si on marque comme PAYEE, mettre à jour montant_paye aussi
-      if (statut === 'PAYEE') {
-        const facture = factures.find(f => f.id === id);
-        if (facture) {
-          await fournisseurService.enregistrerPaiement(id, {
-            montant_paye: Number(facture.montant) - Number(facture.montant_paye || 0)
-          });
-          toast.success('Facture marquée comme payée !');
-          chargerDonnees();
-          return;
-        }
-      }
       await fournisseurService.changerStatut(id, statut);
       toast.success(`Statut mis à jour : ${statut}`);
       chargerDonnees();
@@ -1040,17 +520,40 @@ export default function FacturesFournisseurs() {
   return (
     <div>
       {modalOuvert === 'creer' && (
-        <FormulaireFactureFournisseur
-          facture={factureSelectionnee}
+        <FormulaireFactureIntelligente
           fournisseurs={fournisseurs}
-          entreprise_id={entreprise.id}
+          articles={articlesStock}
+          categories={categoriesDepenses}
+          modesPaiement={modesPaiement}
           tva={regimeTva}
+          entreprise_id={entreprise.id}
+          styles={styles}
           onSave={sauvegarderFacture}
           onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
         />
       )}
 
-      {modalOuvert === 'classement' && factureSelectionnee && (
+      {modalOuvert === 'classement' && factureSelectionnee && (factureSelectionnee.lignes_facture_fournisseur || []).length > 0 && (
+        <ModalClassementLignes
+          facture={factureSelectionnee}
+          categories={categoriesDepenses}
+          styles={styles}
+          onSave={async (corrections) => {
+            try {
+              await fournisseurService.modifier(factureSelectionnee.id, { lignes_classement: corrections });
+              toast.success('Catégories modifiées.');
+              setModalOuvert(null);
+              setFactureSelectionnee(null);
+              chargerDonnees();
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Erreur modification des catégories.');
+            }
+          }}
+          onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
+        />
+      )}
+
+      {modalOuvert === 'classement' && factureSelectionnee && !(factureSelectionnee.lignes_facture_fournisseur || []).length && (
         <ModalClassementFacture
           facture={factureSelectionnee}
           categories={categoriesDepenses}
@@ -1070,77 +573,68 @@ export default function FacturesFournisseurs() {
         />
       )}
 
-      {modalOuvert === 'immobilisation' && immoAPrefill && (
-        <FormulaireImmobilisation
-          initial={immoAPrefill.donnees}
-          bandeau={immoAPrefill.bandeau}
-          onSave={creerImmobilisation}
-          onCancel={fermerFicheImmobilisation}
-        />
-      )}
-
-      {modalOuvert === 'entree-stock' && entreeStockAPrefill && (
-        <FormulaireEntreeStock
-          initial={entreeStockAPrefill.initial}
-          articles={entreeStockAPrefill.articles}
-          bandeau={entreeStockAPrefill.bandeau}
-          onSave={enregistrerEntreeStock}
-          onCancel={fermerEntreeStock}
-        />
-      )}
-
       {modalOuvert === 'justificatifs' && factureSelectionnee && (
         <ModalJustificatifs
           facture={factureSelectionnee}
           onClose={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
         />
       )}
-      {modalPaiement && (
-        <div style={styles.modal}>
-          <div style={{ ...styles.modalContent, width: '400px' }}>
-            <h3 style={{ color: '#004d5a', marginTop: 0 }}>💰 Enregistrer un paiement</h3>
-            <div style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>
-              <div><strong>Facture :</strong> {modalPaiement.numero}</div>
-              <div><strong>Montant total :</strong> {Number(modalPaiement.montant).toLocaleString('fr-FR')} Ar</div>
-              <div><strong>Déjà payé :</strong> {Number(modalPaiement.montant_paye).toLocaleString('fr-FR')} Ar</div>
-              <div><strong>Reste à payer :</strong> {Number(modalPaiement.montant - modalPaiement.montant_paye).toLocaleString('fr-FR')} Ar</div>
-            </div>
-            <div>
-              <label style={styles.label}>Montant du paiement (Ar) *</label>
-              <input style={styles.input} type="number"
-                value={montantPaiement}
-                onChange={e => setMontantPaiement(e.target.value)}
-                placeholder="Montant payé ce jour..." />
-            </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
-              <button style={styles.boutonSecondaire}
-                onClick={() => { setModalPaiement(null); setMontantPaiement(''); }}>
-                Annuler
-              </button>
-              <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
-                onClick={() => soumettre(async () => {
-                  if (!montantPaiement || Number(montantPaiement) <= 0) {
-                    toast.error('Montant invalide.');
-                    return;
-                  }
-                  try {
-                    await fournisseurService.enregistrerPaiement(modalPaiement.id, {
-                      montant_paye: Number(montantPaiement)
-                    });
-                    toast.success('Paiement enregistré !');
-                    setModalPaiement(null);
-                    setMontantPaiement('');
-                    chargerDonnees();
-                  } catch (err) {
-                    toast.error('Erreur enregistrement paiement.');
-                  }
-                })} disabled={envoiEnCours}>
-            {envoiEnCours ? '⏳ Patientez...' : '💾 Enregistrer'}
-          </button>
+      {modalPaiement && (() => {
+        const reste = Math.max(0, Math.round((Number(modalPaiement.montant) - Number(modalPaiement.montant_paye || 0)) * 100) / 100);
+        const fermer = () => { setModalPaiement(null); setMontantPaiement(''); setModePaiement(''); };
+        return (
+          <div style={styles.modal}>
+            <div style={{ ...styles.modalContent, width: '420px' }}>
+              <h3 style={{ color: '#004d5a', marginTop: 0 }}>💰 Enregistrer un paiement</h3>
+              <div style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>
+                <div><strong>Facture :</strong> {modalPaiement.numero}</div>
+                <div><strong>Montant total :</strong> {Number(modalPaiement.montant).toLocaleString('fr-FR')} Ar</div>
+                <div><strong>Déjà payé :</strong> {Number(modalPaiement.montant_paye || 0).toLocaleString('fr-FR')} Ar</div>
+                <div><strong>Reste à payer :</strong> {reste.toLocaleString('fr-FR')} Ar</div>
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={styles.label}>Montant du paiement (Ar) *</label>
+                <input style={styles.input} type="number" min="0" value={montantPaiement}
+                  onChange={e => setMontantPaiement(e.target.value)} placeholder="Montant payé..." />
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={styles.label}>Mode de paiement *</label>
+                <select style={styles.input} value={modePaiement} onChange={e => setModePaiement(e.target.value)}>
+                  <option value="">Sélectionner</option>
+                  {modesPaiement.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <div style={{ fontSize: '11px', color: '#666', marginTop: '3px' }}>Le paiement va dans le journal correspondant (caisse, banque, mobile money).</div>
+              </div>
+              <div>
+                <label style={styles.label}>Date du paiement *</label>
+                <input style={styles.input} type="date" value={datePaiement} onChange={e => setDatePaiement(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+                <button style={styles.boutonSecondaire} onClick={fermer}>Annuler</button>
+                <button style={{ ...styles.boutonPrimaire, opacity: envoiEnCours ? 0.6 : 1 }}
+                  onClick={() => soumettre(async () => {
+                    if (!montantPaiement || Number(montantPaiement) <= 0) { toast.error('Montant invalide.'); return; }
+                    if (Number(montantPaiement) > reste + 0.01) { toast.error(`Le paiement dépasse le reste à payer (${reste.toLocaleString('fr-FR')} Ar).`); return; }
+                    if (!modePaiement) { toast.error('Choisis le mode de paiement.'); return; }
+                    if (!datePaiement) { toast.error('Choisis la date du paiement.'); return; }
+                    try {
+                      await fournisseurService.enregistrerPaiement(modalPaiement.id, {
+                        montant_paye: Number(montantPaiement), mode_paiement: modePaiement, date_paiement: datePaiement
+                      });
+                      toast.success('Paiement enregistré !');
+                      fermer();
+                      chargerDonnees();
+                    } catch (err) {
+                      toast.error(err.response?.data?.message || 'Erreur enregistrement paiement.');
+                    }
+                  })} disabled={envoiEnCours}>
+                  {envoiEnCours ? '⏳ Patientez...' : '💾 Enregistrer'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       {modalOuvert === 'ajouterPJ' && factureSelectionnee && (
         <ModalAjouterPJ
           facture={factureSelectionnee}
@@ -1186,7 +680,7 @@ export default function FacturesFournisseurs() {
         </div>
         <button
           style={styles.boutonPrimaire}
-          onClick={() => { setFactureSelectionnee(null); setModalOuvert('creer'); }}
+          onClick={() => { setFactureSelectionnee(null); ouvrirCreation(); }}
         >
           + Nouvelle facture
         </button>
@@ -1307,7 +801,11 @@ export default function FacturesFournisseurs() {
                       {resteAPayer.toLocaleString('fr-FR')} Ar
                     </td>
                     <td style={{ padding: '10px', fontSize: '12px', color: '#666' }}>
-                      {f.sous_categorie || f.categorie || '—'}
+                      {(() => {
+                        const l = f.lignes_facture_fournisseur || [];
+                        const distinctes = new Set(l.map(x => x.sous_categorie || x.categorie)).size;
+                        return distinctes > 1 ? `${distinctes} catégories (${l.length} lignes)` : (f.sous_categorie || f.categorie || '—');
+                      })()}
                     </td>
                     <td style={{ padding: '10px' }}>
                       <span style={{
@@ -1383,7 +881,7 @@ export default function FacturesFournisseurs() {
                           <button
                             style={{ ...styles.boutonSecondaire, padding: '4px 8px',
                               color: '#1565c0', borderColor: '#1565c0' }}
-                            onClick={() => { setModalPaiement(f); setMontantPaiement(''); }}
+                            onClick={() => ouvrirPaiement(f)}
                             title="Enregistrer paiement partiel">💰
                           </button>
         )}
@@ -1392,8 +890,8 @@ export default function FacturesFournisseurs() {
                         {(f.statut === 'EN_ATTENTE' || f.statut === 'PAIEMENT_PARTIEL') && (
                           <button
                             style={{ ...styles.boutonSecondaire, padding: '4px 8px', color: '#2e7d32', borderColor: '#2e7d32' }}
-                            onClick={() => changerStatut(f.id, 'PAYEE')}
-                            title="Marquer payée totalement"
+                            onClick={() => ouvrirPaiement(f, true)}
+                            title="Payer le solde"
                           >
                             ✅
                           </button>

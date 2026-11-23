@@ -137,6 +137,10 @@ export const fournisseurService = {
   creer: (data) =>
     api.post('/fournisseurs', data),
 
+  // Facture intelligente : plusieurs catégories, lignes et paiements ; stock et immobilisations automatiques
+  creerIntelligente: (data) =>
+    api.post('/fournisseurs/intelligente', data),
+
   modifier: (id, data) =>
     api.put(`/fournisseurs/${id}`, data),
 
