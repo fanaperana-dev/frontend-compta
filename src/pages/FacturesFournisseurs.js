@@ -6,6 +6,7 @@ import { FormulaireImmobilisation, prochaineReferenceImmobilisation } from './Im
 import { FormulaireEntreeStock } from './StocksPage';
 import { propositionEntreeStock } from '../utils/comptesStock';
 import useSoumission from '../hooks/useSoumission';
+import ModalClassementFacture from '../components/ModalClassementFacture';
 
 // Catégories de dépenses qui donnent lieu à une immobilisation : 20 (incorporelles) et 21 (corporelles)
 const estCategorieImmobilisation = (categorie) => /^\s*(20|21)\s*-/.test(String(categorie || ''));
@@ -1049,6 +1050,26 @@ export default function FacturesFournisseurs() {
         />
       )}
 
+      {modalOuvert === 'classement' && factureSelectionnee && (
+        <ModalClassementFacture
+          facture={factureSelectionnee}
+          categories={categoriesDepenses}
+          styles={styles}
+          onSave={async (cat, sous) => {
+            try {
+              await fournisseurService.modifier(factureSelectionnee.id, { categorie: cat, sous_categorie: sous });
+              toast.success('Catégorie modifiée.');
+              setModalOuvert(null);
+              setFactureSelectionnee(null);
+              chargerDonnees();
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Erreur modification de la catégorie.');
+            }
+          }}
+          onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
+        />
+      )}
+
       {modalOuvert === 'immobilisation' && immoAPrefill && (
         <FormulaireImmobilisation
           initial={immoAPrefill.donnees}
@@ -1303,13 +1324,16 @@ export default function FacturesFournisseurs() {
                     </td>
                     <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        <button
-                          style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
-                          onClick={() => { setFactureSelectionnee(f); setModalOuvert('creer'); }}
-                          title="Modifier"
-                        >
-                          ✏️
-                        </button>
+                        {/* Facture enregistrée : verrouillée, seule la catégorie se corrige */}
+                        {f.statut !== 'ANNULEE' && (
+                          <button
+                            style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
+                            onClick={() => { setFactureSelectionnee(f); setModalOuvert('classement'); }}
+                            title="Facture enregistrée : modifier la catégorie"
+                          >
+                            🏷️
+                          </button>
+                        )}
                         {/* Voir scan */}
                         {f.pj_url ? (
                          <a

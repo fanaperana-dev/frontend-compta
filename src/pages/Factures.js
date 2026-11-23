@@ -6,6 +6,7 @@ import { factureService, clientService, mailService, paiementService, stockServi
 import useSoumission from '../hooks/useSoumission';
 import { pdfLienService } from '../services/api';
 import { categoriesEtSousCategories } from '../utils/categoriesComptables';
+import ModalClassementFacture from '../components/ModalClassementFacture';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -1257,6 +1258,19 @@ function changerTri(colonne) {
 
   
 
+  // Facture envoyée : le contenu est verrouillé, seule la catégorie / sous-catégorie se corrige
+  async function classerFacture(id, categorie, sous_categorie) {
+    try {
+      await factureService.modifier(id, { categorie, sous_categorie });
+      toast.success('Catégorie modifiée.');
+      setModalOuvert(null);
+      setFactureSelectionnee(null);
+      chargerDonnees();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur modification de la catégorie.');
+    }
+  }
+
   async function modifierFacture(id, lignes, appliquer_is) {
     try {
       await factureService.modifier(id, { lignes, appliquer_is: !!appliquer_is });
@@ -1491,6 +1505,15 @@ function exporterCSV() {
         <FormulaireAnnulation
           facture={factureSelectionnee}
           onSave={annulerFacture}
+          onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
+        />
+      )}
+      {modalOuvert === 'classement' && factureSelectionnee && (
+        <ModalClassementFacture
+          facture={factureSelectionnee}
+          categories={categoriesEtSousCategories}
+          styles={styles}
+          onSave={(cat, sous) => classerFacture(factureSelectionnee.id, cat, sous)}
           onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
         />
       )}
@@ -1784,14 +1807,24 @@ function exporterCSV() {
                             </button>
                           )}
                           {/* Modifier */}
-                          {['CREE', 'ENVOYEE'].includes(facture.statut) && 
-                          facture.montant_paye === 0 && (
+                          {/* Modifiable seulement tant que la facture n'est pas envoyée */}
+                          {facture.statut === 'CREE' && Number(facture.montant_paye || 0) === 0 && (
                            <button
                              style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
                              onClick={() => ouvrirModificationFacture(facture)}
                              title="Modifier"
                           >
                             ✏️
+                           </button>
+                )}
+                          {/* Facture verrouillée (envoyée, payée…) : seule la catégorie se corrige */}
+                          {!(facture.statut === 'CREE' && Number(facture.montant_paye || 0) === 0) && facture.statut !== 'ANNULEE' && (
+                           <button
+                             style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
+                             onClick={() => { setFactureSelectionnee(facture); setModalOuvert('classement'); }}
+                             title="Facture envoyée : modifier la catégorie"
+                          >
+                            🏷️
                            </button>
                 )}
   

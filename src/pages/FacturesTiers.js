@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { tiersService, tiersListeService } from '../services/api';
 import useSoumission from '../hooks/useSoumission';
+import ModalClassementFacture from '../components/ModalClassementFacture';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const styles = {
   boutonPrimaire: {
@@ -844,6 +845,25 @@ export default function FacturesTiers() {
           onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
         />
       )}
+      {modalOuvert === 'classement' && factureSelectionnee && (
+        <ModalClassementFacture
+          facture={factureSelectionnee}
+          categories={categoriesTiers}
+          styles={styles}
+          onSave={async (cat, sous) => {
+            try {
+              await tiersService.modifier(factureSelectionnee.id, { categorie: cat, sous_categorie: sous });
+              toast.success('Catégorie modifiée.');
+              setModalOuvert(null);
+              setFactureSelectionnee(null);
+              chargerDonnees();
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Erreur modification de la catégorie.');
+            }
+          }}
+          onCancel={() => { setModalOuvert(null); setFactureSelectionnee(null); }}
+        />
+      )}
       {modalOuvert === 'justificatifs' && factureSelectionnee && (
         <ModalJustificatifs
           facture={factureSelectionnee}
@@ -1055,9 +1075,12 @@ export default function FacturesTiers() {
                     </td>
                     <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
-                          onClick={() => { setFactureSelectionnee(f); setModalOuvert('creer'); }}
-                          title="Modifier">✏️</button>
+                        {/* Facture enregistrée : verrouillée, seule la catégorie se corrige (sauf reversements IRSA / CNAPS, compte imposé) */}
+                        {f.statut !== 'ANNULEE' && !/^\s*(447|431)\b/.test(String(f.sous_categorie || '')) && (
+                          <button style={{ ...styles.boutonSecondaire, padding: '4px 8px' }}
+                            onClick={() => { setFactureSelectionnee(f); setModalOuvert('classement'); }}
+                            title="Facture enregistrée : modifier la catégorie">🏷️</button>
+                        )}
                         {f.pj_url ?(
                           <a href={f.pj_url} target="_blank" rel="noreferrer"
                             style={{ ...styles.boutonSecondaire, padding: '4px 8px', textDecoration: 'none' }}
