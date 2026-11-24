@@ -244,6 +244,9 @@ const categoriesTiers = {
   '63 - Impôts, taxes et versements assimilés': [
     '632 - Autres impôts, taxes et versements assimilés'
   ],
+  '64 - Charges de personnel': [
+    '644 - Rémunérations des dirigeants'
+  ],
   '65 - Autres charges des activités ordinaires': [
     '652 - Pertes sur cessions d\'actifs non courants',
     '653 - Jetons de présence',

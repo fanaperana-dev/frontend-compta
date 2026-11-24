@@ -213,7 +213,6 @@ const categoriesDepenses = {
     '629 - Rabais, remises, ristournes obtenus sur autres services extérieurs'
   ],
   '64 - Charges de personnel': [
-    '644 - Rémunérations des dirigeants',
     '646 - Rémunérations transférées de charges',
     '647 - Autres charges sociales',
     '648 - Autres charges de personnel'
