@@ -1,4 +1,5 @@
 import { formater2Decimales } from '../../utils/excel2Decimales';
+import { plafondCnapsOstie, salaireMinimumEmbauche } from '../../utils/plafondsSociaux';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -30,7 +31,7 @@ const REMISE_IRSA_PAR_ENFANT = 2000;
 const moisListe = ['Janvier','Février','Mars','Avril','Mai','Juin',
   'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
-const PLAFOND_CNAPS = 2400000;
+// Plafond CNaPS / OSTIE = 8 × salaire minimum d'embauche, selon la période (voir utils/plafondsSociaux.js)
 
 // Trimestre civil (T1 = janvier-février-mars, etc.) du dernier mois affiché
 function infosTrimestre(moisAffiches) {
@@ -386,7 +387,7 @@ export default function OngletCotisation({ type }) {
           brutHorsAvantages(m),
           m.total_avantages_nature || 0,
           d.nb_heures_mois || 173.33,
-          PLAFOND_CNAPS
+          plafondCnapsOstie(String(m.periode || '').split('/')[0], filtreAnnee)
         );
       } else {
         // Salarié absent ce mois-là : cases laissées vides
@@ -428,15 +429,16 @@ export default function OngletCotisation({ type }) {
 
 } else if (type === 'OSTIE') {
   // Déclaration nominative OSTIE : même modèle que le fichier de l'OSTIE (onglets DNS et RECAP COTISATION)
-  const SME = 300000;
-  const PLAFOND_OSTIE = SME * 8; // plafond par travailleur et par mois (8 × salaire minimum d'embauche)
   const TAUX_EMPLOYEUR = 0.05;
   const TAUX_TRAVAILLEUR = 0.01;
   const nbMoisAffiches = 3;
   const periodesAffichees = moisTries.length > 0
     ? moisTries
     : donnees.flatMap(d => d.mois.map(m => String(m.periode || '').split('/')[0]));
-  const { trimestre, noms: moisConcernes } = infosTrimestre(periodesAffichees);
+  const { trimestre, moisFin: moisFinTrimestre, noms: moisConcernes } = infosTrimestre(periodesAffichees);
+  // Un trimestre ne chevauche jamais une revalorisation du SME (1er janvier, avril, juillet ou octobre) : on prend celui du trimestre
+  const SME = salaireMinimumEmbauche(moisFinTrimestre, filtreAnnee);
+  const PLAFOND_OSTIE = SME * 8; // plafond par travailleur et par mois (8 × salaire minimum d'embauche)
   const codeAdherent = String(employeur.code_adherent_ostie || '');
   const formaterDate = v => (v ? new Date(v).toLocaleDateString('fr-FR') : '');
   const lettre = c => XLSX.utils.encode_col(c);
