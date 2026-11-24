@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
+import PenseBete, { useRappels } from '../components/PenseBete';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer
@@ -246,6 +247,7 @@ export default function DashboardPage() {
   const [categoriesActives, setCategoriesActives] = useState([]);
   const [alertesFermees, setAlertesFermees] = useState([]);
   const [vehiculesAcquis, setVehiculesAcquis] = useState([]);
+  const pb = useRappels(entreprise?.id);   // pense-bête : rappels de l'entreprise
   const [tresorerie, setTresorerie] = useState(null);   // montants par mois de l'onglet Trésorerie
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -374,7 +376,7 @@ export default function DashboardPage() {
   }
 
   const onglets = [
-    { id: 'alertes', label: '⚠️ Alertes' },
+    { id: 'alertes', label: `⚠️ Alertes${pb.actifs.length > 0 ? ` (${pb.actifs.length})` : ''}` },
     { id: 'tresorerie', label: '💰 Trésorerie' },
     { id: 'chiffres', label: '📊 Chiffres clés' },
     { id: 'categories', label: '📈 Par catégorie' }
@@ -405,7 +407,8 @@ export default function DashboardPage() {
       {/* ONGLET 1 — Alertes (obligations fiscales) */}
       {ongletActif === 'alertes' && (
         <div>
-          
+          <PenseBete pb={pb} cardStyle={styles.card} />
+
           {getAlertesFiscalesActives().length > 0 && (
             <div style={styles.card}>
               <h3 style={{ color: '#004d5a', marginTop: 0 }}>
