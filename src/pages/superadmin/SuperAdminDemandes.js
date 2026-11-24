@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { libelleSecteur } from '../../utils/secteursActivite';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
@@ -135,7 +136,7 @@ export default function SuperAdminDemandes() {
               <div><strong>NIF :</strong> {demandeSelectionnee.nif || '—'}</div>
               <div><strong>STAT :</strong> {demandeSelectionnee.stat || '—'}</div>
               <div><strong>Forfait :</strong> {demandeSelectionnee.forfait_souhaite}</div>
-              <div><strong>Activité :</strong> {demandeSelectionnee.activite}</div>
+              <div><strong>Activité :</strong> {demandeSelectionnee.activite} — <strong>Secteur :</strong> {libelleSecteur(demandeSelectionnee.secteur_activite) || '—'}</div>
               <div><strong>Préfixe factures :</strong> {demandeSelectionnee.prefixe_facture}</div>
               <div><strong>Organisme santé :</strong> {demandeSelectionnee.nom_organisme_sante}</div>
               <div><strong>N° CNAPS :</strong> {demandeSelectionnee.numero_cnaps || '—'}</div>
