@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ChampSecteurActivite from '../components/ChampSecteurActivite';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import ArivotekIcon from '../components/ArivotekIcon';
@@ -117,6 +118,7 @@ export default function InscriptionPage() {
     email: '',
     site_web: '',
     activite: '',
+    secteur_activite: '',
     // Infos fiscales
     nif: '',
     stat: '',
@@ -269,10 +271,12 @@ export default function InscriptionPage() {
                     onChange={e => setForm({ ...form, capital: e.target.value })} />
                 </div>
                 <div>
-                  <label style={styles.label}>Secteur d'activité</label>
+                  <label style={styles.label}>Activité</label>
                   <input style={styles.input} value={form.activite}
                     onChange={e => setForm({ ...form, activite: e.target.value })} />
                 </div>
+                <ChampSecteurActivite valeur={form.secteur_activite} styleLabel={styles.label} styleChamp={styles.input}
+                  onChange={v => setForm({ ...form, secteur_activite: v })} />
                 <div>
                   <label style={styles.label}>Adresse</label>
                   <input style={styles.input} value={form.adresse}

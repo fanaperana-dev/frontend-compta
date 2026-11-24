@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ChampSecteurActivite from '../../components/ChampSecteurActivite';
+import { libelleSecteur } from '../../utils/secteursActivite';
 import { toast } from 'react-toastify';
 import { entrepriseService } from '../../services/api';
 import { calculerTarifNet, ar, libelleRemise } from '../../utils/tarifEntreprise';
@@ -64,6 +66,7 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
     capital: entreprise?.capital || '',
     statut_juridique: entreprise?.statut_juridique || '',
     activite: entreprise?.activite || '',
+    secteur_activite: entreprise?.secteur_activite || '',
     numero_cnaps: entreprise?.numero_cnaps || '',
     code_adherent_ostie: entreprise?.code_adherent_ostie || '',
     prefixe_facture: entreprise?.prefixe_facture || 'FAC-',
@@ -179,6 +182,8 @@ function FormulaireEntreprise({ entreprise, forfaits, onSave, onCancel }) {
             <input style={styles.input} value={form.activite}
               onChange={e => setForm({ ...form, activite: e.target.value })} />
           </div>
+          <ChampSecteurActivite valeur={form.secteur_activite} styleLabel={styles.label} styleChamp={styles.input}
+            onChange={v => setForm({ ...form, secteur_activite: v })} />
           <div>
             <label style={styles.label}>NIF</label>
             <input style={styles.input} value={form.nif}
@@ -303,7 +308,7 @@ function ModalDetailEntreprise({ entreprise, forfaits, onClose, onModifier, onCh
           <div><strong>Email :</strong> {entreprise.email}</div>
           <div><strong>Téléphone :</strong> {entreprise.telephone || '—'}</div>
           <div><strong>Adresse :</strong> {entreprise.adresse || '—'} {entreprise.ville || ''}</div>
-          <div><strong>Activité :</strong> {entreprise.activite || '—'}</div>
+          <div><strong>Activité :</strong> {entreprise.activite || '—'} — <strong>Secteur :</strong> {libelleSecteur(entreprise.secteur_activite) || '—'}</div>
           <div><strong>NIF :</strong> {entreprise.nif || '—'} — <strong>STAT :</strong> {entreprise.stat || '—'}</div>
           <div><strong>RCS :</strong> {entreprise.rcs || '—'} — <strong>Capital :</strong> {entreprise.capital || '—'}</div>
           <div><strong>TVA :</strong> {entreprise.assujettie_tva ? `Assujettie (${Number(entreprise.taux_tva) || 20} %)` : 'Non assujettie'} — <strong>Code adhérent OSTIE :</strong> {entreprise.code_adherent_ostie || '—'}</div>
