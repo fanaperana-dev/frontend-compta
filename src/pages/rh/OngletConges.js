@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
+import { repartirParMois } from '../../utils/repartitionConges';
 const API_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 const styles = {
@@ -97,6 +98,7 @@ function FormulaireDemande({ salaries, onSave, onCancel, entete, entrepriseId })
   }
 
   const jours = Number(form.nb_jours) || 0;
+  const repartition = repartirParMois(form.date_debut, form.date_fin, jours);
   const reste = solde ? Math.round((solde.solde - jours) * 100) / 100 : null;
 
   async function soumettre(e) {
@@ -144,8 +146,19 @@ function FormulaireDemande({ salaries, onSave, onCancel, entete, entrepriseId })
         <span style={{ fontSize: '11px', color: '#888' }}>
           Calcul selon la législation malgache : le samedi et le dimanche comptent dans le congé
           (un congé le vendredi = 3 jours, un lundi = 1 jour). Le nombre de jours reste modifiable
-          selon la politique de l'entreprise (ex. demi-journée : 0,5). Les jours sont rattachés au mois de la date de début.
+          selon la politique de l'entreprise (ex. demi-journée : 0,5). Un congé à cheval sur deux mois est réparti : chaque mois reçoit ses jours dans sa fiche de paie.
         </span>
+
+        {repartition.length > 1 && (
+          <div style={{
+            marginTop: '10px', padding: '10px 12px', background: '#fff8e1', border: '1px solid #ffe082',
+            borderRadius: '8px', fontSize: '13px', color: '#5d4037'
+          }}>
+            Ce congé touche {repartition.length} mois :{' '}
+            {repartition.map(p => `${fmtNb(p.nb_jours)} j en ${p.mois.toLowerCase()} ${p.annee}`).join(' · ')}.
+            Chaque part sera reprise dans la fiche de paie du mois concerné.
+          </div>
+        )}
 
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginTop: '16px',
@@ -385,7 +398,17 @@ export default function OngletConges() {
                   <td style={styles.td}>{nomSalarie(d.salarie_id)}</td>
                   <td style={styles.td}>{fmtDate(d.date_debut)}</td>
                   <td style={styles.td}>{fmtDate(d.date_fin)}</td>
-                  <td style={styles.td}>{fmtNb(d.nb_jours)}</td>
+                  <td style={styles.td}>
+                    {fmtNb(d.nb_jours)}
+                    {(() => {
+                      const parts = repartirParMois(d.date_debut, d.date_fin, d.nb_jours);
+                      return parts.length > 1 ? (
+                        <div style={{ fontSize: '11px', color: '#888' }}>
+                          {parts.map(p => `${fmtNb(p.nb_jours)} j ${p.mois.slice(0, 4).toLowerCase()}.`).join(' + ')}
+                        </div>
+                      ) : null;
+                    })()}
+                  </td>
                   <td style={styles.td}>{fmtNb(d.solde_avant)}</td>
                   <td style={styles.td}>{fmtNb(d.solde_apres)}</td>
                   <td style={{ ...styles.td, whiteSpace: 'normal' }}>{d.motif || ''}</td>
