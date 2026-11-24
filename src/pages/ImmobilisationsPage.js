@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { immobilisationService } from '../services/api';
 import * as XLSX from 'xlsx';
 import useSoumission from '../hooks/useSoumission';
+import { TYPES_BIEN, typeBien, devinerTypeBien, ajouterAnnees } from '../utils/dureesAmortissement';
 
 // Tous les montants affichés avec 2 décimales
 const FMT2 = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
@@ -197,7 +198,30 @@ export function FormulaireImmobilisation({ immo, initial, bandeau, onSave, onCan
           <div>
             <label style={styles.label}>Date début amortissement *</label>
             <input style={styles.input} type="date" value={form.date_debut_amortissement}
-              onChange={e => setForm({ ...form, date_debut_amortissement: e.target.value })} />
+              onChange={e => {
+                const debut = e.target.value;
+                const t = typeBien(form.type_immobilisation_detail);
+                // un type de bien est choisi et la fin n'est pas encore saisie : on la déduit de la durée proposée
+                setForm({ ...form, date_debut_amortissement: debut, ...(t && !form.date_fin_amortissement ? { date_fin_amortissement: ajouterAnnees(debut, t.ans) } : {}) });
+              }} />
+          </div>
+          <div style={{ gridColumn: 'span 2' }}>
+            <label style={styles.label}>Type de bien (durée d'amortissement proposée)</label>
+            <select style={styles.input} value={typeBien(form.type_immobilisation_detail) ? form.type_immobilisation_detail : ''}
+              onChange={e => {
+                const t = typeBien(e.target.value);
+                setForm({ ...form, type_immobilisation_detail: e.target.value,
+                  ...(t && form.date_debut_amortissement ? { date_fin_amortissement: ajouterAnnees(form.date_debut_amortissement, t.ans) } : {}) });
+              }}>
+              <option value="">Autre bien : saisir la date de fin</option>
+              {TYPES_BIEN.map(t => <option key={t.cle} value={t.cle}>{t.libelle} : {t.ans} ans</option>)}
+            </select>
+            {!typeBien(form.type_immobilisation_detail) && devinerTypeBien(form.designation) && (
+              <div style={{ fontSize: '11px', color: '#1565c0', marginTop: '3px' }}>
+                Type suggéré d'après la désignation : {typeBien(devinerTypeBien(form.designation)).libelle} ({typeBien(devinerTypeBien(form.designation)).ans} ans).
+              </div>
+            )}
+            <div style={{ fontSize: '11px', color: '#666', marginTop: '3px' }}>La date de fin reste modifiable à la main.</div>
           </div>
           <div>
             <label style={styles.label}>Date fin amortissement *</label>

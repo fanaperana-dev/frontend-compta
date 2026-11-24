@@ -52,3 +52,16 @@ test('payload : stock existant, nouvel article, immobilisation', () => {
   expect(articleExact('BALAIS', [{ id: 'A1', designation: 'Balais' }]).id).toBe('A1');
   expect(blocVide().lignes).toHaveLength(1);
 });
+
+import { devinerTypeBien, ajouterAnnees } from './dureesAmortissement';
+test('durées par type de bien : véhicule 5 ans, mobilier 5 ans, informatique 3 ans', () => {
+  const f = (libelle, type_bien = '') => ({ ...base(), blocs: [{ categorie: '21 - Immobilisations corporelles', sous_categorie: '218 - Autres immobilisations corporelles', lignes: [{ libelle, quantite: 1, montant: 1000, type_bien }] }], montant: 1000 });
+  const duree = (frm) => construirePayload(frm, 'E', [], false).blocs[0].lignes[0].duree_ans;
+  expect(duree(f('Ordinateur portable HP'))).toBe(3);
+  expect(duree(f('Voiture Toyota'))).toBe(5);
+  expect(duree(f('Chaise de bureau'))).toBe(5);
+  expect(duree(f('Climatiseur'))).toBe(5);                       // inconnu : durée du compte
+  expect(duree(f('Climatiseur', 'INFORMATIQUE'))).toBe(3);        // type choisi à la main
+  expect(devinerTypeBien('Matériel informatique bureau')).toBe('INFORMATIQUE');
+  expect(ajouterAnnees('2026-11-24', 3)).toBe('2029-11-24');
+});

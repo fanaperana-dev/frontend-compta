@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   arrondi2, natureLigne, ligneVide, blocVide, paiementVide, majLigne, totalLignes, totalPaiements,
-  aUneChargeSansStock, problemes, construirePayload, articleExact, dureeParDefaut
+  aUneChargeSansStock, problemes, construirePayload, articleExact, dureeLigne
 } from '../utils/factureIntelligente';
+import { TYPES_BIEN, devinerTypeBien } from '../utils/dureesAmortissement';
 
 const fr = (n) => Number(n || 0).toLocaleString('fr-FR');
 const aujourdhui = () => new Date().toISOString().split('T')[0];
@@ -165,7 +166,7 @@ export default function FormulaireFactureIntelligente({ fournisseurs, articles, 
                     <th style={th}>Libellé</th><th style={{ ...th, width: '80px' }}>Quantité</th>
                     <th style={{ ...th, width: '110px' }}>Prix unitaire</th><th style={{ ...th, width: '120px' }}>Montant TTC</th>
                     {n.nature === 'STOCK' && <th style={{ ...th, width: '190px' }}>Article en stock</th>}
-                    {n.nature === 'IMMO' && <th style={{ ...th, width: '90px' }}>Durée (ans)</th>}
+                    {n.nature === 'IMMO' && <th style={{ ...th, width: '200px' }}>Type de bien · durée (ans)</th>}
                     <th style={{ width: '30px' }} />
                   </tr>
                 </thead>
@@ -191,7 +192,15 @@ export default function FormulaireFactureIntelligente({ fournisseurs, articles, 
                         )}
                         {n.nature === 'IMMO' && (
                           <td style={{ padding: '3px' }}>
-                            <input style={petit} type="number" min="1" value={l.duree_ans} placeholder={String(dureeParDefaut(n.compte))} onChange={(e) => majLigneBloc(i, j, 'duree_ans', e.target.value)} />
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <select style={petit} value={l.type_bien || devinerTypeBien(l.libelle)}
+                                onChange={(e) => majLigneBloc(i, j, 'type_bien', e.target.value)}>
+                                <option value="">Autre bien</option>
+                                {TYPES_BIEN.map((t) => <option key={t.cle} value={t.cle}>{t.libelle}</option>)}
+                              </select>
+                              <input style={{ ...petit, width: '60px' }} type="number" min="1" value={l.duree_ans}
+                                placeholder={String(dureeLigne({ ...l, duree_ans: '' }, n.compte))} onChange={(e) => majLigneBloc(i, j, 'duree_ans', e.target.value)} />
+                            </div>
                           </td>
                         )}
                         <td style={{ padding: '3px' }}>

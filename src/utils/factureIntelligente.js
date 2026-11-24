@@ -1,6 +1,7 @@
 // Facture fournisseur « intelligente » : une facture, plusieurs catégories, plusieurs lignes, plusieurs paiements.
 // Partie pure (sans écran) : mêmes règles que le back (services/ventilationFournisseur.js).
 import { groupesStock, comptesStock } from './comptesStock';
+import { typeBien, devinerTypeBien } from './dureesAmortissement';
 
 export const arrondi2 = (x) => Math.round((Number(x) || 0) * 100) / 100;
 const codeDe = (texte) => String(texte || '').split(' - ')[0].trim();
@@ -8,6 +9,13 @@ const codeDe = (texte) => String(texte || '').split(' - ')[0].trim();
 // Durée d'amortissement proposée (en années) selon le compte ; modifiable ligne par ligne
 export const DUREES_PAR_DEFAUT = { '203': 3, '204': 3, '205': 5, '207': 10, '208': 5, '212': 10, '213': 20, '215': 10, '218': 5 };
 export const dureeParDefaut = (compte) => DUREES_PAR_DEFAUT[String(compte)] || 5;
+
+/** Durée d'amortissement d'une ligne : saisie à la main, sinon selon le type de bien (choisi ou deviné d'après le libellé), sinon selon le compte */
+export function dureeLigne(ligne, compte) {
+  if (Number(ligne.duree_ans) > 0) return Number(ligne.duree_ans);
+  const t = typeBien(ligne.type_bien || devinerTypeBien(ligne.libelle));
+  return t ? t.ans : dureeParDefaut(compte);
+}
 
 /**
  * Nature d'une ligne selon sa catégorie / sous-catégorie.
@@ -31,7 +39,7 @@ export function natureLigne(categorie, sousCategorie) {
   return { nature: 'CHARGE', compte: so };
 }
 
-export const ligneVide = () => ({ libelle: '', quantite: 1, prix_unitaire: '', montant: '', article_id: '', unite: 'pièce', famille: '', duree_ans: '', confirmer_similaire: false });
+export const ligneVide = () => ({ libelle: '', quantite: 1, prix_unitaire: '', montant: '', article_id: '', unite: 'pièce', famille: '', duree_ans: '', type_bien: '', confirmer_similaire: false });
 export const blocVide = () => ({ categorie: '', sous_categorie: '', lignes: [ligneVide()] });
 export const paiementVide = (date = '') => ({ montant: '', date, mode: '' });
 
@@ -115,7 +123,7 @@ export function construirePayload(form, entreprise_id, articles, assujettie) {
             if (existant) ligne.article_id = existant.id;
             else ligne.nouvel_article = { designation: ligne.libelle, unite: l.unite || 'pièce', famille: l.famille || '', confirmer_similaire: !!l.confirmer_similaire };
           }
-          if (n.nature === 'IMMO') ligne.duree_ans = Number(l.duree_ans) || dureeParDefaut(n.compte);
+          if (n.nature === 'IMMO') ligne.duree_ans = dureeLigne(l, n.compte);
           return ligne;
         })
       };
