@@ -82,6 +82,26 @@ async function chargerCongesValides(entrepriseId, mois, annee) {
   }
 }
 
+// Absences justifiées (onglet Absences justifiées) pour un mois : { [salarie_id]: nb de jours }
+async function chargerAbsencesJustifiees(entrepriseId, mois, annee) {
+  try {
+    const res = await fetch(
+      `${API_URL}/api/absences-justifiees/valides/${entrepriseId}?mois=${encodeURIComponent(mois)}&annee=${annee}`,
+      { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+    );
+    const data = await res.json();
+    return data.success ? (data.data || {}) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+// Jours travaillés = jours du mois − congés − absences injustifiées − absences justifiées
+// (les absences justifiées sont payées, mais sur leur propre ligne de la fiche)
+function joursTravailles(joursMois, conge, absence, justifiee) {
+  return Math.max(0, (Number(joursMois) || 30) - (Number(conge) || 0) - (Number(absence) || 0) - (Number(justifiee) || 0));
+}
+
 // Composant création en masse
 function FormulaireMasse({ salaries, onSave, onCancel }) {
   const { entreprise } = useAuth();
@@ -107,6 +127,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
       nb_jours_travailles: s.nb_jours_mois || 30,
       nb_jours_conge: 0,
       nb_jours_absence: 0,
+      nb_jours_absence_justifiee: 0,
       nb_jours_panier_repas: 0,
       nb_jours_transport: 0,
       nb_heures_sup_130: 0,
@@ -131,16 +152,20 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     return () => { actif = false; };
   }, [config.mois, config.annee]);
 
-  // Pré-remplit la colonne Congés avec les congés validés dans l'onglet Congés pour le mois choisi
+  // Pré-remplit les colonnes Congés et Abs. justif. (onglets Congés et Absences justifiées) pour le mois choisi
   useEffect(() => {
     let actif = true;
-    chargerCongesValides(entreprise.id, config.mois, config.annee).then(map => {
+    Promise.all([
+      chargerCongesValides(entreprise.id, config.mois, config.annee),
+      chargerAbsencesJustifiees(entreprise.id, config.mois, config.annee)
+    ]).then(([conges, justifiees]) => {
       if (!actif) return;
       setLignes(ls => ls.map(l => {
-        const conge = Number(map[l.salarie_id]) || 0;
+        const conge = Number(conges[l.salarie_id]) || 0;
+        const justifiee = Number(justifiees[l.salarie_id]) || 0;
         return {
-          ...l, nb_jours_conge: conge,
-          nb_jours_travailles: Math.max(0, (Number(l.nb_jours_mois) || 30) - conge - (Number(l.nb_jours_absence) || 0))
+          ...l, nb_jours_conge: conge, nb_jours_absence_justifiee: justifiee,
+          nb_jours_travailles: joursTravailles(l.nb_jours_mois, conge, l.nb_jours_absence, justifiee)
         };
       }));
     });
@@ -151,9 +176,9 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     const nouvLignes = [...lignes];
     nouvLignes[index][champ] = Number(valeur) || 0;
     // Congés / absences saisis → jours travaillés = jours du mois − congés − absences
-    if (champ === 'nb_jours_conge' || champ === 'nb_jours_absence') {
+    if (champ === 'nb_jours_conge' || champ === 'nb_jours_absence' || champ === 'nb_jours_absence_justifiee') {
       const l = nouvLignes[index];
-      l.nb_jours_travailles = Math.max(0, (Number(l.nb_jours_mois) || 30) - (Number(l.nb_jours_conge) || 0) - (Number(l.nb_jours_absence) || 0));
+      l.nb_jours_travailles = joursTravailles(l.nb_jours_mois, l.nb_jours_conge, l.nb_jours_absence, l.nb_jours_absence_justifiee);
     }
     setLignes(nouvLignes);
   }
@@ -162,6 +187,7 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     { key: 'nb_jours_travailles', label: 'Jours trav.' },
     { key: 'nb_jours_conge', label: 'Congés' },
     { key: 'nb_jours_absence', label: 'Absences' },
+    { key: 'nb_jours_absence_justifiee', label: 'Abs. justif.' },
     { key: 'nb_jours_panier_repas', label: 'Panier (j)' },
     { key: 'nb_jours_transport', label: 'Transport (j)' },
     { key: 'nb_heures_sup_130', label: 'H.sup 130%' },
@@ -350,6 +376,7 @@ function LigneRegulation({ titre, aide, valeur, motif, onChange }) {
 }
 
 function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInitiale }) {
+  // cadre : fiche cadre (liste des cadres) ; sinon fiche individuelle (liste des salariés non cadres)
   const { entreprise } = useAuth();
   const modeEdition = !!ficheInitiale;
   const [retenues, setRetenues] = useState({});
@@ -364,6 +391,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
     nb_jours_travailles: 0,
     nb_jours_conge: 0,
     nb_jours_absence: 0,
+    nb_jours_absence_justifiee: 0,
     nb_jours_panier_repas: 0,
     nb_jours_transport: 0,
     nb_heures_sup_130: 0,
@@ -400,6 +428,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
       nb_jours_travailles: Number(ficheInitiale.nb_jours_travailles) || 0,
       nb_jours_conge: Number(ficheInitiale.nb_jours_conge) || 0,
       nb_jours_absence: Number(ficheInitiale.nb_jours_absence) || 0,
+      nb_jours_absence_justifiee: Number(ficheInitiale.nb_jours_absence_justifiee) || 0,
       nb_jours_panier_repas: Number(ficheInitiale.nb_jours_panier_repas) || 0,
       nb_jours_transport: Number(ficheInitiale.nb_jours_transport) || 0,
       nb_heures_sup_130: Number(ficheInitiale.nb_heures_sup_130) || 0,
@@ -461,19 +490,23 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
     return () => { actif = false; };
   }, [form.salarie_id, form.mois, form.annee]);
 
-  // Création : les congés validés dans l'onglet Congés pour ce mois sont repris automatiquement
+  // Création : les congés (onglet Congés) et les absences justifiées (onglet Absences justifiées)
+  // du mois sont repris automatiquement
   useEffect(() => {
     if (modeEdition || !form.salarie_id) return undefined;
     let actif = true;
-    chargerCongesValides(entreprise.id, form.mois, form.annee).then(map => {
+    Promise.all([
+      chargerCongesValides(entreprise.id, form.mois, form.annee),
+      chargerAbsencesJustifiees(entreprise.id, form.mois, form.annee)
+    ]).then(([conges, justifiees]) => {
       if (!actif) return;
-      const conge = Number(map[form.salarie_id]) || 0;
+      const conge = Number(conges[form.salarie_id]) || 0;
+      const justifiee = Number(justifiees[form.salarie_id]) || 0;
       setForm(f => {
         if (f.salarie_id !== form.salarie_id) return f;
         const sal = salaries.find(x => x.id === f.salarie_id);
-        const jMois = Number(sal?.nb_jours_mois) || 30;
-        return { ...f, nb_jours_conge: conge,
-          nb_jours_travailles: Math.max(0, jMois - conge - (Number(f.nb_jours_absence) || 0)) };
+        return { ...f, nb_jours_conge: conge, nb_jours_absence_justifiee: justifiee,
+          nb_jours_travailles: joursTravailles(sal?.nb_jours_mois, conge, f.nb_jours_absence, justifiee) };
       });
     });
     return () => { actif = false; };
@@ -502,7 +535,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
     <div style={styles.modal}>
       <div style={{ ...styles.modalContent, maxWidth: '700px' }}>
         <h3 style={{ color: '#004d5a', marginTop: 0 }}>
-          {modeEdition ? '✏️ Modifier la fiche de paie (brouillon)' : '📝 Fiche cadre'}
+          {modeEdition ? '✏️ Modifier la fiche de paie (brouillon)' : (cadre ? '📝 Fiche cadre' : '📝 Fiche individuelle')}
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
@@ -513,7 +546,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
               disabled={modeEdition}>
               <option value="">{cadre && !modeEdition ? 'Sélectionner un cadre' : 'Sélectionner un salarié'}</option>
               {salaries
-                .filter(s => s.actif && s.statut_emploi !== 'SORTI' && (modeEdition || !cadre || s.est_cadre))
+                .filter(s => s.actif && s.statut_emploi !== 'SORTI' && (modeEdition || (cadre ? s.est_cadre : !s.est_cadre)))
                 .map(s => (
                   <option key={s.id} value={s.id}>
                     {s.matricule} — {[s.nom, s.prenom].filter(Boolean).join(' ')} ({s.type_contrat})
@@ -554,9 +587,24 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
               const abs = Number(e.target.value) || 0;
               const sal = salaries.find(x => x.id === form.salarie_id);
               const jMois = Number(sal?.nb_jours_mois) || 30;
-              setForm({ ...form, nb_jours_absence: abs, nb_jours_travailles: Math.max(0, jMois - (Number(form.nb_jours_conge) || 0) - abs) });
+              setForm({ ...form, nb_jours_absence: abs, nb_jours_travailles: joursTravailles(jMois, form.nb_jours_conge, abs, form.nb_jours_absence_justifiee) });
             }} />
           </div>
+          {!estStage && (
+            <div>
+              <label style={styles.label}>Jours d'absence justifiée</label>
+              <input style={styles.input} type="number" step="0.5" min="0" value={form.nb_jours_absence_justifiee}
+                onChange={e => {
+                  const just = Number(e.target.value) || 0;
+                  const sal = salaries.find(x => x.id === form.salarie_id);
+                  setForm({ ...form, nb_jours_absence_justifiee: just,
+                    nb_jours_travailles: joursTravailles(sal?.nb_jours_mois, form.nb_jours_conge, form.nb_jours_absence, just) });
+                }} />
+              <span style={{ fontSize: '11px', color: '#666' }}>
+                Reprise de l'onglet Absences justifiées. Payée au taux journalier, sur sa propre ligne ; sans effet sur le solde de congé.
+              </span>
+            </div>
+          )}
           <div>
             <label style={styles.label}>Panier repas (nb jours)</label>
             <input style={styles.input} type="number" step="0.5" value={form.nb_jours_panier_repas}
@@ -615,7 +663,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
                     const conge = Number(e.target.value) || 0;
                     const sal = salaries.find(x => x.id === form.salarie_id);
                     const jMois = Number(sal?.nb_jours_mois) || 30;
-                    setForm({ ...form, nb_jours_conge: conge, nb_jours_travailles: Math.max(0, jMois - conge - (Number(form.nb_jours_absence) || 0)) });
+                    setForm({ ...form, nb_jours_conge: conge, nb_jours_travailles: joursTravailles(jMois, conge, form.nb_jours_absence, form.nb_jours_absence_justifiee) });
                   }} />
               </div>
               <div>
@@ -652,7 +700,8 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
                 valeur={form.regulation_nette} motif={form.regulation_nette_motif}
                 onChange={(v, m) => setForm({ ...form, regulation_nette: v, regulation_nette_motif: m })} />
 
-              {/* Avantages cadres */}
+              {/* Indemnités cadres : uniquement pour un cadre (pas pour la fiche individuelle d'un salarié non cadre) */}
+              {(cadre || salarieSelectionne?.est_cadre) && (
               <div style={{ gridColumn: 'span 2' }}>
                 <div style={{ background: '#e3f2fd', borderRadius: '8px', padding: '12px', marginTop: '10px' }}>
                   <strong style={{ color: '#1565c0' }}>💼 Indemnités cadres</strong>
@@ -674,6 +723,7 @@ function FormulaireUnique({ salaries, cadre = false, onSave, onCancel, ficheInit
                   </div>
                 </div>
               </div>
+              )}
 
               <div style={{ gridColumn: 'span 2' }}>
                 <div style={{ background: '#fff3e0', borderRadius: '8px', padding: '12px' }}>
@@ -1166,6 +1216,7 @@ export default function ListeFichesPaie() {
       'Jours travaillés': f.nb_jours_travailles || 0,
       'Congés': f.nb_jours_conge || 0,
       'Absences': f.nb_jours_absence || 0,
+      'Abs. justifiées': f.nb_jours_absence_justifiee || 0,
       'Salaire brut': f.salaire_brut || 0,
       'CNAPS salarial': f.cnaps_salarial || 0,
       'OSTIE salarial': f.ostie_salarial || 0,
@@ -1231,6 +1282,13 @@ export default function ListeFichesPaie() {
 
   return (
     <div>
+      {modalOuvert === 'individuelle' && (
+        <FormulaireUnique
+          salaries={salaries}
+          onSave={creerFicheUnique}
+          onCancel={() => setModalOuvert(null)}
+        />
+      )}
       {modalOuvert === 'unique' && (
         <FormulaireUnique
           cadre
@@ -1337,6 +1395,10 @@ export default function ListeFichesPaie() {
           <button style={styles.boutonSecondaire}
             onClick={() => setModalOuvert('masse')}>
             📋 Fiches en masse
+          </button>
+          <button style={styles.boutonSecondaire}
+            onClick={() => setModalOuvert('individuelle')}>
+            + Fiche individuelle
           </button>
           <button style={styles.boutonPrimaire}
             onClick={() => setModalOuvert('unique')}>

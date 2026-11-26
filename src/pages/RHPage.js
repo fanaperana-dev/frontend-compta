@@ -5,6 +5,7 @@ import OngletCotisation from './rh/OngletCotisation';
 import SoldeToutCompte from './rh/SoldeToutCompte';
 import OngletAvances from './rh/OngletAvances';
 import OngletConges from './rh/OngletConges';
+import OngletAbsencesJustifiees from './rh/OngletAbsencesJustifiees';
 
 export default function RHPage() {
   const [ongletActif, setOngletActif] = useState('salaries');
@@ -18,6 +19,7 @@ export default function RHPage() {
     { id: 'ostie', label: '🏥 OSTIE' },
     { id: 'avances', label: '💸 Avances' },
     { id: 'conges', label: '🏖️ Congés' },
+    { id: 'absences', label: '🩺 Absences justifiées' },
     { id: 'stc', label: '🚪 Solde tout compte' }
   ];
 
@@ -62,6 +64,7 @@ export default function RHPage() {
       {ongletActif === 'ostie' && <OngletCotisation type="OSTIE" />}
       {ongletActif === 'avances' && <OngletAvances />}
       {ongletActif === 'conges' && <OngletConges />}
+      {ongletActif === 'absences' && <OngletAbsencesJustifiees />}
       {ongletActif === 'stc' && <SoldeToutCompte />}
     </div>
   );
