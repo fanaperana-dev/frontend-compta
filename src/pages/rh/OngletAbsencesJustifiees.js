@@ -115,8 +115,8 @@ function Formulaire({ salaries, initiale, onSave, onCancel }) {
         )}
 
         <p style={{ fontSize: '12px', color: '#2e7d32', margin: '14px 0 0' }}>
-          Ces jours seront repris dans la fiche de paie du mois (ligne « Absence justifiée », payée au taux journalier).
-          Ils ne sont déduits ni du solde de congé ni des jours de congé.
+          Ces jours seront repris dans la fiche de paie du mois (ligne « Absence justifiée »). Aucune retenue sur le salaire : ils sont payés
+          au taux journalier. Ils ne sont déduits ni du solde de congé ni des jours de congé.
         </p>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '22px' }}>
@@ -230,8 +230,9 @@ export default function OngletAbsencesJustifiees() {
           </button>
         </div>
         <p style={{ fontSize: '12px', color: '#666', marginTop: 0 }}>
-          Repos maladie, enterrement, mariage, congé de paternité… Ces jours sont payés au taux journalier, apparaissent sur leur propre ligne
-          de la fiche de paie et ne sont pas déduits du solde de congé.
+          Repos maladie, enterrement, mariage, congé de paternité… Une absence justifiée n'est pas retenue sur le salaire : ces jours sont payés
+          au taux journalier (comme un jour travaillé) et apparaissent sur leur propre ligne de la fiche de paie. Ce n'est ni un congé ni une absence
+          injustifiée : ils ne sont déduits ni du solde de congé ni des jours de congé.
         </p>
 
         <div style={{ overflowX: 'auto' }}>
