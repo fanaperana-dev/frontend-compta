@@ -197,7 +197,6 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     { key: 'prime', label: 'Prime' },
     { key: 'prime_exceptionnelle', label: 'Prime excep.' },
     { key: 'acompte', label: 'Acompte' },
-    { key: 'retenue', label: 'Retenue' },
     { key: 'avance_sur_salaire', label: 'Avance' }
   ];
 
@@ -206,7 +205,6 @@ function FormulaireMasse({ salaries, onSave, onCancel }) {
     { key: 'nb_jours_panier_repas', label: 'Panier (j)' },
     { key: 'nb_jours_transport', label: 'Transport (j)' },
     { key: 'autre_indemnite', label: 'Autre ind.' },
-    { key: 'retenue', label: 'Retenue' },
     { key: 'acompte', label: 'Acompte' }
   ];
 

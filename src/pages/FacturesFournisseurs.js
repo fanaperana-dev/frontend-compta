@@ -464,6 +464,21 @@ export default function FacturesFournisseurs() {
     setDatePaiement(new Date().toISOString().split('T')[0]);
   }
 
+  async function basculerNonConforme(f) {
+    const devient = !f.non_conforme;
+    const message = devient
+      ? `Marquer la facture ${f.numero || ''} comme NON CONFORME ?\n\nElle reste enregistrée en comptabilité, mais elle ne sera plus prise en compte dans le calcul de l'impôt.`
+      : `Rendre la facture ${f.numero || ''} conforme ?\n\nElle sera de nouveau prise en compte dans le calcul de l'impôt.`;
+    if (!window.confirm(message)) return;
+    try {
+      const res = await fournisseurService.marquerNonConforme(f.id, devient);
+      toast.success(res.data.message);
+      chargerDonnees();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur lors du changement.');
+    }
+  }
+
   async function changerStatut(id, statut) {
 
     try {
@@ -746,6 +761,11 @@ export default function FacturesFournisseurs() {
                   }}>
                     <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
                       {f.numero || '—'}
+                      {f.non_conforme && (
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#e65100', background: '#fff3e0', borderRadius: '8px', padding: '1px 6px', display: 'inline-block', marginTop: '3px' }}>
+                          Non conforme
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '10px', fontSize: '13px' }}>{f.fournisseur}</td>
                     <td style={{ padding: '10px', fontSize: '13px', color: '#666' }}>
@@ -803,6 +823,20 @@ export default function FacturesFournisseurs() {
                             title="Facture enregistrée : modifier la catégorie"
                           >
                             🏷️
+                          </button>
+                        )}
+                        {/* Facture non conforme : hors calcul de l'impôt */}
+                        {f.statut !== 'ANNULEE' && (
+                          <button
+                            style={{ ...styles.boutonSecondaire, padding: '4px 8px', fontSize: '11px',
+                              color: '#e65100', borderColor: '#e65100',
+                              background: f.non_conforme ? '#fff3e0' : 'white' }}
+                            onClick={() => basculerNonConforme(f)}
+                            title={f.non_conforme
+                              ? 'Facture non conforme (hors calcul de l\'impôt) : cliquer pour la rendre conforme'
+                              : 'Marquer non conforme : la facture ne sera pas prise en compte dans le calcul de l\'impôt'}
+                          >
+                            {f.non_conforme ? '↩ Conforme' : 'Non conforme'}
                           </button>
                         )}
                         {/* Voir scan */}

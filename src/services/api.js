@@ -128,6 +128,10 @@ export const paiementService = {
 
 // FOURNISSEURS
 export const fournisseurService = {
+  // Facture non conforme : reste en comptabilité mais hors calcul de l'impôt
+  marquerNonConforme: (id, non_conforme) =>
+    api.patch(`/fournisseurs/${id}/non-conforme`, { non_conforme }),
+
   getAll: (entreprise_id, params) =>
     api.get(`/fournisseurs/${entreprise_id}`, { params }),
 
