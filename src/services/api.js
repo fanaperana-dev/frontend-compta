@@ -381,6 +381,12 @@ export const ticketService = {
   creer: (data) => api.post('/tickets', data),
   traiter: (id, data) => api.patch(`/tickets/${id}/traiter`, data)
 };
+export const abonnementService = {
+  getConfig: () => api.get('/facturation-abonnements/config'),
+  saveConfig: (data) => api.put('/facturation-abonnements/config', data),
+  apercu: (periode) => api.get('/facturation-abonnements/apercu', { params: { periode } }),
+  generer: (data) => api.post('/facturation-abonnements/generer', data)
+};
 export const correctionService = {
   // Factures clients
   getFacturesClients: (entreprise_id) => api.get(`/factures/${entreprise_id}`),

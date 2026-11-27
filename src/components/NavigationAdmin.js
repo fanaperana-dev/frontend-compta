@@ -8,6 +8,7 @@ const menuItemsAdmin = [
   { path: '/admin/forfaits', icon: '📦', label: 'Forfaits' },
   { path: '/admin/templates', icon: '🎨', label: 'Templates' },
   { path: '/admin/tickets', icon: '🎫', label: 'Tickets' },
+  { path: '/admin/abonnements', icon: '💳', label: 'Facturation abonnements' },
   { path: '/admin/corrections', icon: '🔧', label: 'Corrections' },
   { path: '/admin/import', icon: '📥', label: 'Import Excel' },
   { path: '/admin/saisie-comptable', icon: '🧾', label: 'Saisie comptable' },

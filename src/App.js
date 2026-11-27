@@ -25,6 +25,7 @@ import SuperAdminForfaits from './pages/superadmin/SuperAdminForfaits';
 import NavigationAdmin from './components/NavigationAdmin';
 import SuperAdminTemplates from './pages/superadmin/SuperAdminTemplates';
 import SuperAdminTickets from './pages/superadmin/SuperAdminTickets';
+import SuperAdminAbonnements from './pages/superadmin/SuperAdminAbonnements';
 import SuperAdminCorrections from './pages/superadmin/SuperAdminCorrections';
 import SuperAdminImport from './pages/superadmin/SuperAdminImport';
 import SuperAdminDemandes from './pages/superadmin/SuperAdminDemandes';
@@ -229,6 +230,11 @@ function App() {
           <Route path="/admin/tickets" element={
             <RouteAdmin>
               <SuperAdminTickets />
+            </RouteAdmin>
+          } />
+          <Route path="/admin/abonnements" element={
+            <RouteAdmin>
+              <SuperAdminAbonnements />
             </RouteAdmin>
           } />
           <Route path="/admin/corrections" element={
