@@ -761,11 +761,6 @@ export default function FacturesFournisseurs() {
                   }}>
                     <td style={{ padding: '10px', fontSize: '13px', fontWeight: 'bold', color: '#004d5a' }}>
                       {f.numero || '—'}
-                      {f.non_conforme && (
-                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#e65100', background: '#fff3e0', borderRadius: '8px', padding: '1px 6px', display: 'inline-block', marginTop: '3px' }}>
-                          Non conforme
-                        </div>
-                      )}
                     </td>
                     <td style={{ padding: '10px', fontSize: '13px' }}>{f.fournisseur}</td>
                     <td style={{ padding: '10px', fontSize: '13px', color: '#666' }}>
@@ -825,18 +820,19 @@ export default function FacturesFournisseurs() {
                             🏷️
                           </button>
                         )}
-                        {/* Facture non conforme : hors calcul de l'impôt */}
+                        {/* Statut de conformité : vert = conforme (par défaut), orange = non conforme (hors calcul de l'impôt) */}
                         {f.statut !== 'ANNULEE' && (
                           <button
-                            style={{ ...styles.boutonSecondaire, padding: '4px 8px', fontSize: '11px',
-                              color: '#e65100', borderColor: '#e65100',
-                              background: f.non_conforme ? '#fff3e0' : 'white' }}
+                            style={{ ...styles.boutonSecondaire, padding: '4px 8px', fontSize: '11px', fontWeight: 'bold',
+                              color: f.non_conforme ? '#e65100' : '#2e7d32',
+                              borderColor: f.non_conforme ? '#e65100' : '#2e7d32',
+                              background: f.non_conforme ? '#fff3e0' : '#e8f5e9' }}
                             onClick={() => basculerNonConforme(f)}
                             title={f.non_conforme
-                              ? 'Facture non conforme (hors calcul de l\'impôt) : cliquer pour la rendre conforme'
-                              : 'Marquer non conforme : la facture ne sera pas prise en compte dans le calcul de l\'impôt'}
+                              ? 'Facture NON conforme (hors calcul de l\'impôt) : cliquer pour la rendre conforme'
+                              : 'Facture conforme (prise en compte dans l\'impôt) : cliquer pour la marquer non conforme'}
                           >
-                            {f.non_conforme ? '↩ Conforme' : 'Non conforme'}
+                            {f.non_conforme ? '✗ Non conforme' : '✓ Conforme'}
                           </button>
                         )}
                         {/* Voir scan */}
