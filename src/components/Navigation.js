@@ -29,7 +29,7 @@ const menuItemsAdmin = [
 ];
 
 export default function Navigation({ children }) {
-  const { entreprise, deconnexion, moduleActif, isAdmin, utilisateur, ongletAutorise } = useAuth();
+  const { entreprise, deconnexion, moduleActif, isAdmin, utilisateur, ongletAutorise, changerEntreprise } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOuvert, setMenuOuvert] = useState(true);
@@ -234,6 +234,15 @@ export default function Navigation({ children }) {
             }}>
               👋 {utilisateur ? `${utilisateur.nom} — ${entreprise?.nom}` : entreprise?.nom}
             </div>
+            {utilisateur?.cabinet && (
+              <button
+                onClick={() => { changerEntreprise(); navigate('/cabinet'); }}
+                title="Revenir à la liste des entreprises du cabinet"
+                style={{ background: '#004d5a', border: '1px solid #004d5a', color: 'white', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}
+              >
+                🔄 Changer d'entreprise
+              </button>
+            )}
             <button
               onClick={deconnexion}
               title="Déconnexion"

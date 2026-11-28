@@ -24,7 +24,7 @@ export default function Login() {
       : await connexion(email, motDePasse);
 
     if (resultat.success) {
-      navigate(modeAdmin ? '/admin' : '/dashboard');
+      navigate(modeAdmin ? '/admin' : (resultat.cabinet ? '/cabinet' : '/dashboard'));
     } else {
       setErreur(resultat.message);
     }

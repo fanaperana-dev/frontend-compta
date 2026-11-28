@@ -10,7 +10,11 @@ const api = axios.create({
 
 // Ajouter le token automatiquement à chaque requête
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
+  // Les routes de l'espace cabinet (liste d'entreprises) utilisent le jeton du cabinet, pas celui d'une entreprise ouverte
+  const estRouteCabinet = /^\/cabinet(\/|$)/.test(config.url || '');
+  const token = estRouteCabinet
+    ? (localStorage.getItem('token_cabinet') || localStorage.getItem('token'))
+    : localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,9 +25,14 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 403 && error.response?.data?.acces_cabinet_retire) {
+      // Le cabinet n'a plus accès à l'entreprise ouverte : retour à la liste des entreprises
       localStorage.removeItem('token');
       localStorage.removeItem('entreprise');
+      localStorage.removeItem('utilisateur');
+      window.location.href = '/cabinet';
+    } else if (error.response?.status === 401) {
+      ['token', 'entreprise', 'utilisateur', 'token_cabinet', 'cabinet', 'utilisateur_cabinet'].forEach((k) => localStorage.removeItem(k));
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -42,8 +51,7 @@ export const authService = {
     api.post('/auth/admin/connexion', { email, mot_de_passe }),
 
   deconnexion: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('entreprise');
+    ['token', 'entreprise', 'utilisateur', 'token_cabinet', 'cabinet', 'utilisateur_cabinet'].forEach((k) => localStorage.removeItem(k));
     window.location.href = '/login';
   }
 };
@@ -439,4 +447,25 @@ export const utilisateurService = {
   // utilisateur connecté : choisir son mot de passe après le provisoire
   changerMonMotDePasse: (data) => api.post('/utilisateurs/moi/mot-de-passe', data)
 };
+// Espace cabinet : une personne d'un cabinet liste ses entreprises, en ouvre une, choisit son mot de passe
+export const cabinetService = {
+  entreprises: () => api.get('/cabinet/entreprises'),
+  ouvrir: (entrepriseId) => api.post(`/cabinet/ouvrir/${entrepriseId}`),
+  changerMotDePasse: (data) => api.post('/cabinet/mot-de-passe', data)
+};
+
+// Super-admin : cabinets, leurs personnes et leurs entreprises
+export const cabinetAdminService = {
+  lister: () => api.get('/cabinets'),
+  creer: (data) => api.post('/cabinets', data),
+  detail: (id) => api.get(`/cabinets/${id}`),
+  modifier: (id, data) => api.put(`/cabinets/${id}`, data),
+  supprimer: (id) => api.delete(`/cabinets/${id}`),
+  fixerEntreprises: (id, entreprise_ids) => api.put(`/cabinets/${id}/entreprises`, { entreprise_ids }),
+  creerUtilisateur: (id, data) => api.post(`/cabinets/${id}/utilisateurs`, data),
+  modifierUtilisateur: (id, uid, data) => api.put(`/cabinets/${id}/utilisateurs/${uid}`, data),
+  resetMdp: (id, uid) => api.post(`/cabinets/${id}/utilisateurs/${uid}/reset-mdp`),
+  supprimerUtilisateur: (id, uid) => api.delete(`/cabinets/${id}/utilisateurs/${uid}`)
+};
+
 export default api;

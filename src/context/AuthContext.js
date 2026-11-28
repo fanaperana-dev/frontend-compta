@@ -8,6 +8,8 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [cabinet, setCabinet] = useState(null); // { id, nom } si la personne s'est connectée via un cabinet
+  const [utilisateurCabinet, setUtilisateurCabinet] = useState(null);
   const [utilisateur, setUtilisateur] = useState(null); // null = compte principal de l'entreprise (tous les onglets)
 
   // Vérifier si déjà connecté au chargement
@@ -15,6 +17,15 @@ export function AuthProvider({ children }) {
     const tokenStocke = localStorage.getItem('token');
     const entrepriseStockee = localStorage.getItem('entreprise');
     const adminStocke = localStorage.getItem('isAdmin');
+
+    try {
+      const c = localStorage.getItem('cabinet');
+      if (c && localStorage.getItem('token_cabinet')) {
+        setCabinet(JSON.parse(c));
+        const uc = localStorage.getItem('utilisateur_cabinet');
+        setUtilisateurCabinet(uc ? JSON.parse(uc) : null);
+      }
+    } catch (e) { setCabinet(null); }
 
     if (tokenStocke && entrepriseStockee) {
       setToken(tokenStocke);
@@ -30,7 +41,7 @@ export function AuthProvider({ children }) {
   }, []);
   // Déconnexion automatique après 15 minutes d'inactivité
 useEffect(() => {
-  if (!token) return;
+  if (!token && !cabinet) return;
 
   let timer;
 
@@ -41,10 +52,13 @@ useEffect(() => {
       localStorage.removeItem('entreprise');
       localStorage.removeItem('isAdmin');
       localStorage.removeItem('utilisateur');
+      ['token_cabinet', 'cabinet', 'utilisateur_cabinet'].forEach((k) => localStorage.removeItem(k));
       setToken(null);
       setEntreprise(null);
       setIsAdmin(false);
       setUtilisateur(null);
+      setCabinet(null);
+      setUtilisateurCabinet(null);
       alert('Vous avez été déconnecté automatiquement après 15 minutes d\'inactivité.');
     }, 15 * 60 * 1000); // 15 minutes
   }
@@ -61,13 +75,27 @@ useEffect(() => {
     clearTimeout(timer);
     evenements.forEach(evt => window.removeEventListener(evt, resetTimer));
   };
-}, [token]);
+}, [token, cabinet]);
   // Connexion entreprise
   async function connexion(email, mot_de_passe) {
   try {
     const response = await authService.connexion(email, mot_de_passe);
     const { token, entreprise, utilisateur: util } = response.data;
 
+    // Connexion d'une personne d'un cabinet : on garde son jeton à part et on l'envoie vers sa liste d'entreprises
+    if (response.data.role === 'cabinet') {
+      ['token', 'entreprise', 'utilisateur', 'isAdmin'].forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem('token_cabinet', token);
+      localStorage.setItem('cabinet', JSON.stringify(response.data.cabinet));
+      localStorage.setItem('utilisateur_cabinet', JSON.stringify(util));
+      setToken(null); setEntreprise(null); setIsAdmin(false); setUtilisateur(null);
+      setCabinet(response.data.cabinet);
+      setUtilisateurCabinet(util);
+      return { success: true, cabinet: true };
+    }
+
+    ['token_cabinet', 'cabinet', 'utilisateur_cabinet'].forEach((k) => localStorage.removeItem(k));
+    setCabinet(null); setUtilisateurCabinet(null);
     localStorage.setItem('token', token);
     localStorage.setItem('entreprise', JSON.stringify(entreprise));
     localStorage.setItem('isAdmin', 'false');
@@ -118,12 +146,42 @@ useEffect(() => {
     }
   }
 
+  // Ouvrir une entreprise depuis la liste du cabinet : on reçoit un jeton d'entreprise normal
+  function ouvrirEntreprise(data) {
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('entreprise', JSON.stringify(data.entreprise));
+    localStorage.setItem('isAdmin', 'false');
+    localStorage.setItem('utilisateur', JSON.stringify(data.utilisateur));
+    setToken(data.token);
+    setEntreprise(data.entreprise);
+    setIsAdmin(false);
+    setUtilisateur(data.utilisateur);
+  }
+
+  // Retour à la liste des entreprises du cabinet, sans se reconnecter
+  function changerEntreprise() {
+    ['token', 'entreprise', 'isAdmin', 'utilisateur'].forEach((k) => localStorage.removeItem(k));
+    setToken(null);
+    setEntreprise(null);
+    setIsAdmin(false);
+    setUtilisateur(null);
+  }
+
+  function majUtilisateurCabinet(champs) {
+    const u = { ...utilisateurCabinet, ...champs };
+    localStorage.setItem('utilisateur_cabinet', JSON.stringify(u));
+    setUtilisateurCabinet(u);
+  }
+
   // Déconnexion
   function deconnexion() {
     localStorage.removeItem('token');
     localStorage.removeItem('entreprise');
     localStorage.removeItem('isAdmin');
     localStorage.removeItem('utilisateur');
+    ['token_cabinet', 'cabinet', 'utilisateur_cabinet'].forEach((k) => localStorage.removeItem(k));
+    setCabinet(null);
+    setUtilisateurCabinet(null);
 
     setToken(null);
     setEntreprise(null);
@@ -158,6 +216,11 @@ useEffect(() => {
 
   return (
     <AuthContext.Provider value={{
+      cabinet,
+      utilisateurCabinet,
+      majUtilisateurCabinet,
+      ouvrirEntreprise,
+      changerEntreprise,
       utilisateur,
       majUtilisateur,
       ongletAutorise,

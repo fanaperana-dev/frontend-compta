@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
-import { utilisateurService } from '../services/api';
+import { utilisateurService, cabinetService } from '../services/api';
 
 // Affiché à la place de l'application tant que l'utilisateur n'a pas remplacé son mot de passe provisoire
-export default function ChangementMotDePasse() {
-  const { utilisateur, majUtilisateur, deconnexion } = useAuth();
+export default function ChangementMotDePasse({ cabinet = false }) {
+  const auth = useAuth();
+  const { deconnexion } = auth;
+  const utilisateur = cabinet ? auth.utilisateurCabinet : auth.utilisateur;
+  const majUtilisateur = cabinet ? auth.majUtilisateurCabinet : auth.majUtilisateur;
   const [ancien, setAncien] = useState('');
   const [nouveau, setNouveau] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -19,7 +22,7 @@ export default function ChangementMotDePasse() {
     if (nouveau !== confirmation) return toast.error('La confirmation ne correspond pas.');
     setEnCours(true);
     try {
-      await utilisateurService.changerMonMotDePasse({ ancien_mot_de_passe: ancien, nouveau_mot_de_passe: nouveau });
+      await (cabinet ? cabinetService : utilisateurService)[cabinet ? 'changerMotDePasse' : 'changerMonMotDePasse']({ ancien_mot_de_passe: ancien, nouveau_mot_de_passe: nouveau });
       toast.success('Mot de passe enregistré.');
       majUtilisateur({ doit_changer_mdp: false });
     } catch (err) {

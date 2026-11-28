@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const menuItemsAdmin = [
   { path: '/superadmin/demandes', label: '📋 Demandes inscription' },
   { path: '/admin/entreprises', icon: '🏢', label: 'Entreprises' },
+  { path: '/admin/cabinets', icon: '🏛️', label: 'Cabinets' },
   { path: '/admin/forfaits', icon: '📦', label: 'Forfaits' },
   { path: '/admin/templates', icon: '🎨', label: 'Templates' },
   { path: '/admin/tickets', icon: '🎫', label: 'Tickets' },

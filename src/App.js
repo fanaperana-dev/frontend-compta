@@ -26,6 +26,8 @@ import NavigationAdmin from './components/NavigationAdmin';
 import SuperAdminTemplates from './pages/superadmin/SuperAdminTemplates';
 import SuperAdminTickets from './pages/superadmin/SuperAdminTickets';
 import SuperAdminAbonnements from './pages/superadmin/SuperAdminAbonnements';
+import SuperAdminCabinets from './pages/superadmin/SuperAdminCabinets';
+import CabinetPage from './pages/CabinetPage';
 import SuperAdminCorrections from './pages/superadmin/SuperAdminCorrections';
 import SuperAdminImport from './pages/superadmin/SuperAdminImport';
 import SuperAdminDemandes from './pages/superadmin/SuperAdminDemandes';
@@ -49,9 +51,9 @@ function RouteAdmin({ children }) {
 }
 // Route protégée entreprise
 function RouteProtegee({ children }) {
-  const { token, isAdmin, utilisateur, ongletAutorise } = useAuth();
+  const { token, isAdmin, utilisateur, ongletAutorise, cabinet } = useAuth();
   const location = useLocation();
-  if (!token) return <Navigate to="/login" />;
+  if (!token) return <Navigate to={cabinet ? '/cabinet' : '/login'} />;
   if (isAdmin) return <Navigate to="/admin" />;
   // Utilisateur de l'entreprise : on ne montre que les onglets cochés (accès direct par l'adresse compris)
   if (utilisateur && utilisateur.doit_changer_mdp) return <ChangementMotDePasse />;
@@ -83,6 +85,9 @@ function App() {
         
           {/* Page login */}
           <Route path="/login" element={<Login />} />
+
+          {/* Espace cabinet : liste des entreprises du cabinet */}
+          <Route path="/cabinet" element={<CabinetPage />} />
 
           {/* Redirection par défaut */}
           <Route path="/" element={<Navigate to="/login" />} />
@@ -235,6 +240,11 @@ function App() {
           <Route path="/admin/abonnements" element={
             <RouteAdmin>
               <SuperAdminAbonnements />
+            </RouteAdmin>
+          } />
+          <Route path="/admin/cabinets" element={
+            <RouteAdmin>
+              <SuperAdminCabinets />
             </RouteAdmin>
           } />
           <Route path="/admin/corrections" element={
